@@ -4,6 +4,7 @@
 module Text.Digestive.Types where
 
 import Data.Monoid (Monoid (..))
+import Control.Monad (liftM2, mplus)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, put, evalStateT)
 import Control.Monad.Trans (lift)
@@ -41,6 +42,20 @@ newtype FormId = FormId {unFormId :: Integer}
 data FormRange = FormRange FormId FormId
              deriving (Show)
 
+-- | Check if a 'FormId' is contained in a 'FormRange'
+--
+isInRange :: FormId     -- ^ Id to check for
+          -> FormRange  -- ^ Range
+          -> Bool       -- ^ If the range contains the id
+isInRange a (FormRange b c) = a >= b && a < c
+
+-- | Check if a 'FormRange' is contained in another 'FormRange'
+--
+isSubRange :: FormRange  -- ^ Sub-range
+           -> FormRange  -- ^ Larger range
+           -> Bool       -- ^ If the sub-range is contained in the larger range
+isSubRange (FormRange a b) (FormRange c d) = a >= c && b <= d
+
 -- | A view represents a visual representation of a form. It is composed of a
 -- function which takes a list of all errors and then produces a new view
 --
@@ -58,9 +73,35 @@ newtype Environment m i = Environment
     { unEnvironment :: FormId -> m (Maybe i)
     }
 
+instance Monad m => Monoid (Environment m i) where
+    mempty = Environment $ const $ return Nothing
+    (Environment f1) `mappend` (Environment f2) = Environment $ \id' ->
+        liftM2 mplus (f1 id') (f2 id')
+
 -- | The form state is a state monad under which our applicatives are composed
 --
 type FormState m i a = ReaderT (Environment m i) (StateT FormRange m) a
+
+-- | Utility function: returns the current 'FormId'. This will only make sense
+-- if the form is not composed
+--
+getFormId :: Monad m => FormState m i FormId
+getFormId = do
+    FormRange x _ <- get
+    return x
+
+-- | Utility function: Get the current range
+--
+getFormRange :: Monad m => FormState m i FormRange
+getFormRange = get
+
+-- | Utility function: Get the current input
+--
+getFormInput :: Monad m => FormState m i (Maybe i)
+getFormInput = do
+    id' <- getFormId
+    env <- ask
+    lift $ lift $ unEnvironment env id'
 
 -- | A form represents a number of composed fields
 --
@@ -87,28 +128,15 @@ instance (Monad m, Monoid v) => Applicative (Form m inp v) where
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
 
--- | Utility function: returns the current 'FormId'. This will only make sense
--- if the form is not composed
---
-getFormId :: Monad m => FormState m i FormId
-getFormId = do
-    FormRange x _ <- get
-    return x
-
--- | Utility function: Get the current range
---
-getFormRange :: Monad m => FormState m i FormRange
-getFormRange = get
-
--- | Utility function: Get the current input
---
-getFormInput :: Monad m => FormState m i (Maybe i)
-getFormInput = do
-    id' <- getFormId
-    env <- ask
-    lift $ lift $ unEnvironment env id'
-
--- | Run a form state
+-- | Run a form
 --
 runForm :: Monad m => Form m i v a -> Environment m i -> m (View v, Result a)
 runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
+
+-- | Evaluate a form to it's view if it fails
+--
+eitherForm :: Monad m => Form m i v a -> Environment m i -> m (Either v a)
+eitherForm form env = do
+    (view, result) <- runForm form env
+    return $ case result of Error e -> Left $ unView view e
+                            Ok x    -> Right x
