@@ -40,7 +40,7 @@ newtype FormId = FormId {unFormId :: Integer}
 -- | A range of ID's to specify a group of forms
 --
 data FormRange = FormRange FormId FormId
-             deriving (Show)
+               deriving (Eq, Show)
 
 -- | Check if a 'FormId' is contained in a 'FormRange'
 --
@@ -55,6 +55,11 @@ isSubRange :: FormRange  -- ^ Sub-range
            -> FormRange  -- ^ Larger range
            -> Bool       -- ^ If the sub-range is contained in the larger range
 isSubRange (FormRange a b) (FormRange c d) = a >= c && b <= d
+
+-- | Select the errors for a certain range
+--
+retainExactErrors :: FormRange -> [(FormRange, String)] -> [String]
+retainExactErrors range = map snd . filter ((== range) . fst)
 
 -- | A view represents a visual representation of a form. It is composed of a
 -- function which takes a list of all errors and then produces a new view
@@ -127,6 +132,23 @@ instance (Monad m, Monoid v) => Applicative (Form m inp v) where
 
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
+
+-- | Change the view of a form using a function which takes
+--
+-- * The current form range
+--
+-- * The list of all errors (TODO: filter?)
+--
+-- * The original view
+--
+mapView :: Monad m
+        => (FormRange -> [(FormRange, String)] -> v -> v)  -- ^ Manipulator
+        -> Form m i v a                                    -- ^ Initial form
+        -> Form m i v a                                    -- ^ Resulting form
+mapView f form = Form $ do
+    (view, result) <- unForm form
+    range <- getFormRange
+    return (View (\err -> f range err (unView view err)), result)
 
 -- | Run a form
 --
