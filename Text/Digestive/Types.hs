@@ -4,8 +4,8 @@
 module Text.Digestive.Types where
 
 import Data.Monoid (Monoid (..))
-import Control.Monad.Reader (ReaderT, ask)
-import Control.Monad.State (StateT, get, put)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
+import Control.Monad.State (StateT, get, put, evalStateT)
 import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative (..))
 
@@ -107,3 +107,8 @@ getFormInput = do
     id' <- getFormId
     env <- ask
     lift $ lift $ unEnvironment env id'
+
+-- | Run a form state
+--
+runForm :: Monad m => Form m i v a -> Environment m i -> m (View v, Result a)
+runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
