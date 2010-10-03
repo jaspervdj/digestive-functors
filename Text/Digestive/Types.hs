@@ -114,8 +114,8 @@ newtype Form m i v a = Form {unForm :: FormState m i (View v, Result a)}
 
 instance Monad m => Functor (Form m inp v) where
     fmap f form = Form $ do
-        (view, result) <- unForm form
-        return (view, fmap f result)
+        (view', result) <- unForm form
+        return (view', fmap f result)
 
 instance (Monad m, Monoid v) => Applicative (Form m inp v) where
     pure x = Form $ return (mempty, return x)
@@ -133,6 +133,13 @@ instance (Monad m, Monoid v) => Applicative (Form m inp v) where
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
 
+-- | Insert a view into the functor
+--
+view :: Monad m
+     => v              -- ^ View to insert
+     -> Form m i v ()  -- ^ Resulting form
+view view' = Form $ return (View (const view'), Ok ())
+
 -- | Change the view of a form using a function which takes
 --
 -- * The current form range
@@ -146,9 +153,9 @@ mapView :: Monad m
         -> Form m i v a                                    -- ^ Initial form
         -> Form m i v a                                    -- ^ Resulting form
 mapView f form = Form $ do
-    (view, result) <- unForm form
+    (view', result) <- unForm form
     range <- getFormRange
-    return (View (\err -> f range err (unView view err)), result)
+    return (View (\err -> f range err (unView view' err)), result)
 
 -- | Run a form
 --
@@ -159,6 +166,6 @@ runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
 --
 eitherForm :: Monad m => Form m i v a -> Environment m i -> m (Either v a)
 eitherForm form env = do
-    (view, result) <- runForm form env
-    return $ case result of Error e -> Left $ unView view e
+    (view', result) <- runForm form env
+    return $ case result of Error e -> Left $ unView view' e
                             Ok x    -> Right x
