@@ -28,7 +28,7 @@ prependLabel :: Monad m
              => Html
              -> Form m String Html String
              -> Form m String Html String
-prependLabel inner = mapView $ \(FormRange id' _) _ html -> do
+prependLabel inner = mapViewWithId $ \id' html -> do
     H.label ! A.for (H.stringValue $ show id')
             $ inner
     html
@@ -36,9 +36,8 @@ prependLabel inner = mapView $ \(FormRange id' _) _ html -> do
 appendErrors :: Monad m
              => Form m String Html String
              -> Form m String Html String
-appendErrors = mapView $ \range errors html -> do
+appendErrors = mapViewWithErrors $ \errors html -> do
     html
-    let errors' = retainExactErrors range errors
-    unless (null errors') $
-        H.ul $ forM_ errors' $ \e ->
+    unless (null errors) $
+        H.ul $ forM_ errors $ \e ->
             H.li $ H.string e

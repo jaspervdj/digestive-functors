@@ -58,8 +58,14 @@ isSubRange (FormRange a b) (FormRange c d) = a >= c && b <= d
 
 -- | Select the errors for a certain range
 --
-retainExactErrors :: FormRange -> [(FormRange, String)] -> [String]
-retainExactErrors range = map snd . filter ((== range) . fst)
+retainErrors :: FormRange -> [(FormRange, String)] -> [String]
+retainErrors range = map snd . filter ((== range) . fst)
+
+-- | Select the errors originating from this form or from any of the children of
+-- this form
+--
+retainChildErrors :: FormRange -> [(FormRange, String)] -> [String]
+retainChildErrors range = map snd . filter ((`isSubRange` range) . fst)
 
 -- | A view represents a visual representation of a form. It is composed of a
 -- function which takes a list of all errors and then produces a new view
@@ -140,19 +146,55 @@ view :: Monad m
      -> Form m i v ()  -- ^ Resulting form
 view view' = Form $ return (View (const view'), Ok ())
 
+-- | Change the view of a form using a simple function
+--
+mapView :: Monad m
+        => (v -> v)      -- ^ Manipulator
+        -> Form m i v a  -- ^ Initial form
+        -> Form m i v a  -- ^ Resulting form
+mapView f = mapViewWith (const $ const f)
+
+-- | Change the view of a form, with access to the current 'FormId'
+--
+mapViewWithId :: Monad m
+              => (FormId -> v -> v)  -- ^ Manipulator
+              -> Form m i v a        -- ^ Initial form
+              -> Form m i v a        -- ^ Resulting form
+mapViewWithId f = mapViewWith $ \(FormRange id' _) _ -> f id'
+
+-- | Change the view of a form, with access to the errors originating exactly
+-- from this form
+--
+mapViewWithErrors :: Monad m
+                  => ([String] -> v -> v)  -- ^ Manipulator
+                  -> Form m i v a          -- ^ Initial form
+                  -> Form m i v a          -- ^ Resulting form
+mapViewWithErrors f = mapViewWith $ \range errors ->
+    f $ retainErrors range errors
+
+-- | Change the view of a form, with access to the errors orginating from this
+-- form or any of it's children
+--
+mapViewWithChildErrors :: Monad m
+                       => ([String] -> v -> v)  -- ^ Manipulator
+                       -> Form m i v a          -- ^ Initial form
+                       -> Form m i v a          -- ^ Resulting form
+mapViewWithChildErrors f = mapViewWith $ \range errors ->
+    f $ retainChildErrors range errors
+
 -- | Change the view of a form using a function which takes
 --
 -- * The current form range
 --
--- * The list of all errors (TODO: filter?)
+-- * The list of all errors
 --
 -- * The original view
 --
-mapView :: Monad m
-        => (FormRange -> [(FormRange, String)] -> v -> v)  -- ^ Manipulator
-        -> Form m i v a                                    -- ^ Initial form
-        -> Form m i v a                                    -- ^ Resulting form
-mapView f form = Form $ do
+mapViewWith :: Monad m
+            => (FormRange -> [(FormRange, String)] -> v -> v)  -- ^ Manipulator
+            -> Form m i v a                                    -- ^ Initial form
+            -> Form m i v a                                    -- ^ Result
+mapViewWith f form = Form $ do
     (view', result) <- unForm form
     range <- getFormRange
     return (View (\err -> f range err (unView view' err)), result)
