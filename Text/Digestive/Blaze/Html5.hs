@@ -2,7 +2,7 @@
 module Text.Digestive.Blaze.Html5 where
 
 import Control.Applicative ((<$>))
-import Control.Monad (mplus, forM_)
+import Control.Monad (mplus, forM_, unless)
 import Data.Maybe (fromMaybe)
 
 import Text.Blaze.Html5 (Html, (!))
@@ -38,5 +38,7 @@ appendErrors :: Monad m
              -> Form m String Html String
 appendErrors = mapView $ \range errors html -> do
     html
-    H.ul $ forM_ (retainExactErrors range errors) $ \e ->
-        H.li $ H.string e
+    let errors' = retainExactErrors range errors
+    unless (null errors') $
+        H.ul $ forM_ errors' $ \e ->
+            H.li $ H.string e
