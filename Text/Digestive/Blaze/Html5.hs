@@ -21,11 +21,11 @@ inputString defaultInput = Common.inputString defaultInput $ \id' inp ->
             ! A.id (H.stringValue $ show id')
             ! A.value (H.stringValue $ fromMaybe "" inp)
 
-inputInteger :: (Monad m, Functor m)
-             => Maybe Integer
-             -> Form m String String Html Integer
-inputInteger defaultInput =
-    Common.inputInteger "Integer: No read" defaultInput $ \id' inp ->
+inputRead :: (Monad m, Functor m, Show a, Read a)
+          => Maybe a
+          -> Form m String String Html a
+inputRead defaultInput =
+    Common.inputRead "No read" defaultInput $ \id' inp ->
         H.input ! A.type_ "text"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')

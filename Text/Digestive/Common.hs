@@ -22,12 +22,12 @@ inputString defaultInput createView = Form $ do
     id' <- getFormId
     return (View (const $ createView id' inp), Ok $ fromMaybe "" inp)
 
-inputInteger :: (Monad m, Functor m)
-             => e                              -- ^ Error when no read
-             -> Maybe Integer                  -- ^ Default input
-             -> (FormId -> Maybe String -> v)  -- ^ View constructor
-             -> Form m String e v Integer      -- ^ Resulting form
-inputInteger error' defaultInput createView = Form $ do
+inputRead :: (Monad m, Functor m, Read a, Show a)
+          => e                              -- ^ Error when no read
+          -> Maybe a                        -- ^ Default input
+          -> (FormId -> Maybe String -> v)  -- ^ View constructor
+          -> Form m String e v a            -- ^ Resulting form
+inputRead error' defaultInput createView = Form $ do
     range <- getFormRange
     (view', result) <- unForm $ inputString defaultInput' createView
     return (view', result >>= readResult range)
