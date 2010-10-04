@@ -13,7 +13,7 @@ import Text.Digestive.Types
 
 inputString :: (Monad m, Functor m)
             => Maybe String
-            -> Form m String Html String
+            -> Form m String e Html String
 inputString defaultInput = Form $ do
     inp <- fromMaybe "" . (`mplus` defaultInput) <$> getFormInput
     id' <- getFormId
@@ -26,17 +26,26 @@ inputString defaultInput = Form $ do
 
 prependLabel :: Monad m
              => Html
-             -> Form m String Html String
-             -> Form m String Html String
+             -> Form m i e Html a
+             -> Form m i e Html a
 prependLabel inner = mapViewWithId $ \id' html -> do
     H.label ! A.for (H.stringValue $ show id')
             $ inner
     html
 
 appendErrors :: Monad m
-             => Form m String Html String
-             -> Form m String Html String
+             => Form m i String Html a
+             -> Form m i String Html a
 appendErrors = mapViewWithErrors $ \errors html -> do
+    html
+    unless (null errors) $
+        H.ul $ forM_ errors $ \e ->
+            H.li $ H.string e
+
+appendChildErrors :: Monad m
+                  => Form m i String Html a
+                  -> Form m i String Html a
+appendChildErrors = mapViewWithChildErrors $ \errors html -> do
     html
     unless (null errors) $
         H.ul $ forM_ errors $ \e ->

@@ -12,20 +12,20 @@ import Control.Applicative (Applicative (..))
 
 -- | Type for failing computations
 --
-data Result ok = Error [(FormRange, String)]
-               | Ok ok
-               deriving (Show)
+data Result e ok = Error [(FormRange, e)]
+                 | Ok ok
+                 deriving (Show)
 
-instance Functor Result where
+instance Functor (Result e) where
     fmap _ (Error x) = Error x
     fmap f (Ok x) = Ok (f x)
 
-instance Monad Result where
+instance Monad (Result e) where
     return = Ok
     Error x >>= _ = Error x
     Ok x >>= f = f x
 
-instance Applicative Result where
+instance Applicative (Result e) where
     pure = Ok
     Error x <*> Error y = Error $ x ++ y
     Error x <*> Ok _ = Error x
@@ -58,23 +58,23 @@ isSubRange (FormRange a b) (FormRange c d) = a >= c && b <= d
 
 -- | Select the errors for a certain range
 --
-retainErrors :: FormRange -> [(FormRange, String)] -> [String]
+retainErrors :: FormRange -> [(FormRange, e)] -> [e]
 retainErrors range = map snd . filter ((== range) . fst)
 
 -- | Select the errors originating from this form or from any of the children of
 -- this form
 --
-retainChildErrors :: FormRange -> [(FormRange, String)] -> [String]
+retainChildErrors :: FormRange -> [(FormRange, e)] -> [e]
 retainChildErrors range = map snd . filter ((`isSubRange` range) . fst)
 
 -- | A view represents a visual representation of a form. It is composed of a
 -- function which takes a list of all errors and then produces a new view
 --
-newtype View v = View
-    { unView :: [(FormRange, String)] -> v
+newtype View e v = View
+    { unView :: [(FormRange, e)] -> v
     }
 
-instance Monoid v => Monoid (View v) where
+instance Monoid v => Monoid (View e v) where
     mempty = View $ const mempty
     mappend (View f) (View g) = View $ \err -> mappend (f err) (g err)
 
@@ -116,14 +116,14 @@ getFormInput = do
 
 -- | A form represents a number of composed fields
 --
-newtype Form m i v a = Form {unForm :: FormState m i (View v, Result a)}
+newtype Form m i e v a = Form {unForm :: FormState m i (View e v, Result e a)}
 
-instance Monad m => Functor (Form m inp v) where
+instance Monad m => Functor (Form m i e v) where
     fmap f form = Form $ do
         (view', result) <- unForm form
         return (view', fmap f result)
 
-instance (Monad m, Monoid v) => Applicative (Form m inp v) where
+instance (Monad m, Monoid v) => Applicative (Form m i e v) where
     pure x = Form $ return (mempty, return x)
     f1 <*> f2 = Form $ do
         -- Assuming f1 already has a valid ID
@@ -142,33 +142,33 @@ instance (Monad m, Monoid v) => Applicative (Form m inp v) where
 -- | Insert a view into the functor
 --
 view :: Monad m
-     => v              -- ^ View to insert
-     -> Form m i v ()  -- ^ Resulting form
+     => v                -- ^ View to insert
+     -> Form m i e v ()  -- ^ Resulting form
 view view' = Form $ return (View (const view'), Ok ())
 
 -- | Change the view of a form using a simple function
 --
 mapView :: Monad m
-        => (v -> v)      -- ^ Manipulator
-        -> Form m i v a  -- ^ Initial form
-        -> Form m i v a  -- ^ Resulting form
+        => (v -> v)        -- ^ Manipulator
+        -> Form m i e v a  -- ^ Initial form
+        -> Form m i e v a  -- ^ Resulting form
 mapView f = mapViewWith (const $ const f)
 
 -- | Change the view of a form, with access to the current 'FormId'
 --
 mapViewWithId :: Monad m
               => (FormId -> v -> v)  -- ^ Manipulator
-              -> Form m i v a        -- ^ Initial form
-              -> Form m i v a        -- ^ Resulting form
+              -> Form m i e v a      -- ^ Initial form
+              -> Form m i e v a      -- ^ Resulting form
 mapViewWithId f = mapViewWith $ \(FormRange id' _) _ -> f id'
 
 -- | Change the view of a form, with access to the errors originating exactly
 -- from this form
 --
 mapViewWithErrors :: Monad m
-                  => ([String] -> v -> v)  -- ^ Manipulator
-                  -> Form m i v a          -- ^ Initial form
-                  -> Form m i v a          -- ^ Resulting form
+                  => ([e] -> v -> v)  -- ^ Manipulator
+                  -> Form m i e v a   -- ^ Initial form
+                  -> Form m i e v a   -- ^ Resulting form
 mapViewWithErrors f = mapViewWith $ \range errors ->
     f $ retainErrors range errors
 
@@ -176,9 +176,9 @@ mapViewWithErrors f = mapViewWith $ \range errors ->
 -- form or any of it's children
 --
 mapViewWithChildErrors :: Monad m
-                       => ([String] -> v -> v)  -- ^ Manipulator
-                       -> Form m i v a          -- ^ Initial form
-                       -> Form m i v a          -- ^ Resulting form
+                       => ([e] -> v -> v)  -- ^ Manipulator
+                       -> Form m i e v a   -- ^ Initial form
+                       -> Form m i e v a   -- ^ Resulting form
 mapViewWithChildErrors f = mapViewWith $ \range errors ->
     f $ retainChildErrors range errors
 
@@ -191,9 +191,9 @@ mapViewWithChildErrors f = mapViewWith $ \range errors ->
 -- * The original view
 --
 mapViewWith :: Monad m
-            => (FormRange -> [(FormRange, String)] -> v -> v)  -- ^ Manipulator
-            -> Form m i v a                                    -- ^ Initial form
-            -> Form m i v a                                    -- ^ Result
+            => (FormRange -> [(FormRange, e)] -> v -> v)  -- ^ Manipulator
+            -> Form m i e v a                             -- ^ Initial form
+            -> Form m i e v a                             -- ^ Result
 mapViewWith f form = Form $ do
     (view', result) <- unForm form
     range <- getFormRange
@@ -201,12 +201,18 @@ mapViewWith f form = Form $ do
 
 -- | Run a form
 --
-runForm :: Monad m => Form m i v a -> Environment m i -> m (View v, Result a)
+runForm :: Monad m
+        => Form m i e v a
+        -> Environment m i
+        -> m (View e v, Result e a)
 runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
 
 -- | Evaluate a form to it's view if it fails
 --
-eitherForm :: Monad m => Form m i v a -> Environment m i -> m (Either v a)
+eitherForm :: Monad m
+           => Form m i e v a
+           -> Environment m i
+           -> m (Either v a)
 eitherForm form env = do
     (view', result) <- runForm form env
     return $ case result of Error e -> Left $ unView view' e

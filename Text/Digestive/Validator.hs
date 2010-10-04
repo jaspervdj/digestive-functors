@@ -10,16 +10,16 @@ import Text.Digestive.Types
 
 -- | A validator
 --
-newtype Validator m a = Validator {unValidator :: a -> m [String]}
+newtype Validator m e a = Validator {unValidator :: a -> m [e]}
 
-instance Monad m => Monoid (Validator m inp) where
+instance Monad m => Monoid (Validator m e a) where
     mempty = Validator $ const $ return mempty
     v1 `mappend` v2 = Validator $ \inp ->
         liftM2 mappend (unValidator v1 inp) (unValidator v2 inp)
 
 -- | Attach 'Validator's to a 'Form'
 --
-validate :: Monad m => Form m inp v a -> [Validator m a] -> Form m inp v a
+validate :: Monad m => Form m i e v a -> [Validator m e a] -> Form m i e v a
 validate form validators = Form $ do
     (view', result) <- unForm form
     range <- getFormRange
@@ -38,17 +38,17 @@ validate form validators = Form $ do
 -- | Easy way to create a pure validator
 --
 check :: Monad m
-      => String         -- ^ Error message
-      -> (a -> Bool)    -- ^ Actual validation
-      -> Validator m a  -- ^ Resulting validator
+      => e                -- ^ Error message
+      -> (a -> Bool)      -- ^ Actual validation
+      -> Validator m e a  -- ^ Resulting validator
 check error' = checkM error' . (return .)
 
 -- | Easy way to create a monadic validator
 --
 checkM :: Monad m
-       => String         -- ^ Error message
-       -> (a -> m Bool)  -- ^ Actual validation
-       -> Validator m a  -- ^ Resulting validator
+       => e                -- ^ Error message
+       -> (a -> m Bool)    -- ^ Actual validation
+       -> Validator m e a  -- ^ Resulting validator
 checkM error' f = Validator $ \x -> do
     valid <- f x
     return $ if valid then [] else [error']
