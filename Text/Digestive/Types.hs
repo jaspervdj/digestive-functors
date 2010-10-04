@@ -35,7 +35,10 @@ instance Applicative (Result e) where
 -- | An ID used to identify forms
 --
 newtype FormId = FormId {unFormId :: Integer}
-               deriving (Eq, Ord, Show, Num)
+               deriving (Eq, Ord, Num)
+
+instance Show FormId where
+    show (FormId x) = 'f' : show x
 
 -- | A range of ID's to specify a group of forms
 --
