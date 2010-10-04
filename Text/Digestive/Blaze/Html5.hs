@@ -10,19 +10,26 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import Text.Digestive.Types
+import qualified Text.Digestive.Common as Common
 
 inputString :: (Monad m, Functor m)
             => Maybe String
             -> Form m String e Html String
-inputString defaultInput = Form $ do
-    inp <- fromMaybe "" . (`mplus` defaultInput) <$> getFormInput
-    id' <- getFormId
-    return (html id' inp, Ok inp)
-  where
-    html id' inp = View $ const $ H.input ! A.type_ "text"
-                                          ! A.name (H.stringValue $ show id')
-                                          ! A.id (H.stringValue $ show id')
-                                          ! A.value (H.stringValue inp)
+inputString defaultInput = Common.inputString defaultInput $ \id' inp ->
+    H.input ! A.type_ "text"
+            ! A.name (H.stringValue $ show id')
+            ! A.id (H.stringValue $ show id')
+            ! A.value (H.stringValue $ fromMaybe "" inp)
+
+inputInteger :: (Monad m, Functor m)
+             => Maybe Integer
+             -> Form m String String Html Integer
+inputInteger defaultInput =
+    Common.inputInteger "Integer: No read" defaultInput $ \id' inp ->
+        H.input ! A.type_ "text"
+                ! A.name (H.stringValue $ show id')
+                ! A.id (H.stringValue $ show id')
+                ! A.value (H.stringValue $ fromMaybe "" inp)
 
 prependLabel :: Monad m
              => Html
