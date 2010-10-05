@@ -32,6 +32,12 @@ instance Applicative (Result e) where
     Ok _ <*> Error y = Error y
     Ok x <*> Ok y = Ok $ x y
 
+instance Monoid (Result e a) where
+    mempty = Error []
+    Error x `mappend` Error y = Error $ x ++ y
+    Error _ `mappend` Ok x = Ok x
+    Ok x `mappend` _ = Ok x
+
 -- | An ID used to identify forms
 --
 newtype FormId = FormId {unFormId :: Integer}
@@ -151,6 +157,13 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
 
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
+
+instance (Monad m, Monoid v) => Monoid (Form m i e v a) where
+    mempty = Form $ return (mempty, mempty)
+    f1 `mappend` f2 = Form $ do
+        (v1, r1) <- unForm f1
+        (v2, r2) <- unForm f2
+        return (v1 `mappend` v2, r1 `mappend` r2)
 
 -- | Insert a view into the functor
 --
