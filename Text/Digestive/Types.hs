@@ -81,16 +81,18 @@ instance Monoid v => Monoid (View e v) where
     mempty = View $ const mempty
     mappend (View f) (View g) = View $ \err -> mappend (f err) (g err)
 
--- | The environment is where you get the actual input per form
+-- | The environment is where you get the actual input per form. The environment
+-- itself is optional
 --
-newtype Environment m i = Environment
-    { unEnvironment :: FormId -> m (Maybe i)
-    }
+data Environment m i = Environment (FormId -> m (Maybe i))
+                     | NoEnvironment
 
 instance Monad m => Monoid (Environment m i) where
-    mempty = Environment $ const $ return Nothing
-    (Environment f1) `mappend` (Environment f2) = Environment $ \id' ->
-        liftM2 mplus (f1 id') (f2 id')
+    mempty = NoEnvironment
+    NoEnvironment `mappend` x = x
+    x `mappend` NoEnvironment = x
+    (Environment env1) `mappend` (Environment env2) = Environment $ \id' ->
+        liftM2 mplus (env1 id') (env2 id')
 
 -- | The form state is a state monad under which our applicatives are composed
 --
@@ -115,7 +117,15 @@ getFormInput :: Monad m => FormState m i (Maybe i)
 getFormInput = do
     id' <- getFormId
     env <- ask
-    lift $ lift $ unEnvironment env id'
+    case env of Environment f -> lift $ lift $ f id'
+                NoEnvironment -> return Nothing
+
+-- | Check if any form input is present
+--
+isFormInput :: Monad m => FormState m i Bool
+isFormInput = ask >>= \env -> return $ case env of
+    Environment _ -> True
+    NoEnvironment -> False
 
 -- | A form represents a number of composed fields
 --

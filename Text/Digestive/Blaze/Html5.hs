@@ -31,6 +31,17 @@ inputRead defaultInput =
                 ! A.id (H.stringValue $ show id')
                 ! A.value (H.stringValue $ fromMaybe "" inp)
 
+inputBool :: (Monad m, Functor m)
+          => Bool
+          -> Form m String String Html Bool
+inputBool defaultInput = Common.inputBool defaultInput $ \id' inp ->
+    checked inp $ H.input ! A.type_ "checkbox"
+                          ! A.name (H.stringValue $ show id')
+                          ! A.id (H.stringValue $ show id')
+  where
+    checked False x = x
+    checked True  x = x ! A.checked "checked"
+
 prependLabel :: Monad m
              => Html
              -> Form m i e Html a
