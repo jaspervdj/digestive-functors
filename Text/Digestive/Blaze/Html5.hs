@@ -50,6 +50,13 @@ inputBool defaultInput = Common.inputBool defaultInput $ \id' inp ->
     checked False x = x
     checked True  x = x ! A.checked "checked"
 
+label :: Monad m
+      => String
+      -> Form m i e Html a
+label string = Common.label $ \id' ->
+    H.label ! A.for (H.stringValue $ show id')
+            $ H.string string
+
 prependLabel :: Monad m
              => Html
              -> Form m i e Html a

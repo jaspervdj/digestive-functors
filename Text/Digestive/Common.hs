@@ -3,6 +3,7 @@
 module Text.Digestive.Common where
 
 import Control.Monad (mplus)
+import Data.Monoid (mempty)
 import Data.Maybe (fromMaybe)
 
 import Text.Digestive.Types
@@ -58,3 +59,10 @@ inputBool = input toView toResult
     toResult inp _ = Ok $ readBool inp
     readBool (Just x) = not (null x)
     readBool Nothing  = False
+
+label :: Monad m
+      => (FormId -> v)
+      -> Form m i e v a
+label f = Form $ do
+    id' <- getFormId
+    return (View (const $ f id'), mempty)
