@@ -31,6 +31,14 @@ inputRead defaultInput =
                 ! A.id (H.stringValue $ show id')
                 ! A.value (H.stringValue $ fromMaybe "" inp)
 
+inputPassword :: (Monad m, Functor m)
+              => Form m String e Html String
+inputPassword = Common.inputString Nothing $ \id' inp ->
+    H.input ! A.type_ "password"
+            ! A.name (H.stringValue $ show id')
+            ! A.id (H.stringValue $ show id')
+            ! A.value (H.stringValue $ fromMaybe "" inp)
+
 inputBool :: (Monad m, Functor m)
           => Bool
           -> Form m String String Html Bool
