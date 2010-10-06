@@ -66,3 +66,17 @@ label :: Monad m
 label f = Form $ do
     id' <- getFormId
     return (View (const $ f id'), mempty)
+
+errors :: Monad m
+       => ([e] -> v)
+       -> Form m i e v a
+errors f = Form $ do
+    range <- getFormRange
+    return (View (f . retainErrors range), mempty)
+
+childErrors :: Monad m
+            => ([e] -> v)
+            -> Form m i e v a
+childErrors f = Form $ do
+    range <- getFormRange
+    return (View (f . retainChildErrors range), mempty)

@@ -57,15 +57,6 @@ label string = Common.label $ \id' ->
     H.label ! A.for (H.stringValue $ show id')
             $ H.string string
 
-prependLabel :: Monad m
-             => Html
-             -> Form m i e Html a
-             -> Form m i e Html a
-prependLabel inner = mapViewWithId $ \id' html -> do
-    H.label ! A.for (H.stringValue $ show id')
-            $ inner
-    html
-
 appendErrors :: Monad m
              => Form m i String Html a
              -> Form m i String Html a
