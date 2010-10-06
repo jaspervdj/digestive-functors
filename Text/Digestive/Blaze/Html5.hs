@@ -57,20 +57,15 @@ label string = Common.label $ \id' ->
     H.label ! A.for (H.stringValue $ show id')
             $ H.string string
 
-appendErrors :: Monad m
-             => Form m i String Html a
-             -> Form m i String Html a
-appendErrors = mapViewWithErrors $ \errors html -> do
-    html
-    unless (null errors) $
-        H.ul $ forM_ errors $ \e ->
-            H.li $ H.string e
+errorList :: [String] -> Html
+errorList errors = unless (null errors) $
+    H.ul $ forM_ errors $ \e ->
+        H.li $ H.string e
 
-appendChildErrors :: Monad m
-                  => Form m i String Html a
-                  -> Form m i String Html a
-appendChildErrors = mapViewWithChildErrors $ \errors html -> do
-    html
-    unless (null errors) $
-        H.ul $ forM_ errors $ \e ->
-            H.li $ H.string e
+errors :: Monad m
+       => Form m i String Html a
+errors = Common.errors errorList
+
+childErrors :: Monad m
+            => Form m i String Html a
+childErrors = Common.childErrors errorList
