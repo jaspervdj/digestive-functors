@@ -10,7 +10,13 @@ Introduction
 > import Text.Blaze (Html)
 
 Digestive Functors is a Haskell framework/library that provides a general way to
-create forms, based on *idioms*, or *applicative functors*.
+create forms, based on *idioms*, or *applicative functors*. It is an improvement
+of the original formets[^formlets] in a number of ways.
+
+[^formlets]: By formlets, we mean the Haskell `formlets` library by Chris
+    Eidhof, based on [http://groups.inf.ed.ac.uk/links/formlets/]().
+
+TODO: Insert references to chris's formlets package, and the original paper
 
 It differs from the original *formlets* package in a number of ways. Important
 benefits of our work is that:
@@ -27,8 +33,6 @@ benefits of our work is that:
 
 - While HTML forms remains the main focus, we do not want to be limited to it.
   Another backend could, for example, provide a command-line input prompt.
-
-TODO: Insert references to chris's formlets package, and the original paper
 
 A note on terminology: with "input field", we mean a **single** input field,
 the visual representation of a single HTML `<input>` element. With "form" we
@@ -123,13 +127,14 @@ Tracing errors
 There is always some sort of ID associated with every input field. This is a
 prerequisite of any form library -- our server will receive something like:
 
-TODO: actually correct log
-
-    field1=Jasper
-    field2=20
+    POST / HTTP/1.1
+    Content-Length: 23
+    Content-Type: application/x-www-form-urlencoded
+    
+    field1=jasper&field2=20
 
 If we had no ID associated with the input fields, we cannot construct a `User`,
-since we do not know if "Jasper" is the username or the age.
+since we do not know if "jasper" is the username or the age.
 
 This allows us to do basic error tracing: if we associate an ID with the error,
 we can trace it back to the corresponding input field. While this allows us to
