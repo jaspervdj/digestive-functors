@@ -8,6 +8,8 @@ Introduction
 > import Text.Digestive.Validator
 > import Text.Digestive.Blaze.Html5
 > import Text.Blaze (Html)
+> import Control.Monad.State
+> import Control.Applicative
 
 Digestive Functors is a Haskell framework/library that provides a general way to
 create forms, based on *idioms*, or *applicative functors*. It is an improvement
@@ -141,3 +143,51 @@ we can trace it back to the corresponding input field. While this allows us to
 do error tracing on *input fields*, it does not allow us to do error tracing on
 *forms*. Forms, by default, have no ID -- they are a composition of input
 fields. How can we represent this in our `Form` type?
+
+Composing forms in State
+------------------------
+
+TODO: Clarify that this section is about the *original* paper
+
+We first examine how the ID's are constructed in the applicative functor. The
+idea is very simple. Our `Couple` form could be represented visually using a
+simple tree structure:
+
+    Couple
+    |- User
+    |  |- Name
+    |  |- Age
+    |- User
+    |  |- Name
+    |  |- Age
+
+The requirements of the algorithm generating the ID's are very simple:
+
+- every leaf requires a different ID;
+- the ID's do not have to be in a partical order, however;
+- it has to be deterministic.
+
+Such an algoritm is easily written in the state monad. The `Form` type makes use
+of this by incorporating a state monad. When we want a different ID for every
+leaf, we basically want that when we use `a <*> b`, `a` will be assigned a
+different ID than `b`.
+
+This can be done by modifying our state in the `<*>` operator (we use `ap'`
+here, which is a simplified version for illustration purposes):
+
+> ap' :: State Int (a -> b) -> State Int a -> State Int b
+> ap' s1 s2 = do
+>     f <- s1
+>     modify (+ 1)
+>     x <- s2
+>     return $ f x
+
+This will generate the following tree:
+
+    Couple
+    |- User
+    |  |- Name (1)
+    |  |- Age  (2)
+    |- User
+    |  |- Name (3)
+    |  |- Age  (4)
