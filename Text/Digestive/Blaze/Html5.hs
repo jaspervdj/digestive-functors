@@ -59,8 +59,7 @@ label string = Common.label $ \id' ->
 
 errorList :: [String] -> Html
 errorList errors = unless (null errors) $
-    H.ul $ forM_ errors $ \e ->
-        H.li $ H.string e
+    H.ul $ forM_ errors $ H.li . H.string
 
 errors :: Monad m
        => Form m i String Html a

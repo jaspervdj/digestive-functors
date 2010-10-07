@@ -4,6 +4,7 @@
 module Text.Digestive.Types where
 
 import Data.Monoid (Monoid (..))
+import Control.Arrow (first)
 import Control.Monad (liftM2, mplus)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, put, evalStateT)
@@ -86,6 +87,9 @@ newtype View e v = View
 instance Monoid v => Monoid (View e v) where
     mempty = View $ const mempty
     mappend (View f) (View g) = View $ \err -> mappend (f err) (g err)
+
+instance Functor (View e) where
+    fmap f (View g) = View $ f . g
 
 -- | The environment is where you get the actual input per form. The environment
 -- itself is optional
@@ -174,56 +178,11 @@ view view' = Form $ return (View (const view'), Ok ())
 
 -- | Change the view of a form using a simple function
 --
-mapView :: Monad m
+mapView :: (Monad m, Functor m)
         => (v -> v)        -- ^ Manipulator
         -> Form m i e v a  -- ^ Initial form
         -> Form m i e v a  -- ^ Resulting form
-mapView f = mapViewWith (const $ const f)
-
--- | Change the view of a form, with access to the current 'FormId'
---
-mapViewWithId :: Monad m
-              => (FormId -> v -> v)  -- ^ Manipulator
-              -> Form m i e v a      -- ^ Initial form
-              -> Form m i e v a      -- ^ Resulting form
-mapViewWithId f = mapViewWith $ \(FormRange id' _) _ -> f id'
-
--- | Change the view of a form, with access to the errors originating exactly
--- from this form
---
-mapViewWithErrors :: Monad m
-                  => ([e] -> v -> v)  -- ^ Manipulator
-                  -> Form m i e v a   -- ^ Initial form
-                  -> Form m i e v a   -- ^ Resulting form
-mapViewWithErrors f = mapViewWith $ \range errors ->
-    f $ retainErrors range errors
-
--- | Change the view of a form, with access to the errors orginating from this
--- form or any of it's children
---
-mapViewWithChildErrors :: Monad m
-                       => ([e] -> v -> v)  -- ^ Manipulator
-                       -> Form m i e v a   -- ^ Initial form
-                       -> Form m i e v a   -- ^ Resulting form
-mapViewWithChildErrors f = mapViewWith $ \range errors ->
-    f $ retainChildErrors range errors
-
--- | Change the view of a form using a function which takes
---
--- * The current form range
---
--- * The list of all errors
---
--- * The original view
---
-mapViewWith :: Monad m
-            => (FormRange -> [(FormRange, e)] -> v -> v)  -- ^ Manipulator
-            -> Form m i e v a                             -- ^ Initial form
-            -> Form m i e v a                             -- ^ Result
-mapViewWith f form = Form $ do
-    (view', result) <- unForm form
-    range <- getFormRange
-    return (View (\err -> f range err (unView view' err)), result)
+mapView f = Form . fmap (first $ fmap f) . unForm
 
 -- | Run a form
 --
