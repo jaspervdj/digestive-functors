@@ -28,6 +28,21 @@ inputString = Common.inputString $ \id' inp ->
             ! A.id (H.stringValue $ show id')
             ! A.value (H.stringValue $ fromMaybe "" inp)
 
+inputTextArea :: (Monad m, Functor m)
+              => Maybe Int                    -- ^ Rows
+              -> Maybe Int                    -- ^ Columns
+              -> Maybe String                 -- ^ Default input
+              -> Form m String e Html String  -- ^ Result
+inputTextArea r c = Common.inputString $ \id' inp -> rows r $ cols c $
+    H.textarea ! A.name (H.stringValue $ show id')
+               ! A.id (H.stringValue $ show id')
+               $ H.string $ fromMaybe "" inp
+  where
+    rows Nothing = id
+    rows (Just x) = (! A.rows (H.stringValue $ show x))
+    cols Nothing = id
+    cols (Just x) = (! A.cols (H.stringValue $ show x))
+
 inputRead :: (Monad m, Functor m, Show a, Read a)
           => Maybe a
           -> Form m String String Html a
