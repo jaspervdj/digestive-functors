@@ -74,8 +74,8 @@ The `getUser` example used above is very similar to the way we would use HTML
 forms -- because it's an applicative functor, too.
 
 > userForm :: Form IO String String Html User
-> userForm = User <$> inputString Nothing
->                 <*> inputRead (Just 20)
+> userForm = User <$> inputText Nothing
+>                 <*> inputTextRead (Just 20)
 
 Don't let the complicated type of `userForm` scare you: it's just a `Form`
 returning a `User` -- we will see the details later. We give no default value
@@ -209,8 +209,8 @@ In the original implementation, one could add labels and other custom HTML
 elements to the form using applicative.
 
 > userForm' :: Form IO String String Html User
-> userForm' = User <$> (view "Name: " *> inputString Nothing)
->                  <*> (view "Age: "  *> inputRead (Just 20))
+> userForm' = User <$> (view "Name: " *> inputText Nothing)
+>                  <*> (view "Age: "  *> inputTextRead (Just 20))
 
 However, there is an important downside to this approach. When making HTML
 forms, it is desirable to use semantic `<label>` tags, linking the label to the

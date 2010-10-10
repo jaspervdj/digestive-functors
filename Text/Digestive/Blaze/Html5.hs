@@ -19,10 +19,10 @@ checked :: Bool -> Html -> Html
 checked False x = x
 checked True  x = x ! A.checked "checked"
 
-inputString :: (Monad m, Functor m)
-            => Maybe String
-            -> Form m String e Html String
-inputString = Common.inputString $ \id' inp ->
+inputText :: (Monad m, Functor m)
+          => Maybe String
+          -> Form m String e Html String
+inputText = Common.inputString $ \id' inp ->
     H.input ! A.type_ "text"
             ! A.name (H.stringValue $ show id')
             ! A.id (H.stringValue $ show id')
@@ -43,10 +43,10 @@ inputTextArea r c = Common.inputString $ \id' inp -> rows r $ cols c $
     cols Nothing = id
     cols (Just x) = (! A.cols (H.stringValue $ show x))
 
-inputRead :: (Monad m, Functor m, Show a, Read a)
-          => Maybe a
-          -> Form m String String Html a
-inputRead = flip Common.inputRead "No read" $ \id' inp ->
+inputTextRead :: (Monad m, Functor m, Show a, Read a)
+              => Maybe a
+              -> Form m String String Html a
+inputTextRead = flip Common.inputRead "No read" $ \id' inp ->
     H.input ! A.type_ "text"
             ! A.name (H.stringValue $ show id')
             ! A.id (H.stringValue $ show id')
@@ -60,10 +60,10 @@ inputPassword = flip Common.inputString Nothing $ \id' inp ->
             ! A.id (H.stringValue $ show id')
             ! A.value (H.stringValue $ fromMaybe "" inp)
 
-inputBool :: (Monad m, Functor m)
-          => Bool
-          -> Form m String e Html Bool
-inputBool inp = flip Common.inputBool inp $ \id' inp ->
+inputCheckBox :: (Monad m, Functor m)
+              => Bool
+              -> Form m String e Html Bool
+inputCheckBox inp = flip Common.inputBool inp $ \id' inp ->
     checked inp $ H.input ! A.type_ "checkbox"
                           ! A.name (H.stringValue $ show id')
                           ! A.id (H.stringValue $ show id')
