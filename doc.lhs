@@ -15,7 +15,7 @@ Introduction
 
 Digestive Functors is a Haskell framework/library that provides a general way to
 create forms, based on *idioms*, or *applicative functors*. It is an improvement
-of the original formets[^formlets] in a number of ways.
+of the original formlets[^formlets] in a number of ways.
 
 [^formlets]: By formlets, we mean the Haskell `formlets` library by Chris
     Eidhof, based on [http://groups.inf.ed.ac.uk/links/formlets/]().
