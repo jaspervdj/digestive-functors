@@ -172,9 +172,9 @@ instance (Monad m, Monoid v) => Monoid (Form m i e v a) where
 -- | Insert a view into the functor
 --
 view :: Monad m
-     => v                -- ^ View to insert
-     -> Form m i e v ()  -- ^ Resulting form
-view view' = Form $ return (View (const view'), Ok ())
+     => v               -- ^ View to insert
+     -> Form m i e v a  -- ^ Resulting form
+view view' = Form $ return (View (const view'), mempty)
 
 -- | Change the view of a form using a simple function
 --
