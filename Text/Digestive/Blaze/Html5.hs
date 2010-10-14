@@ -44,9 +44,10 @@ inputTextArea r c = Common.inputString $ \id' inp -> rows r $ cols c $
     cols (Just x) = (! A.cols (H.stringValue $ show x))
 
 inputTextRead :: (Monad m, Functor m, Show a, Read a)
-              => Maybe a
+              => String
+              -> Maybe a
               -> Form m String String Html a
-inputTextRead = flip Common.inputRead "No read" $ \id' inp ->
+inputTextRead error' = flip Common.inputRead error' $ \id' inp ->
     H.input ! A.type_ "text"
             ! A.name (H.stringValue $ show id')
             ! A.id (H.stringValue $ show id')

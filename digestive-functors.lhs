@@ -8,8 +8,9 @@ Introduction
 > import Text.Digestive.Types
 > import Text.Digestive.Validator
 > import Text.Digestive.Blaze.Html5
+> import Text.Blaze.Renderer.Pretty (renderHtml)
 > import Text.Blaze (Html)
-> import Data.Monoid (mappend)
+> import Data.Monoid (mempty, mappend)
 > import Control.Monad.State
 > import Control.Applicative
 
@@ -54,6 +55,7 @@ Applicative funtors usually map very well onto Haskell datatype constructors.
 Given the following type, which represents the name and age of a user:
 
 > data User = User String Integer
+>           deriving (Show)
 
 We have a function which returns serializable values from a key-value store such
 as [redis]:
@@ -74,9 +76,9 @@ very readable and concise code.
 The `getUser` example used above is very similar to the way we would use HTML
 forms -- because it's an applicative functor, too.
 
-> userForm :: Form IO String String Html User
+> userForm :: (Monad m, Functor m) => Form m String String Html User
 > userForm = User <$> inputText Nothing
->                 <*> inputTextRead (Just 20)
+>                 <*> inputTextRead "No read" (Just 20)
 
 Don't let the complicated type of `userForm` scare you: it's just a `Form`
 returning a `User` -- we will see the details later. We give no default value
@@ -91,8 +93,9 @@ approaches is composability. For example, if we want to create a form in which
 you can enter a couple, we can easily reuse our `userForm`.
 
 > data Couple = Couple User User
+>             deriving (Show)
 
-> coupleForm :: Form IO String String Html Couple
+> coupleForm :: (Monad m, Functor m) => Form m String String Html Couple
 > coupleForm = Couple <$> userForm
 >                     <*> userForm
 
@@ -103,12 +106,12 @@ In Belgium, people can only marry once they have reached the age of 18 -- and
 our clients wants us to integrate this into our web application. This is a
 simple example of validation.
 
-> isAdult :: Validator IO String User
+> isAdult :: Monad m => Validator m String User
 > isAdult = check "Not an adult!" $ \(User _ age) -> age >= 18
 
 Once we have constructed this `Validator`, we can integrate it with our form:
 
-> coupleForm' :: Form IO String String Html Couple
+> coupleForm' :: (Monad m, Functor m) => Form m String String Html Couple
 > coupleForm' = Couple <$> userForm `validate` [isAdult]
 >                      <*> userForm `validate` [isAdult]
 
@@ -209,9 +212,9 @@ Changing forms
 In the original implementation, one could add labels and other custom HTML
 elements to the form using applicative.
 
-> userForm1 :: Form IO String String Html User
+> userForm1 :: (Monad m, Functor m) => Form m String String Html User
 > userForm1 = User <$> (view "Name: " *> inputText Nothing)
->                  <*> (view "Age: "  *> inputTextRead (Just 20))
+>                  <*> (view "Age: "  *> inputTextRead "No read" (Just 20))
 
 However, there is an important downside to this approach. When making HTML
 forms, it is desirable to use semantic `<label>` tags, linking the label to the
@@ -230,18 +233,21 @@ two forms, retaining the ID.
 
 This joining of forms is simply mappending the views. If we join multiple forms
 which all return a result, only the first one will be taken into account (since
-we only have one ID).
+we only have one ID). Multiple results makes little sense from a programmer's
+perspective, but we have conform to the monoid laws.
 
-> userForm2 :: Form IO String String Html User
-> userForm2 = User <$> (view "Name: " `mappend` inputText Nothing)
->                  <*> (view "Age: "  `mappend` inputTextRead (Just 20))
+> userForm2 :: (Monad m, Functor m) => Form m String String Html User
+> userForm2 = User
+>     <$> (view "Name: " `mappend` inputText Nothing)
+>     <*> (view "Age: "  `mappend` inputTextRead "No read" (Just 20))
 
 Now, `view` and `inputText` will have access to the same ID. We can use this
 fact when we insert a label:
 
-> userForm3 :: Form IO String String Html User
-> userForm3 = User <$> (label "Name: " `mappend` inputText Nothing)
->                  <*> (label "Age: "  `mappend` inputTextRead (Just 20))
+> userForm3 :: (Monad m, Functor m) => Form m String String Html User
+> userForm3 = User
+>     <$> (label "Name: " `mappend` inputText Nothing)
+>     <*> (label "Age: "  `mappend` inputTextRead "No read" (Just 20))
 
 We can see in the rendered form that the labels are indeed correct:
 
@@ -249,3 +255,16 @@ We can see in the rendered form that the labels are indeed correct:
     <input type="text" name="f0" id="f0" value="" />
     <label for="f1">Age: </label>
     <input type="text" name="f1" id="f1" value="20" />
+
+Utility functions
+-----------------
+
+> testGetForm :: Form Maybe String String Html a
+>             -> Maybe (Either String a)
+> testGetForm form = eitherForm (mapView renderHtml form) mempty
+> 
+> testPostForm :: Form Maybe String String Html a
+>              -> [(Integer, String)]
+>              -> Maybe (Either String a)
+> testPostForm form env = eitherForm (mapView renderHtml form) $ Environment $
+>     \key -> return $ lookup (unFormId key) env

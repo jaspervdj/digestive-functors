@@ -179,9 +179,9 @@ view view' = Form $ return (View (const view'), mempty)
 -- | Change the view of a form using a simple function
 --
 mapView :: (Monad m, Functor m)
-        => (v -> v)        -- ^ Manipulator
+        => (v -> w)        -- ^ Manipulator
         -> Form m i e v a  -- ^ Initial form
-        -> Form m i e v a  -- ^ Resulting form
+        -> Form m i e w a  -- ^ Resulting form
 mapView f = Form . fmap (first $ fmap f) . unForm
 
 -- | Run a form
