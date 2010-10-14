@@ -256,15 +256,32 @@ We can see in the rendered form that the labels are indeed correct:
     <label for="f1">Age: </label>
     <input type="text" name="f1" id="f1" value="20" />
 
+TODO: We can use this for errors as well.
+
+> userForm4 :: (Monad m, Functor m) => Form m String String Html User
+> userForm4 = User
+>     <$> (label "Name: " `mappend` inputText Nothing)
+>     <*> (label "Age: "  `mappend` inputTextRead "No read" (Just 20)
+>                         `mappend` errors)
+
 Utility functions
 -----------------
 
-> testGetForm :: Form Maybe String String Html a
->             -> Maybe (Either String a)
-> testGetForm form = eitherForm (mapView renderHtml form) mempty
-> 
-> testPostForm :: Form Maybe String String Html a
->              -> [(Integer, String)]
->              -> Maybe (Either String a)
-> testPostForm form env = eitherForm (mapView renderHtml form) $ Environment $
->     \key -> return $ lookup (unFormId key) env
+Here, we show a basic function which allows us to quickly test forms using
+`ghci`. In a more realistic scenario, this would be a web application handling
+GET and POST requests.
+
+This function simply takes parameters using a lookup list. If we can build a
+valid result using the given data, it will show the result. If there was some
+error (e.g. a validation error, or just missing data), it will show the
+prettified version of the HTML code of the form.
+
+> testForm :: Show a
+>          => Form IO String String Html a
+>          -> [(Integer, String)]
+>          -> IO ()
+> testForm form tuples = eitherForm form env >>= \er -> putStrLn $ case er of
+>     Left html -> renderHtml html
+>     Right x -> show x
+>   where
+>     env = Environment $ return . flip lookup tuples . unFormId
