@@ -23,8 +23,8 @@ of the original formlets[^formlets] in a number of ways.
 
 TODO: Insert references to chris's formlets package, and the original paper
 
-It differs from the original *formlets* package in a number of ways. Important
-benefits of our work is that:
+It differs from the original *formlets* package in several important ways. In
+this work we make the following contributions:
 
 - Instead of just producing errors, the errors have a reference to the original
   input field (or composition of input fields) where they originate from. This
@@ -39,17 +39,18 @@ benefits of our work is that:
 - While HTML forms remains the main focus, we do not want to be limited to it.
   Another backend could, for example, provide a command-line input prompt.
 
-A note on terminology: with "input field", we mean a **single** input field,
-the visual representation of a single HTML `<input>` element. With "form" we
-mean a composition of input fields -- possibly, this is a single field, but
-usually, a form will be composed of multiple fields.
+Before we proceed, we need to make crystal clear what is meant by an input field
+and a form. In this paper, the term "input field" refers to a a **single** input
+field, in the HTML backend this is the visual representation of a single HTML
+`<input>` element. A "form" is a a composition of these input fields. Hence,
+this can be a single field, but more frequently, a form will be composed of
+multiple fields.
 
 Applicative functors
 --------------------
 
 This section explains how applicative functors are used in the library, and we
 explain why applicative functors are an excellent way to represent HTML forms.
-If you are familiar with the old formlets package, you can skip this section.
 
 Applicative funtors usually map very well onto Haskell datatype constructors.
 Given the following type, which represents the name and age of a user:
@@ -73,14 +74,15 @@ which constructs a `User` in `IO`:
 We can conclude that using applicative functors to construct values result in
 very readable and concise code.
 
-The `getUser` example used above is very similar to the way we would use HTML
-forms -- because it's an applicative functor, too.
+The above example is very similar to the way one uses HTML forms. Indeed, such
+forms are applicative functors and thus the User is constructed in a similar
+way.
 
 > userForm :: (Monad m, Functor m) => Form m String String Html User
 > userForm = User <$> inputText Nothing
 >                 <*> inputTextRead "No read" (Just 20)
 
-Don't let the complicated type of `userForm` scare you: it's just a `Form`
+Don't let the complicated type of `userForm` scare you: it is just a `Form`
 returning a `User` -- we will see the details later. We give no default value
 (`Nothing`) to the username field, and 20 (`Just 20`) as default value to the
 age field.
@@ -88,9 +90,9 @@ age field.
 Composing forms
 ---------------
 
-The advantage of using applicative functors to create forms over classical
+The major advantage of using applicative functors to create forms over classical
 approaches is composability. For example, if we want to create a form in which
-you can enter a couple, we can easily reuse our `userForm`.
+one can enter a couple, we can easily reuse our `userForm`.
 
 > data Couple = Couple User User
 >             deriving (Show)
@@ -104,12 +106,14 @@ Validation
 
 In Belgium, people can only marry once they have reached the age of 18 -- and
 our clients wants us to integrate this into our web application. This is a
-simple example of validation.
+simple example of validation for which the `isAdult` function provides the
+implementation.
 
 > isAdult :: Monad m => Validator m String User
 > isAdult = check "Not an adult!" $ \(User _ age) -> age >= 18
 
-Once we have constructed this `Validator`, we can integrate it with our form:
+Once we have constructed this `Validator`, we can easily integrate it with our
+form:
 
 > coupleForm' :: (Monad m, Functor m) => Form m String String Html Couple
 > coupleForm' = Couple <$> userForm `validate` [isAdult]
@@ -152,7 +156,7 @@ Composing forms in State
 
 TODO: Clarify that this section is about the *original* paper
 
-We first examine how the ID's are constructed in the applicative functor. The
+We first examine how the IDs are constructed in the applicative functor. The
 idea is very simple. Our `Couple` form could be represented visually using a
 simple tree structure:
 
@@ -164,10 +168,10 @@ simple tree structure:
     |  |- Name
     |  |- Age
 
-The requirements of the algorithm generating the ID's are very simple:
+The requirements of the algorithm generating the IDs are very simple:
 
 - every leaf requires a different ID;
-- the ID's do not have to be in a partical order, however;
+- the IDs do not have to be in a partical order, however;
 - it has to be deterministic.
 
 Such an algoritm is easily written in the state monad. The `Form` type makes use
@@ -195,54 +199,61 @@ This will generate the following tree (supposing the initial state is 0):
     |  |- Name (2)
     |  |- Age  (3)
 
-This approach allows us to take the ID's from the data we get from the browser,
-and create a `Couple`. It also allows us to trace down *some* errors to specific
-fields: only the errors that generate from input fields.
+This approach allows us to take the IDs from the data we get from the browser,
+and create a `Couple`.
 
-But we want to take this further. We don't want to validate only input fields,
-we want to validate forms. Say you have a simple form consisting of two dates:
-an arrival and a departure date. The departure date cannot be before the arrival
-date, this is a validation rule. But this is an error which cannot be traced
-down to either of the fields -- the error orginated from the composition of the
-two fields.
+Apart from associating the data we receive from the browser with the correct
+input fields, it also allows us to trace errors. If we have a validator on a
+certain input field, this validator can attach the ID when an error is returned,
+so we can trace down the error to the correct input field.
+
+After this first step, we take the tracing a step further. We don't want to
+restrict error tracing to input fields, we want to trace errors of entire
+forms. Sometimes, all the input fields of a form may pass the given validation
+criteria, yet the form as a whole still does not meet some criterium. For
+example, consider a form with two dates: (i) the departure date, and (ii) the
+arrival date. Until a time machine has been built, it is physically impossible
+for one to arrive before one departs. This is an error which orginated from the
+composition of the two fields.
 
 Changing forms
 --------------
 
-In the original implementation, one could add labels and other custom HTML
+In the original implementation, one can add labels and other custom HTML
 elements to the form using applicative.
 
 > userForm1 :: (Monad m, Functor m) => Form m String String Html User
 > userForm1 = User <$> (view "Name: " *> inputText Nothing)
 >                  <*> (view "Age: "  *> inputTextRead "No read" (Just 20))
 
-However, there is an important downside to this approach. When making HTML
-forms, it is desirable to use semantic `<label>` tags, linking the label to the
-form using a `for` attribute [^for-attribute]. However, since the `view` part
-and the `inputString` part are composed using `*>`, they will both have a
-different ID -- this means we cannot refer to the input field generated by the
-`inputString` function in the HTML generated by the `view` function.
+The above approach has a very important downside. When making HTML forms, it
+is desirable from a usability point of view to use semantic `<label>` tags,
+linking the label to the form using a `for` attribute [^for-attribute]. However,
+because the `view` part and the `inputString` part are composed using `*>`, they
+will both have a different ID -- this means we cannot refer to the input field
+generated by the `inputString` function in the HTML generated by the `view`
+function.
 
 [^for-attribute]: This allows the user to, for example, click the text instead
     of the (smaller) radio button, making the form more user-friendly.
 
 The solution is quite straightforward: we want an "appending" of forms which
 does *not* change the current ID. For this appending, we can implement the
-Monoid typeclass, so that `mempty` represents an empty form, and `mappend` joins
-two forms, retaining the ID.
+Monoid typeclass. Then, `mempty` represents an empty form, and `mappend` joins
+two forms under the same ID.
 
 This joining of forms is simply mappending the views. If we join multiple forms
-which all return a result, only the first one will be taken into account (since
+that all return a result, only the first one will be taken into account (since
 we only have one ID). Multiple results makes little sense from a programmer's
-perspective, but we have conform to the monoid laws.
+perspective, but once we tread the monoid path, we must conform to its laws.
 
 > userForm2 :: (Monad m, Functor m) => Form m String String Html User
 > userForm2 = User
 >     <$> (view "Name: " `mappend` inputText Nothing)
 >     <*> (view "Age: "  `mappend` inputTextRead "No read" (Just 20))
 
-Now, `view` and `inputText` will have access to the same ID. We can use this
-fact when we insert a label:
+At this point, `view` and `inputText` will have access to the same ID. We can
+use this fact when we insert a label:
 
 > userForm3 :: (Monad m, Functor m) => Form m String String Html User
 > userForm3 = User
