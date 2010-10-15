@@ -53,10 +53,13 @@ This section explains how applicative functors are used in the library, and we
 explain why applicative functors are an excellent way to represent HTML forms.
 
 Applicative funtors usually map very well onto Haskell datatype constructors.
-Given the following type, which represents the name and age of a user:
+Given the following type, which represents an address:
 
-> data User = User String Integer
->           deriving (Show)
+> data Address = Address
+>     { addressLine   :: String
+>     , addressCity   :: String
+>     , addressPostal :: Int
+>     } deriving (Show)
 
 We have a function which returns serializable values from a key-value store such
 as [redis]:
@@ -65,70 +68,88 @@ as [redis]:
 > storeGet key = fail "Not implemented"
 
 We can now use the fact that `IO` is an applicative functor to create a function
-which constructs a `User` in `IO`:
+which constructs an `Address` in `IO`:
 
-> getUser :: IO User
-> getUser = User <$> storeGet "user_name"
->                <*> storeGet "user_age"
+> getAddress :: IO Address
+> getAddress = Address <$> storeGet "address_line"
+>                      <*> storeGet "address_city"
+>                      <*> storeGet "address_postal"
 
 We can conclude that using applicative functors to construct values result in
 very readable and concise code.
 
 The above example is very similar to the way one uses HTML forms. Indeed, such
-forms are applicative functors and thus the User is constructed in a similar
-way.
+forms are applicative functors and thus the `Address` is constructed in a
+similar way.
 
-> userForm :: (Monad m, Functor m) => Form m String String Html User
-> userForm = User <$> inputText Nothing
->                 <*> inputTextRead "No read" (Just 20)
+> addressForm :: (Monad m, Functor m) => Form m String String Html Address
+> addressForm = Address <$> inputText Nothing
+>                       <*> inputText (Just "Ghent")
+>                       <*> inputTextRead "No read" (Just 9000)
 
-Don't let the complicated type of `userForm` scare you: it is just a `Form`
-returning a `User` -- we will see the details later. We give no default value
-(`Nothing`) to the username field, and 20 (`Just 20`) as default value to the
-age field.
+Don't let the complicated type of `addressForm` scare you: it is just a `Form`
+returning an `Address` -- we will see the details later. We give no default
+value (`Nothing`) to the `addressLine` field, but we do default the city to
+Ghent (with postal code 9000).
 
 Composing forms
 ---------------
 
 The major advantage of using applicative functors to create forms over classical
 approaches is composability. For example, if we want to create a form in which
-one can enter a couple, we can easily reuse our `userForm`.
+one can enter a message which needs to be delivered at a certain address, we can
+easily reuse our `addressForm`.
 
-> data Couple = Couple User User
->             deriving (Show)
+> data Message = Message
+>     { messageSubject     :: String
+>     , messageBody        :: String
+>     , messageDestination :: Address
+>     } deriving (Show)
 
-> coupleForm :: (Monad m, Functor m) => Form m String String Html Couple
-> coupleForm = Couple <$> userForm
->                     <*> userForm
+> messageForm :: (Monad m, Functor m) => Form m String String Html Message
+> messageForm = Message <$> inputText Nothing
+>                       <*> inputText Nothing
+>                       <*> addressForm
 
 Validation
 ----------
 
-In Belgium, people can only marry once they have reached the age of 18 -- and
-our clients wants us to integrate this into our web application. This is a
-simple example of validation for which the `isAdult` function provides the
-implementation.
+Our message service can only physically deliver messages to locations close
+enough to the address we operate from. Suppose we have a function which can
+determine this:
 
-> isAdult :: Monad m => Validator m String User
-> isAdult = check "Not an adult!" $ \(User _ age) -> age >= 18
+> closeEnough :: Address -> Bool
+> closeEnough (Address _ city postal) = city == "Ghent" && postal == 9000
+
+For now, we only consider addresses in Ghent close enough. Later, this could be
+extended to actually perform a map lookup.
+
+Digestive functors works with a type called `Validator` to check form results.
+We can easily make a `Validator` out of the above function:
+
+> closeEnough' :: Monad m => Validator m String Address
+> closeEnough' = check "Not close enough!" closeEnough
 
 Once we have constructed this `Validator`, we can easily integrate it with our
 form:
 
-> coupleForm' :: (Monad m, Functor m) => Form m String String Html Couple
-> coupleForm' = Couple <$> userForm `validate` [isAdult]
->                      <*> userForm `validate` [isAdult]
+> messageForm' :: (Monad m, Functor m) => Form m String String Html Message
+> messageForm' = Message <$> inputText Nothing
+>                        <*> inputText Nothing
+>                        <*> addressForm `validate` [closeEnough']
 
-Note that we insert this validator in the couple form, not in the user form --
-we allow users under 18, they just cannot belong to a couple.
+Note that we insert this validator in the message form, not in the address form
+-- we accept tropical locations, however, it is impossible to send messages to
+them.
 
-Suppose an end user fills in the form. However, he tries to register a 16-year
-old user in a couple. The validation does not allow this, so we will receive the
-"Not an adult!" error.
+Suppose an end user fills in the form. When he tries to send a message to a
+location outside of Ghent, on the server side, we will receive a list of errors
+from the library, indicating that something went wrong.
 
-However, the end user filled in two users. If only one of them is underage, we
-want to show the error next to the form of the underage user, not next to the
-form of the valid user. How can we do this?
+In the original formlets library, we didn't exactly know which input field gave
+us these errors, we could only present a general list of errors to the user. If
+we knew where these errors came from, we would be able to use this information
+to improve the visual representation of the form.
 
 Tracing errors
 --------------
@@ -140,10 +161,10 @@ prerequisite of any form library -- our server will receive something like:
     Content-Length: 23
     Content-Type: application/x-www-form-urlencoded
     
-    field1=jasper&field2=20
+    f0=Krijgslaan+281&f1=Ghent&f2=9000
 
-If we had no ID associated with the input fields, we cannot construct a `User`,
-since we do not know if "jasper" is the username or the age.
+If we had no ID associated with the input fields, we cannot construct an
+`Address`, since we do not know if "Ghent" is the address line or the city.
 
 This allows us to do basic error tracing: if we associate an ID with the error,
 we can trace it back to the corresponding input field. While this allows us to
@@ -160,13 +181,13 @@ We first examine how the IDs are constructed in the applicative functor. The
 idea is very simple. Our `Couple` form could be represented visually using a
 simple tree structure:
 
-    Couple
-    |- User
-    |  |- Name
-    |  |- Age
-    |- User
-    |  |- Name
-    |  |- Age
+    Message
+    |- Subject
+    |- Body
+    |- Address
+    |  |- Line
+    |  |- City
+    |  |- Postal Code
 
 The requirements of the algorithm generating the IDs are very simple:
 
@@ -191,16 +212,17 @@ here, which is a simplified version for illustration purposes):
 
 This will generate the following tree (supposing the initial state is 0):
 
-    Couple
-    |- User
-    |  |- Name (0)
-    |  |- Age  (1)
-    |- User
-    |  |- Name (2)
-    |  |- Age  (3)
+
+    Message
+    |- Subject        (0)
+    |- Body           (1)
+    |- Address
+    |  |- Line        (2)
+    |  |- City        (3)
+    |  |- Postal Code (4)
 
 This approach allows us to take the IDs from the data we get from the browser,
-and create a `Couple`.
+and create a `Message`.
 
 Apart from associating the data we receive from the browser with the correct
 input fields, it also allows us to trace errors. If we have a validator on a
@@ -222,9 +244,11 @@ Changing forms
 In the original implementation, one can add labels and other custom HTML
 elements to the form using applicative.
 
-> userForm1 :: (Monad m, Functor m) => Form m String String Html User
-> userForm1 = User <$> (view "Name: " *> inputText Nothing)
->                  <*> (view "Age: "  *> inputTextRead "No read" (Just 20))
+> addressForm1 :: (Monad m, Functor m) => Form m String String Html Address
+> addressForm1 = Address
+>     <$> (view "Address line: " *> inputText Nothing)
+>     <*> (view "City: " *> inputText (Just "Ghent"))
+>     <*> (view "Postal code" *> inputTextRead "No read" (Just 9000))
 
 The above approach has a very important downside. When making HTML forms, it
 is desirable from a usability point of view to use semantic `<label>` tags,
@@ -247,33 +271,38 @@ that all return a result, only the first one will be taken into account (since
 we only have one ID). Multiple results makes little sense from a programmer's
 perspective, but once we tread the monoid path, we must conform to its laws.
 
-> userForm2 :: (Monad m, Functor m) => Form m String String Html User
-> userForm2 = User
->     <$> (view "Name: " `mappend` inputText Nothing)
->     <*> (view "Age: "  `mappend` inputTextRead "No read" (Just 20))
+> addressForm2 :: (Monad m, Functor m) => Form m String String Html Address
+> addressForm2 = Address
+>     <$> (view "Address line: " `mappend` inputText Nothing)
+>     <*> (view "City: " `mappend` inputText (Just "Ghent"))
+>     <*> (view "Postal code" `mappend` inputTextRead "No read" (Just 9000))
 
 At this point, `view` and `inputText` will have access to the same ID. We can
 use this fact when we insert a label:
 
-> userForm3 :: (Monad m, Functor m) => Form m String String Html User
-> userForm3 = User
->     <$> (label "Name: " `mappend` inputText Nothing)
->     <*> (label "Age: "  `mappend` inputTextRead "No read" (Just 20))
+> addressForm3 :: (Monad m, Functor m) => Form m String String Html Address
+> addressForm3 = Address
+>     <$> (label "Address line: " `mappend` inputText Nothing)
+>     <*> (label "City: " `mappend` inputText (Just "Ghent"))
+>     <*> (label "Postal code" `mappend` inputTextRead "No read" (Just 9000))
 
 We can see in the rendered form that the labels are indeed correct:
 
-    <label for="f0">Name: </label>
+    <label for="f0">Address line: </label>
     <input type="text" name="f0" id="f0" value="" />
-    <label for="f1">Age: </label>
-    <input type="text" name="f1" id="f1" value="20" />
+    <label for="f1">City: </label>
+    <input type="text" name="f1" id="f1" value="Ghent" />
+    <label for="f2">Postal code: </label>
+    <input type="text" name="f2" id="f2" value="9000" />
 
 TODO: We can use this for errors as well.
 
-> userForm4 :: (Monad m, Functor m) => Form m String String Html User
-> userForm4 = User
->     <$> (label "Name: " `mappend` inputText Nothing)
->     <*> (label "Age: "  `mappend` inputTextRead "No read" (Just 20)
->                         `mappend` errors)
+> addressForm4 :: (Monad m, Functor m) => Form m String String Html Address
+> addressForm4 = Address
+>     <$> (label "Address line: " `mappend` inputText Nothing)
+>     <*> (label "City: " `mappend` inputText (Just "Ghent"))
+>     <*> (label "Postal code" `mappend` inputTextRead "No read" (Just 9000)
+>                              `mappend` errors)
 
 Utility functions
 -----------------
