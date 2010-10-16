@@ -26,18 +26,20 @@ TODO: Insert references to chris's formlets package, and the original paper
 It differs from the original *formlets* package in several important ways. In
 this work we make the following contributions:
 
-- Instead of just producing errors, the errors have a reference to the original
-  input field (or composition of input fields) where they originate from. This
-  allows us to show the relevant errors directly next to the input field, which
-  is desirable from a GUI-perspective.
+- The original formlets library provided the developer with errors that were
+  of type `[String]`, representing a list of error messages. We extend this by
+  abstracting the type used for error messages, and providing a reference to the
+  input field (or composition of input fields) that was the cause for said
+  error, .i.e., the place they originate from. This allows us to show the
+  relevant errors directly next to the input field, which is desirable from a
+  GUI-perspective.
 
-- We aim to provide functions with which the resulting "view" can be easily
-  changed. This way, the developer using the library can refer to certain input
-  fields, which allows him to refer to these fields in, for example, additional
-  JavaScript code.
+- The library provides functions that allow the resulting view to be changed
+  easily. This functionality allows a developer to refer to certain input
+  fields, and thus provide an interface to, e.g., JavaScript code.
 
-- While HTML forms remains the main focus, we do not want to be limited to it.
-  Another backend could, for example, provide a command-line input prompt.
+- Our approach is not limited to HTML forms. Multiple backends are possible, for
+  example, a command-line input prompt.
 
 Before we proceed, we need to make crystal clear what is meant by an input field
 and a form. In this paper, the term "input field" refers to a a **single** input
