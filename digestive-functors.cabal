@@ -1,0 +1,20 @@
+Name:                digestive-functors
+Version:             0.0.1
+Synopsis:            A general way to consume input using applicative functors
+-- Description:         
+Homepage:            http://github.com/jaspervdj/digestive-functors
+License:             BSD3
+License-file:        LICENSE
+Author:              Jasper Van der Jeugt
+Maintainer:          jaspervdj@gmail.com
+Category:            Web
+Build-type:          Simple
+Cabal-version:       >=1.2
+
+
+Library
+  Exposed-modules:     Text.Digestive.Validator,
+                       Text.Digestive.Common,
+                       Text.Digestive.Types,
+                       Text.Digestive.Blaze.Html5
+  Build-depends:       base, blaze-html, monads-fd
