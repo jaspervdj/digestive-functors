@@ -10,33 +10,41 @@ import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, put, evalStateT)
 import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative (..))
+import Debug.Trace
 
 -- | Type for failing computations
 --
 data Result e ok = Error [(FormRange, e)]
+                 | NoResult
                  | Ok ok
                  deriving (Show)
 
 instance Functor (Result e) where
     fmap _ (Error x) = Error x
+    fmap _ NoResult = NoResult
     fmap f (Ok x) = Ok (f x)
 
 instance Monad (Result e) where
     return = Ok
     Error x >>= _ = Error x
+    NoResult >>= _ = NoResult
     Ok x >>= f = f x
 
 instance Applicative (Result e) where
     pure = Ok
     Error x <*> Error y = Error $ x ++ y
     Error x <*> Ok _ = Error x
+    NoResult <*> _ = NoResult
+    _ <*> NoResult = NoResult
     Ok _ <*> Error y = Error y
     Ok x <*> Ok y = Ok $ x y
 
-instance Monoid a => Monoid (Result e a) where
-    mempty = Ok mempty
+instance Monoid (Result e a) where
+    mempty = NoResult
     Error x `mappend` Error y = Error $ x ++ y
     Error _ `mappend` Ok x = Ok x
+    NoResult `mappend` x = x
+    x `mappend` NoResult = x
     Ok x `mappend` _ = Ok x
 
 -- | An ID used to identify forms
@@ -162,7 +170,7 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
 
-instance (Monad m, Monoid v, Monoid a) => Monoid (Form m i e v a) where
+instance (Monad m, Monoid v) => Monoid (Form m i e v a) where
     mempty = Form $ return (mempty, mempty)
     f1 `mappend` f2 = Form $ do
         (v1, r1) <- unForm f1
@@ -175,6 +183,15 @@ view :: (Monad m, Monoid a)
      => v               -- ^ View to insert
      -> Form m i e v a  -- ^ Resulting form
 view view' = Form $ return (View (const view'), mempty)
+
+-- | Insert a view into the functor
+--
+viewUnit :: (Monad m, Monoid v)
+         => Form m i e v ()  -- ^ Resulting form
+         -> Form m i e v ()  -- ^ Resulting form
+viewUnit = mappend unit
+  where
+    unit = Form $ return (mempty, Ok ())
 
 -- | Change the view of a form using a simple function
 --
@@ -195,10 +212,11 @@ runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
 -- | Evaluate a form to it's view if it fails
 --
 eitherForm :: Monad m
-           => Form m i e v a
+           => Form m i String v a
            -> Environment m i
            -> m (Either v a)
 eitherForm form env = do
     (view', result) <- runForm form env
-    return $ case result of Error e -> Left $ unView view' e
-                            Ok x    -> Right x
+    return $ case result of Error e  -> trace (show e) $ Left $ unView view' e
+                            NoResult -> trace "No result!" $ Left $ unView view' []
+                            Ok x     -> Right x
