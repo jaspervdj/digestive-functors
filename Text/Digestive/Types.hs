@@ -10,7 +10,6 @@ import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, put, evalStateT)
 import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative (..))
-import Debug.Trace
 
 -- | Type for failing computations
 --
@@ -217,6 +216,6 @@ eitherForm :: Monad m
            -> m (Either v a)
 eitherForm form env = do
     (view', result) <- runForm form env
-    return $ case result of Error e  -> trace (show e) $ Left $ unView view' e
-                            NoResult -> trace "No result!" $ Left $ unView view' []
+    return $ case result of Error e  -> Left $ unView view' e
+                            NoResult -> Left $ unView view' []
                             Ok x     -> Right x
