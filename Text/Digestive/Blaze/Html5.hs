@@ -87,7 +87,7 @@ inputRadio br def choices = Common.inputChoice toView def (map fst choices)
 
 label :: Monad m
       => String
-      -> Form m i e Html a
+      -> Form m i e Html ()
 label string = Common.label $ \id' ->
     H.label ! A.for (H.stringValue $ show id')
             $ H.string string
@@ -97,9 +97,9 @@ errorList errors = unless (null errors) $
     H.ul $ forM_ errors $ H.li . H.string
 
 errors :: Monad m
-       => Form m i String Html a
+       => Form m i String Html ()
 errors = Common.errors errorList
 
 childErrors :: Monad m
-            => Form m i String Html a
+            => Form m i String Html ()
 childErrors = Common.childErrors errorList

@@ -27,7 +27,6 @@ validate form validators = Form $ do
     case result of
         -- We already have an error, no more validation needed
         Error e -> return (view', Error e)
-        NoResult -> return (view', NoResult)
         -- Allright, now apply the validator
         Ok x -> do
             r <- lift $ lift $ unValidator (mconcat validators) x

@@ -14,37 +14,24 @@ import Control.Applicative (Applicative (..))
 -- | Type for failing computations
 --
 data Result e ok = Error [(FormRange, e)]
-                 | NoResult
                  | Ok ok
                  deriving (Show)
 
 instance Functor (Result e) where
     fmap _ (Error x) = Error x
-    fmap _ NoResult = NoResult
     fmap f (Ok x) = Ok (f x)
 
 instance Monad (Result e) where
     return = Ok
     Error x >>= _ = Error x
-    NoResult >>= _ = NoResult
     Ok x >>= f = f x
 
 instance Applicative (Result e) where
     pure = Ok
     Error x <*> Error y = Error $ x ++ y
     Error x <*> Ok _ = Error x
-    NoResult <*> _ = NoResult
-    _ <*> NoResult = NoResult
     Ok _ <*> Error y = Error y
     Ok x <*> Ok y = Ok $ x y
-
-instance Monoid (Result e a) where
-    mempty = NoResult
-    Error x `mappend` Error y = Error $ x ++ y
-    Error _ `mappend` Ok x = Ok x
-    NoResult `mappend` x = x
-    x `mappend` NoResult = x
-    Ok x `mappend` _ = Ok x
 
 -- | An ID used to identify forms
 --
@@ -169,28 +156,34 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
         put $ FormRange startF1 endF2
         return (v1 `mappend` v2, r1 <*> r2)
 
-instance (Monad m, Monoid v) => Monoid (Form m i e v a) where
-    mempty = Form $ return (mempty, mempty)
-    f1 `mappend` f2 = Form $ do
-        (v1, r1) <- unForm f1
-        (v2, r2) <- unForm f2
-        return (v1 `mappend` v2, r1 `mappend` r2)
-
 -- | Insert a view into the functor
 --
-view :: (Monad m, Monoid a)
-     => v               -- ^ View to insert
-     -> Form m i e v a  -- ^ Resulting form
-view view' = Form $ return (View (const view'), mempty)
+view :: Monad m
+     => v                -- ^ View to insert
+     -> Form m i e v ()  -- ^ Resulting form
+view view' = Form $ return (View (const view'), Ok ())
 
--- | Insert a view into the functor
---
-viewUnit :: (Monad m, Monoid v)
-         => Form m i e v ()  -- ^ Resulting form
-         -> Form m i e v ()  -- ^ Resulting form
-viewUnit = mappend unit
-  where
-    unit = Form $ return (mempty, Ok ())
+(++>) :: (Monad m, Monoid v)
+      => Form m i e v ()
+      -> Form m i e v a
+      -> Form m i e v a
+f1 ++> f2 = Form $ do
+    (v1, _) <- unForm f1
+    (v2, r) <- unForm f2
+    return (v1 `mappend` v2, r)
+
+infixl 6 ++>
+
+(<++) :: (Monad m, Monoid v)
+      => Form m i e v a
+      -> Form m i e v ()
+      -> Form m i e v a
+f1 <++ f2 = Form $ do
+    (v1, r) <- unForm f1
+    (v2, _) <- unForm f2
+    return (v1 `mappend` v2, r)
+
+infixr 5 <++
 
 -- | Change the view of a form using a simple function
 --
@@ -217,5 +210,4 @@ eitherForm :: Monad m
 eitherForm form env = do
     (view', result) <- runForm form env
     return $ case result of Error e  -> Left $ unView view' e
-                            NoResult -> Left $ unView view' []
                             Ok x     -> Right x

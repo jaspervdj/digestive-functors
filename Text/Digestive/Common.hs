@@ -4,7 +4,7 @@ module Text.Digestive.Common where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mplus)
-import Data.Monoid (Monoid, mempty, mconcat)
+import Data.Monoid (Monoid, mconcat)
 import Data.Maybe (fromMaybe)
 
 import Text.Digestive.Types
@@ -80,21 +80,21 @@ inputChoice toView defaultInput choices = Form $ do
 
 label :: Monad m
       => (FormId -> v)
-      -> Form m i e v a
+      -> Form m i e v ()
 label f = Form $ do
     id' <- getFormId
-    return (View (const $ f id'), mempty)
+    return (View (const $ f id'), Ok ())
 
 errors :: Monad m
        => ([e] -> v)
-       -> Form m i e v a
+       -> Form m i e v ()
 errors f = Form $ do
     range <- getFormRange
-    return (View (f . retainErrors range), mempty)
+    return (View (f . retainErrors range), Ok ())
 
 childErrors :: Monad m
             => ([e] -> v)
-            -> Form m i e v a
+            -> Form m i e v ()
 childErrors f = Form $ do
     range <- getFormRange
-    return (View (f . retainChildErrors range), mempty)
+    return (View (f . retainChildErrors range), Ok ())
