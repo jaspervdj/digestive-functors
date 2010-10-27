@@ -35,30 +35,38 @@ instance Applicative (Result e) where
 
 -- | An ID used to identify forms
 --
-newtype FormId = FormId {unFormId :: Integer}
-               deriving (Eq, Ord, Num)
+data FormId = FormId
+    { formPrefix :: String
+    , formId     :: Integer
+    } deriving (Eq)
 
 instance Show FormId where
-    show (FormId x) = 'f' : show x
+    show (FormId p x) = p ++ "-f" ++ show x
 
 -- | A range of ID's to specify a group of forms
 --
 data FormRange = FormRange FormId FormId
                deriving (Eq, Show)
 
+-- | Increment a form ID
+--
+incrementFormId :: FormId -> FormId
+incrementFormId (FormId p x) = FormId p $ x + 1
+
 -- | Check if a 'FormId' is contained in a 'FormRange'
 --
 isInRange :: FormId     -- ^ Id to check for
           -> FormRange  -- ^ Range
           -> Bool       -- ^ If the range contains the id
-isInRange a (FormRange b c) = a >= b && a < c
+isInRange (FormId _ a) (FormRange b c) = a >= formId b && a < formId c
 
 -- | Check if a 'FormRange' is contained in another 'FormRange'
 --
 isSubRange :: FormRange  -- ^ Sub-range
            -> FormRange  -- ^ Larger range
            -> Bool       -- ^ If the sub-range is contained in the larger range
-isSubRange (FormRange a b) (FormRange c d) = a >= c && b <= d
+isSubRange (FormRange a b) (FormRange c d) =  formId a >= formId c
+                                           && formId b <= formId d
 
 -- | Select the errors for a certain range
 --
@@ -149,7 +157,7 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
         FormRange _ endF1 <- get
 
         -- Set a new, empty range
-        put $ FormRange endF1 $ endF1 + 1
+        put $ FormRange endF1 $ incrementFormId endF1
         (v2, r2) <- unForm f2
         FormRange _ endF2 <- get
 
@@ -199,7 +207,11 @@ runForm :: Monad m
         => Form m i e v a
         -> Environment m i
         -> m (View e v, Result e a)
-runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange 0 1
+runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange f0 f1
+  where
+    -- TODO: pass this somehow
+    f0 = FormId "some-form" 0
+    f1 = FormId "some-form" 1
 
 -- | Evaluate a form to it's view if it fails
 --
