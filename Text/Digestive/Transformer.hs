@@ -2,13 +2,22 @@
 --
 module Text.Digestive.Transformer where
 
+import Prelude hiding ((.), id)
+
 import Text.Digestive.Types
 import Control.Monad.Trans (lift)
 import Control.Monad ((<=<))
+import Control.Category (Category, (.), id)
 
 newtype Transformer m e a b = Transformer
     { unTransformer :: a -> m (Either [e] b)
     }
+
+instance Monad m => Category (Transformer m e) where
+    id = Transformer $ return . Right
+    f . g = Transformer $ \x -> unTransformer g x >>= \x' -> case x' of
+        Left e -> return $ Left e
+        Right y -> unTransformer f y
 
 transform :: Monad m => Form m i e v a -> Transformer m e a b -> Form m i e v b
 transform form transformer = Form $ do
