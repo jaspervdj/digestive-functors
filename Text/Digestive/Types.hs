@@ -153,22 +153,23 @@ mapView f = Form . fmap (first $ fmap f) . unForm
 -- | Run a form
 --
 runForm :: Monad m
-        => Form m i e v a
-        -> Environment m i
-        -> m (View e v, Result e a)
-runForm form env = evalStateT (runReaderT (unForm form) env) $ FormRange f0 f1
+        => Form m i e v a            -- ^ Form to run
+        -> String                    -- ^ Identifier for the form
+        -> Environment m i           -- ^ Input environment
+        -> m (View e v, Result e a)  -- ^ Result
+runForm form id' env = evalStateT (runReaderT (unForm form) env) $
+    FormRange f0 $ incrementFormId f0
   where
-    -- TODO: pass this somehow
-    f0 = FormId "some-form" 0
-    f1 = FormId "some-form" 1
+    f0 = FormId id' 0
 
 -- | Evaluate a form to it's view if it fails
 --
 eitherForm :: Monad m
-           => Form m i String v a
-           -> Environment m i
-           -> m (Either v a)
-eitherForm form env = do
-    (view', result) <- runForm form env
+           => Form m i String v a  -- ^ Form to run
+           -> String               -- ^ Identifier for the form
+           -> Environment m i      -- ^ Input environment
+           -> m (Either v a)       -- ^ Result
+eitherForm form id' env = do
+    (view', result) <- runForm form id' env
     return $ case result of Error e  -> Left $ unView view' e
                             Ok x     -> Right x
