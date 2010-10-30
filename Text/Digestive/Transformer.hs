@@ -1,6 +1,11 @@
 -- | Optionally failing transformers for forms
 --
-module Text.Digestive.Transformer where
+module Text.Digestive.Transformer 
+    ( Transformer (..)
+    , transform
+    , transformEither
+    , transformEitherM
+    ) where
 
 import Prelude hiding ((.), id)
 

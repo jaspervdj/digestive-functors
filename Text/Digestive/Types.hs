@@ -1,7 +1,30 @@
--- | Cote types
+-- | Core types
 --
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Text.Digestive.Types where
+module Text.Digestive.Types
+    ( Result (..)
+    , FormId (..)
+    , FormRange (..)
+    , incrementFormId
+    , isInRange
+    , isSubRange
+    , retainErrors
+    , retainChildErrors
+    , View (..)
+    , Environment (..)
+    , FormState
+    , getFormId
+    , getFormRange
+    , getFormInput
+    , isFormInput
+    , Form (..)
+    , view
+    , (++>)
+    , (<++)
+    , mapView
+    , runForm
+    , eitherForm
+    ) where
 
 import Data.Monoid (Monoid (..))
 import Control.Arrow (first)

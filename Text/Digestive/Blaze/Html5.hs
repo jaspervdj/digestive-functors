@@ -1,8 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Text.Digestive.Blaze.Html5 where
+module Text.Digestive.Blaze.Html5
+    ( inputText
+    , inputTextArea
+    , inputTextRead
+    , inputPassword
+    , inputCheckBox
+    , inputRadio
+    , label
+    , errors
+    , childErrors
+    ) where
 
-import Control.Applicative ((<$>))
-import Control.Monad (mplus, forM_, unless, when)
+import Control.Monad (forM_, unless, when)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 
@@ -64,10 +73,10 @@ inputPassword = flip Common.inputString Nothing $ \id' inp ->
 inputCheckBox :: (Monad m, Functor m)
               => Bool
               -> Form m String e Html Bool
-inputCheckBox inp = flip Common.inputBool inp $ \id' inp ->
-    checked inp $ H.input ! A.type_ "checkbox"
-                          ! A.name (H.stringValue $ show id')
-                          ! A.id (H.stringValue $ show id')
+inputCheckBox inp = flip Common.inputBool inp $ \id' inp' ->
+    checked inp' $ H.input ! A.type_ "checkbox"
+                           ! A.name (H.stringValue $ show id')
+                           ! A.id (H.stringValue $ show id')
 
 inputRadio :: (Monad m, Functor m, Eq a)
            => Bool                        -- ^ Use @<br>@ tags
@@ -93,8 +102,8 @@ label string = Common.label $ \id' ->
             $ H.string string
 
 errorList :: [String] -> Html
-errorList errors = unless (null errors) $
-    H.ul $ forM_ errors $ H.li . H.string
+errorList errors' = unless (null errors') $
+    H.ul $ forM_ errors' $ H.li . H.string
 
 errors :: Monad m
        => Form m i String Html ()

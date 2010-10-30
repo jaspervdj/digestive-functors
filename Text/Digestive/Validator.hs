@@ -1,14 +1,18 @@
 -- | Validators that can be attached to forms
 --
-module Text.Digestive.Validator where
+module Text.Digestive.Validator
+    ( Validator
+    , validate
+    , validateMany
+    , check
+    , checkM
+    ) where
 
 import Prelude hiding (id)
 
 import Control.Monad (liftM2)
-import Control.Monad.Trans (lift)
 import Data.Monoid (Monoid (..))
 import Control.Category (id)
-import Control.Applicative ((<$>))
 
 import Text.Digestive.Types
 import Text.Digestive.Transformer

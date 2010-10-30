@@ -1,6 +1,15 @@
 -- | Functions to construct common forms
 --
-module Text.Digestive.Common where
+module Text.Digestive.Common
+    ( input
+    , inputString
+    , inputRead
+    , inputBool
+    , inputChoice
+    , label
+    , errors
+    , childErrors
+    ) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mplus)
