@@ -17,6 +17,7 @@ Library
                        Text.Digestive.Common,
                        Text.Digestive.Types,
                        Text.Digestive.Transformer,
-                       Text.Digestive.Blaze.Html5
+                       Text.Digestive.Blaze.Html5,
+                       Text.Digestive.Result
   Build-depends:       base >= 4 && < 5,
                        blaze-html, monads-fd

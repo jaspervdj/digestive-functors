@@ -17,6 +17,7 @@ import Data.Monoid (Monoid, mconcat)
 import Data.Maybe (fromMaybe)
 
 import Text.Digestive.Types
+import Text.Digestive.Result
 
 input :: (Monad m, Functor m)
       => (Bool -> Maybe String -> d -> s)           -- ^ Get the viewed result

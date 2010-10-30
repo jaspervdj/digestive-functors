@@ -9,11 +9,13 @@ module Text.Digestive.Transformer
 
 import Prelude hiding ((.), id)
 
-import Text.Digestive.Types
 import Control.Monad.Trans (lift)
 import Control.Monad ((<=<))
 import Control.Category (Category, (.), id)
 import Control.Arrow (Arrow, arr, first)
+
+import Text.Digestive.Result
+import Text.Digestive.Types
 
 newtype Transformer m e a b = Transformer
     { unTransformer :: a -> m (Either [e] b)
