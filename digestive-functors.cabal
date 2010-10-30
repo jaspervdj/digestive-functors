@@ -16,5 +16,6 @@ Library
   Exposed-modules:     Text.Digestive.Validator,
                        Text.Digestive.Common,
                        Text.Digestive.Types,
+                       Text.Digestive.Transformer,
                        Text.Digestive.Blaze.Html5
   Build-depends:       base, blaze-html, monads-fd
