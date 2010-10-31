@@ -23,15 +23,13 @@ newtype Transformer m e a b = Transformer
 
 instance Monad m => Category (Transformer m e) where
     id = Transformer $ return . Right
-    f . g = Transformer $ \x -> unTransformer g x >>= \x' -> case x' of
-        Left e -> return $ Left e
-        Right y -> unTransformer f y
+    f . g = Transformer $   either (return . Left) (unTransformer f)
+                        <=< unTransformer g
 
 instance Monad m => Arrow (Transformer m e) where
     arr f = Transformer $ return . Right . f
-    first t = Transformer $ \(x, y) -> unTransformer t x >>= \x' -> case x' of
-        Left e -> return $ Left e
-        Right x'' -> return $ Right (x'', y)
+    first t = Transformer $ \(x, y) -> unTransformer t x >>=
+        return . either Left (Right . (flip (,) y))
 
 transform :: Monad m => Form m i e v a -> Transformer m e a b -> Form m i e v b
 transform form transformer = Form $ do
