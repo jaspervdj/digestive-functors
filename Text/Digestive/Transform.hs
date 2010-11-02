@@ -1,6 +1,6 @@
 -- | Optionally failing transformers for forms
 --
-module Text.Digestive.Transformer 
+module Text.Digestive.Transform
     ( Transformer (..)
     , transform
     , transformEither

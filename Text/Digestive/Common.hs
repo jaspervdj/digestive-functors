@@ -18,7 +18,7 @@ import Data.Maybe (fromMaybe)
 
 import Text.Digestive.Types
 import Text.Digestive.Result
-import Text.Digestive.Transformer
+import Text.Digestive.Transform
 
 input :: (Monad m, Functor m)
       => (Bool -> Maybe String -> d -> s)           -- ^ Get the viewed result

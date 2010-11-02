@@ -13,10 +13,10 @@ Cabal-version:       >=1.2
 
 
 Library
-  Exposed-modules:     Text.Digestive.Validator,
+  Exposed-modules:     Text.Digestive.Validate,
                        Text.Digestive.Common,
                        Text.Digestive.Types,
-                       Text.Digestive.Transformer,
+                       Text.Digestive.Transform,
                        Text.Digestive.Blaze.Html5,
                        Text.Digestive.Result,
                        Text.Digestive

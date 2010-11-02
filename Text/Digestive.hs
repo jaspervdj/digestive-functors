@@ -3,11 +3,11 @@
 module Text.Digestive
     ( module Text.Digestive.Result
     , module Text.Digestive.Types
-    , module Text.Digestive.Transformer
-    , module Text.Digestive.Validator
+    , module Text.Digestive.Transform
+    , module Text.Digestive.Validate
     ) where
 
 import Text.Digestive.Result
 import Text.Digestive.Types
-import Text.Digestive.Transformer
-import Text.Digestive.Validator
+import Text.Digestive.Transform
+import Text.Digestive.Validate

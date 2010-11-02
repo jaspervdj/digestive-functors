@@ -1,6 +1,6 @@
 -- | Validators that can be attached to forms
 --
-module Text.Digestive.Validator
+module Text.Digestive.Validate
     ( Validator
     , validate
     , validateMany
@@ -15,7 +15,7 @@ import Data.Monoid (Monoid (..))
 import Control.Category (id)
 
 import Text.Digestive.Types
-import Text.Digestive.Transformer
+import Text.Digestive.Transform
 
 -- | A validator. Invariant: the validator should not modify the result value,
 -- only check it.

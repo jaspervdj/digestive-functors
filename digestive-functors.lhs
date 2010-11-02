@@ -6,7 +6,7 @@ Introduction
 
 > {-# LANGUAGE OverloadedStrings #-}
 > import Text.Digestive.Types
-> import Text.Digestive.Validator
+> import Text.Digestive.Validate
 > import Text.Digestive.Blaze.Html5
 > import Text.Blaze.Renderer.Pretty (renderHtml)
 > import Text.Blaze (Html)
