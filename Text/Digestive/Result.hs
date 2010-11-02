@@ -40,7 +40,7 @@ instance Applicative (Result e) where
 data FormId = FormId
     { formPrefix :: String
     , formId     :: Integer
-    } deriving (Eq)
+    } deriving (Eq, Ord)
 
 instance Show FormId where
     show (FormId p x) = p ++ "-f" ++ show x

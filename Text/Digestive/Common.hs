@@ -18,6 +18,7 @@ import Data.Maybe (fromMaybe)
 
 import Text.Digestive.Types
 import Text.Digestive.Result
+import Text.Digestive.Transformer
 
 input :: (Monad m, Functor m)
       => (Bool -> Maybe String -> d -> s)           -- ^ Get the viewed result
@@ -34,11 +35,6 @@ input toView toResult createView defaultInput = Form $ do
         result' = toResult inp range
     return (View (const $ createView id' view'), result')
 
-readMaybe :: Read a => String -> Maybe a
-readMaybe string = case readsPrec 1 string of
-    [(x, "")] -> Just x
-    _ -> Nothing
-
 inputString :: (Monad m, Functor m)
             => (FormId -> Maybe String -> v)  -- ^ View constructor
             -> Maybe String                   -- ^ Default value
@@ -53,12 +49,8 @@ inputRead :: (Monad m, Functor m, Read a, Show a)
           -> e                              -- ^ Error when no read
           -> Maybe a                        -- ^ Default input
           -> Form m String e v a            -- ^ Resulting form
-inputRead cons' error' = input toView toResult cons'
-  where
-    toView _ inp def = inp `mplus` fmap show def
-    toResult inp range = case readMaybe (fromMaybe "" inp) of
-        Nothing -> Error [(range, error')]
-        Just y  -> Ok y
+inputRead cons' error' def = inputString cons' (fmap show def)
+    `transform` transformRead error'
 
 inputBool :: (Monad m, Functor m)
           => (FormId -> Bool -> v)   -- ^ View constructor

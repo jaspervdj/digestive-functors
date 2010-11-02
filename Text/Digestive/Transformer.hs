@@ -5,6 +5,7 @@ module Text.Digestive.Transformer
     , transform
     , transformEither
     , transformEitherM
+    , transformRead
     ) where
 
 import Prelude hiding ((.), id)
@@ -53,3 +54,10 @@ transformEither f = transformEitherM $ return . f
 transformEitherM :: Monad m => (a -> m (Either e b)) -> Transformer m e a b
 transformEitherM f = Transformer $ 
     return . either (Left . return) (Right . id) <=< f
+
+transformRead :: (Monad m, Read a)
+              => e                         -- ^ Error given if read fails
+              -> Transformer m e String a  -- ^ Resulting transformer
+transformRead error' = transformEither $ \str -> case readsPrec 1 str of
+    [(x, "")] -> Right x
+    _ -> Left error'
