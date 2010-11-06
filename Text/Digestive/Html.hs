@@ -15,9 +15,10 @@ import Control.Applicative ((<*>), pure)
 -- | Settings for classes in generated HTML.
 --
 data FormHtmlConfig = FormHtmlConfig
-    { htmlInputClasses :: [String]  -- ^ Classes applied to input elements
-    , htmlLabelClasses :: [String]  -- ^ Classes applied to labels
-    , htmlErrorClasses :: [String]  -- ^ Classes applied to errors
+    { htmlInputClasses :: [String]      -- ^ Classes applied to input elements
+    , htmlLabelClasses :: [String]      -- ^ Classes applied to labels
+    , htmlErrorClasses :: [String]      -- ^ Classes applied to errors
+    , htmlErrorListClasses :: [String]  -- ^ Classes for error lists
     } deriving (Show)
 
 -- | HTML describing a form
@@ -49,6 +50,7 @@ defaultHtmlConfig = FormHtmlConfig
     { htmlInputClasses = ["digestive-input"]
     , htmlLabelClasses = ["digestive-label"]
     , htmlErrorClasses = ["digestive-error"]
+    , htmlErrorListClasses = ["digestive-error-list"]
     }
 
 -- | Render FormHtml using the default configuration

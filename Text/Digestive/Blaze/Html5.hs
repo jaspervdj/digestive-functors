@@ -126,8 +126,9 @@ label string = Common.label $ \id' -> FormHtml $ \cfg ->
 
 errorList :: [String] -> BlazeFormHtml
 errorList errors' = FormHtml $ \cfg -> unless (null errors') $
-    H.ul $ forM_ errors' $ applyClasses' [htmlErrorClasses] cfg
-                         . H.li . H.string
+    applyClasses' [htmlErrorListClasses] cfg $
+        H.ul $ forM_ errors' $ applyClasses' [htmlErrorClasses] cfg
+                             . H.li . H.string
 
 errors :: Monad m
        => Form m i String BlazeFormHtml ()
