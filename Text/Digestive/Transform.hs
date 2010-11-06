@@ -18,6 +18,8 @@ import Control.Arrow (Arrow, arr, first)
 import Text.Digestive.Result
 import Text.Digestive.Types
 
+-- | A transformer that transforms a value of type a to a value of type b
+--
 newtype Transformer m e a b = Transformer
     { unTransformer :: a -> m (Either [e] b)
     }
@@ -32,6 +34,8 @@ instance Monad m => Arrow (Transformer m e) where
     first t = Transformer $ \(x, y) -> unTransformer t x >>=
         return . either Left (Right . (flip (,) y))
 
+-- | Apply a transformer to a form
+--
 transform :: Monad m => Form m i e v a -> Transformer m e a b -> Form m i e v b
 transform form transformer = Form $ do
     (v1, r1) <- unForm form
@@ -48,13 +52,19 @@ transform form transformer = Form $ do
                 -- All fine
                 Right y -> (v1, Ok y)
 
+-- | Build a transformer from a simple function that returns an 'Either' result.
+--
 transformEither :: Monad m => (a -> Either e b) -> Transformer m e a b
 transformEither f = transformEitherM $ return . f
 
+-- | A monadic version of 'transformEither'
+--
 transformEitherM :: Monad m => (a -> m (Either e b)) -> Transformer m e a b
 transformEitherM f = Transformer $ 
     return . either (Left . return) (Right . id) <=< f
 
+-- | Create a transformer for any value of type a that is an instance of 'Read'
+--
 transformRead :: (Monad m, Read a)
               => e                         -- ^ Error given if read fails
               -> Transformer m e String a  -- ^ Resulting transformer

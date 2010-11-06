@@ -17,7 +17,7 @@ Library
                        Text.Digestive.Common,
                        Text.Digestive.Types,
                        Text.Digestive.Transform,
-                       Text.Digestive.Blaze.Html,
+                       Text.Digestive.Html,
                        Text.Digestive.Blaze.Html5,
                        Text.Digestive.Result,
                        Text.Digestive

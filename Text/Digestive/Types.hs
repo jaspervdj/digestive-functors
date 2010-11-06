@@ -120,6 +120,9 @@ view :: Monad m
      -> Form m i e v ()  -- ^ Resulting form
 view view' = Form $ return (View (const view'), Ok ())
 
+-- | Append a unit form to the left. This is useful for adding labels or error
+-- fields
+--
 (++>) :: (Monad m, Monoid v)
       => Form m i e v ()
       -> Form m i e v a
@@ -131,6 +134,8 @@ f1 ++> f2 = Form $ do
 
 infixl 6 ++>
 
+-- | Append a unit form to the right. See '++>'.
+--
 (<++) :: (Monad m, Monoid v)
       => Form m i e v a
       -> Form m i e v ()
