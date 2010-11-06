@@ -4,6 +4,7 @@ module Text.Digestive.Html
     , FormHtml (..)
     , applyClasses
     , defaultHtmlConfig
+    , emptyHtmlConfig
     , renderFormHtml
     , renderFormHtmlWith
     ) where
@@ -51,6 +52,16 @@ defaultHtmlConfig = FormHtmlConfig
     , htmlLabelClasses = ["digestive-label"]
     , htmlErrorClasses = ["digestive-error"]
     , htmlErrorListClasses = ["digestive-error-list"]
+    }
+
+-- | Empty configuration (no classes are set)
+--
+emptyHtmlConfig :: FormHtmlConfig
+emptyHtmlConfig = FormHtmlConfig
+    { htmlInputClasses = []
+    , htmlLabelClasses = []
+    , htmlErrorClasses = []
+    , htmlErrorListClasses = []
     }
 
 -- | Render FormHtml using the default configuration
