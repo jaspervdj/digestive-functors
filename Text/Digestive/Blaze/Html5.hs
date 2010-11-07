@@ -71,9 +71,9 @@ inputTextArea r c = Common.inputString $ \id' inp -> FormHtml $ \cfg ->
     cols (Just x) = (! A.cols (H.stringValue $ show x))
 
 inputTextRead :: (Monad m, Functor m, Show a, Read a)
-              => String
+              => e
               -> Maybe a
-              -> Form m String String BlazeFormHtml a
+              -> Form m String e BlazeFormHtml a
 inputTextRead error' = flip Common.inputRead error' $ \id' inp ->
     FormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
@@ -124,16 +124,15 @@ label string = Common.label $ \id' -> FormHtml $ \cfg ->
         H.label ! A.for (H.stringValue $ show id')
                 $ H.string string
 
-errorList :: [String] -> BlazeFormHtml
+errorList :: [Html] -> BlazeFormHtml
 errorList errors' = FormHtml $ \cfg -> unless (null errors') $
     applyClasses' [htmlErrorListClasses] cfg $
-        H.ul $ forM_ errors' $ applyClasses' [htmlErrorClasses] cfg
-                             . H.li . H.string
+        H.ul $ forM_ errors' $ applyClasses' [htmlErrorClasses] cfg . H.li
 
 errors :: Monad m
-       => Form m i String BlazeFormHtml ()
+       => Form m i Html BlazeFormHtml ()
 errors = Common.errors errorList
 
 childErrors :: Monad m
-            => Form m i String BlazeFormHtml ()
+            => Form m i Html BlazeFormHtml ()
 childErrors = Common.childErrors errorList
