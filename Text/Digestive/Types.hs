@@ -128,8 +128,9 @@ view view' = Form $ return (View (const view'), Ok ())
       -> Form m i e v a
       -> Form m i e v a
 f1 ++> f2 = Form $ do
-    (v1, _) <- unForm f1
+    -- Evaluate the form that matters first, so we have a correct range set
     (v2, r) <- unForm f2
+    (v1, _) <- unForm f1
     return (v1 `mappend` v2, r)
 
 infixl 6 ++>
@@ -141,6 +142,7 @@ infixl 6 ++>
       -> Form m i e v ()
       -> Form m i e v a
 f1 <++ f2 = Form $ do
+    -- Evaluate the form that matters first, so we have a correct range set
     (v1, r) <- unForm f1
     (v2, _) <- unForm f2
     return (v1 `mappend` v2, r)
