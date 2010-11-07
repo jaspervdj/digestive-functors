@@ -4,6 +4,15 @@ Digestive functors
 Digestive functors is a library that provides an abstract interface towards
 input consumption. The interface is based on applicative functors.
 
+It is a rewrite and improvement of the existing
+[formlets library](http://github.com/chriseidhof/formlets/).
+
+It is mostly meant as a framework to generate HTML forms, and to process HTTP
+POST requests into actual values. Some features include:
+
+- complete control over errors and validation;
+- forms are composable, thus allowing code re-use;
+
 > {-# LANGUAGE OverloadedStrings #-}
 > import Text.Digestive
 
@@ -30,7 +39,10 @@ We have a simple data structure for which we want to make an HTML form:
 >     , addressPostal :: Int
 >     } deriving (Show)
 
-This is done quite easily by using the blaze backend:
+This is done quite easily by using the blaze backend. We use an applicative
+style to write our code, which is quite easy on the eyes. More information on
+applicative functors can be found
+[here](http://learnyouahaskell.com/functors-applicative-functors-and-monoids).
 
 > addressForm1 :: (Monad m, Functor m)
 >              => Form m String Html BlazeFormHtml Address
@@ -48,9 +60,11 @@ We can use the `eitherForm` function to actually run the form. This function
 takes the form to run, an identifier and an environment from which the input is
 consumed.
 
-Basically, if we're talking about a REST application, you would map a `GET` to a
-`NoEnvironment`, and a `POST` to an `Environment` which has a lookup table for
-the post parameters.
+Basically, if we're talking about a REST application:
+
+- for a `GET`, you would use a `NoEnvironment` value (since there is no data);
+- for a `POST`, you would create an `Environment` which has a lookup table for
+  the post parameters.
 
 The `eitherForm` will then either return a view or a value:
 
@@ -81,20 +95,20 @@ Adding labels
 -------------
 
 HTML provides a semantic `<label>` element that you can use to make your forms
-more descriptive. However, you want to link the labels to the input elements
-using the `for` attribute.
+more descriptive. However, this is not completely trivial: you want to link the
+labels to the input elements using the `for` attribute.
 
     <label for="some-id" ...>...</label>
     <input id="some-id" ... />
 
-This is better from a GUI point of view, since it allows the browser to make the
-form more user-friendly (e.g. when the user clicks a label, the corresponding
-input field receives focus).
+This is correct from a GUI point of view, since it allows the browser to make
+the form more user-friendly (e.g. when the user clicks a label, the
+corresponding input field receives focus).
 
-Digestive functors provides this using the `++>` and `<++` operators. These
-allow you to add forms which do not give any result (they return `()`) to other
-forms. While these forms do not return any result, they are allowed to change
-the view.
+Digestive functors provides this functionality using the `++>` and `<++`
+operators. These allow you to add forms which do not give any result (they
+return `()`) to other forms. While these forms do not return any result, they
+are allowed to change the view.
 
 Let's make our `addressForm1` a little more user-friendly:
 
