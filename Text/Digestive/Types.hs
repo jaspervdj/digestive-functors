@@ -172,10 +172,10 @@ runForm form id' env = evalStateT (runReaderT (unForm form) env) $
 -- | Evaluate a form to it's view if it fails
 --
 eitherForm :: Monad m
-           => Form m i String v a  -- ^ Form to run
-           -> String               -- ^ Identifier for the form
-           -> Environment m i      -- ^ Input environment
-           -> m (Either v a)       -- ^ Result
+           => Form m i e v a   -- ^ Form to run
+           -> String           -- ^ Identifier for the form
+           -> Environment m i  -- ^ Input environment
+           -> m (Either v a)   -- ^ Result
 eitherForm form id' env = do
     (view', result) <- runForm form id' env
     return $ case result of Error e  -> Left $ unView view' e
