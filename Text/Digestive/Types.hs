@@ -16,6 +16,7 @@ module Text.Digestive.Types
     , mapView
     , runForm
     , eitherForm
+    , viewForm
     ) where
 
 import Data.Monoid (Monoid (..))
@@ -180,3 +181,14 @@ eitherForm form id' env = do
     (view', result) <- runForm form id' env
     return $ case result of Error e  -> Left $ unView view' e
                             Ok x     -> Right x
+
+-- | Just evaluate the form to a view. This usually maps to a GET request in the
+-- browser.
+--
+viewForm :: Monad m
+         => Form m i e v a  -- ^ Form to run
+         -> String          -- ^ Identifier for the form
+         -> m v             -- ^ Result
+viewForm form id' = do
+    (view', _) <- runForm form id' NoEnvironment
+    return $ unView view' []
