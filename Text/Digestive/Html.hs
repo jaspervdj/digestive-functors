@@ -2,6 +2,7 @@
 --
 module Text.Digestive.Html
     ( FormHtmlConfig (..)
+    , FormEncType (..)
     , FormHtml (..)
     , createFormHtml
     , createFormHtmlWith
