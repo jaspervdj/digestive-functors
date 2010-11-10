@@ -1,7 +1,10 @@
 -- | General functions for forms that are rendered to some sort of HTML
+--
 module Text.Digestive.Html
     ( FormHtmlConfig (..)
     , FormHtml (..)
+    , createFormHtml
+    , createFormHtmlWith
     , applyClasses
     , defaultHtmlConfig
     , emptyHtmlConfig
@@ -22,15 +25,44 @@ data FormHtmlConfig = FormHtmlConfig
     , htmlErrorListClasses :: [String]  -- ^ Classes for error lists
     } deriving (Show)
 
+-- | Encoding type for the form
+--
+data FormEncType = UrlEncoded
+                 | MultiPart
+                 deriving (Eq)
+
+instance Show FormEncType where
+    show UrlEncoded = "application/x-www-form-urlencoded"
+    show MultiPart  = "multipart/form-data"
+
+-- Monoid instance for encoding types: prefer UrlEncoded, but fallback to
+-- MultiPart when needed
+instance Monoid FormEncType where
+    mempty = UrlEncoded
+    mappend UrlEncoded x = x
+    mappend MultiPart _ = MultiPart
+
 -- | HTML describing a form
 --
-newtype FormHtml a = FormHtml
-    { unFormHtml :: FormHtmlConfig -> a
+data FormHtml a = FormHtml
+    { formEncType :: FormEncType
+    , formHtml    :: FormHtmlConfig -> a
     }
 
 instance Monoid a => Monoid (FormHtml a) where
-    mempty = FormHtml $ const mempty
-    mappend (FormHtml x) (FormHtml y) = FormHtml $ \c -> mappend (x c) (y c)
+    mempty = FormHtml mempty $ const mempty
+    mappend (FormHtml x f) (FormHtml y g) = FormHtml (x `mappend` y) $ \c ->
+        f c `mappend` g c
+
+-- | Create form HTML with the default encoding type
+--
+createFormHtml :: (FormHtmlConfig -> a) -> FormHtml a
+createFormHtml = FormHtml mempty
+
+-- | Create form HTML with a custom encoding type
+--
+createFormHtmlWith :: FormEncType -> (FormHtmlConfig -> a) -> FormHtml a
+createFormHtmlWith = FormHtml
 
 -- | Apply all classes to an HTML element. If no classes are found, nothing
 -- happens.
@@ -72,4 +104,4 @@ renderFormHtml = renderFormHtmlWith defaultHtmlConfig
 -- | Render FormHtml using a custom configuration
 --
 renderFormHtmlWith :: FormHtmlConfig -> FormHtml a -> a
-renderFormHtmlWith cfg = ($ cfg) . unFormHtml
+renderFormHtmlWith cfg = ($ cfg) . formHtml

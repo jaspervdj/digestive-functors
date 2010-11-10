@@ -47,7 +47,7 @@ checked True  x = x ! A.checked "checked"
 inputText :: (Monad m, Functor m)
           => Maybe String
           -> Form m String e BlazeFormHtml String
-inputText = Common.inputString $ \id' inp -> FormHtml $ \cfg ->
+inputText = Common.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (H.stringValue $ show id')
@@ -59,7 +59,7 @@ inputTextArea :: (Monad m, Functor m)
               -> Maybe Int                             -- ^ Columns
               -> Maybe String                          -- ^ Default input
               -> Form m String e BlazeFormHtml String  -- ^ Result
-inputTextArea r c = Common.inputString $ \id' inp -> FormHtml $ \cfg ->
+inputTextArea r c = Common.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $ rows r $ cols c $
         H.textarea ! A.name (H.stringValue $ show id')
                    ! A.id (H.stringValue $ show id')
@@ -75,7 +75,7 @@ inputTextRead :: (Monad m, Functor m, Show a, Read a)
               -> Maybe a
               -> Form m String e BlazeFormHtml a
 inputTextRead error' = flip Common.inputRead error' $ \id' inp ->
-    FormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
+    createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')
@@ -84,7 +84,7 @@ inputTextRead error' = flip Common.inputRead error' $ \id' inp ->
 inputPassword :: (Monad m, Functor m)
               => Form m String e BlazeFormHtml String
 inputPassword = flip Common.inputString Nothing $ \id' inp ->
-    FormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
+    createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "password"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')
@@ -94,7 +94,7 @@ inputCheckBox :: (Monad m, Functor m)
               => Bool
               -> Form m String e BlazeFormHtml Bool
 inputCheckBox inp = flip Common.inputBool inp $ \id' inp' ->
-    FormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
+    createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         checked inp' $ H.input ! A.type_ "checkbox"
                                ! A.name (H.stringValue $ show id')
                                ! A.id (H.stringValue $ show id')
@@ -106,7 +106,7 @@ inputRadio :: (Monad m, Functor m, Eq a)
            -> Form m String e BlazeFormHtml a  -- ^ Resulting form
 inputRadio br def choices = Common.inputChoice toView def (map fst choices)
   where
-    toView group id' sel val = FormHtml $ \cfg -> do
+    toView group id' sel val = createFormHtml $ \cfg -> do
         applyClasses' [htmlInputClasses] cfg $ checked sel $
             H.input ! A.type_ "radio"
                     ! A.name (H.stringValue $ show group)
@@ -119,13 +119,13 @@ inputRadio br def choices = Common.inputChoice toView def (map fst choices)
 label :: Monad m
       => String
       -> Form m i e BlazeFormHtml ()
-label string = Common.label $ \id' -> FormHtml $ \cfg ->
+label string = Common.label $ \id' -> createFormHtml $ \cfg ->
     applyClasses' [htmlLabelClasses] cfg $
         H.label ! A.for (H.stringValue $ show id')
                 $ H.string string
 
 errorList :: [Html] -> BlazeFormHtml
-errorList errors' = FormHtml $ \cfg -> unless (null errors') $
+errorList errors' = createFormHtml $ \cfg -> unless (null errors') $
     applyClasses' [htmlErrorListClasses] cfg $
         H.ul $ forM_ errors' $ applyClasses' [htmlErrorClasses] cfg . H.li
 
