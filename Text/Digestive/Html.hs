@@ -53,8 +53,8 @@ data FormHtml a = FormHtml
 
 instance Monoid a => Monoid (FormHtml a) where
     mempty = FormHtml mempty $ const mempty
-    mappend (FormHtml x f) (FormHtml y g) = FormHtml (x `mappend` y) $ \c ->
-        f c `mappend` g c
+    mappend (FormHtml x f) (FormHtml y g) =
+        FormHtml (x `mappend` y) $ f `mappend` g
 
 -- | Create form HTML with the default encoding type
 --

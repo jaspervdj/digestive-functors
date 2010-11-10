@@ -34,11 +34,7 @@ import Text.Digestive.Result
 --
 newtype View e v = View
     { unView :: [(FormRange, e)] -> v
-    }
-
-instance Monoid v => Monoid (View e v) where
-    mempty = View $ const mempty
-    mappend (View f) (View g) = View $ \err -> mappend (f err) (g err)
+    } deriving (Monoid)
 
 instance Functor (View e) where
     fmap f (View g) = View $ f . g
