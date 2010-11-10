@@ -15,6 +15,7 @@ module Text.Digestive.Html
 import Data.Monoid (Monoid (..))
 import Data.List (intercalate)
 import Control.Applicative ((<*>), pure)
+import Control.Arrow ((&&&))
 
 -- | Settings for classes in generated HTML.
 --
@@ -98,10 +99,10 @@ emptyHtmlConfig = FormHtmlConfig
 
 -- | Render FormHtml using the default configuration
 --
-renderFormHtml :: FormHtml a -> a
+renderFormHtml :: FormHtml a -> (a, FormEncType)
 renderFormHtml = renderFormHtmlWith defaultHtmlConfig
 
 -- | Render FormHtml using a custom configuration
 --
-renderFormHtmlWith :: FormHtmlConfig -> FormHtml a -> a
-renderFormHtmlWith cfg = ($ cfg) . formHtml
+renderFormHtmlWith :: FormHtmlConfig -> FormHtml a -> (a, FormEncType)
+renderFormHtmlWith cfg = ($ cfg) . formHtml &&& formEncType
