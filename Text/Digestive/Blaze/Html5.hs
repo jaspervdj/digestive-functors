@@ -7,6 +7,7 @@ module Text.Digestive.Blaze.Html5
     , inputPassword
     , inputCheckBox
     , inputRadio
+    , submit
     , label
     , errors
     , childErrors
@@ -115,6 +116,14 @@ inputRadio br def choices = Common.inputChoice toView def (map fst choices)
         H.label ! A.for (H.stringValue id')
                 $ fromMaybe mempty $ lookup val choices
         when br H.br
+
+submit :: Monad m
+       => String                            -- ^ Text on the submit button
+       -> Form m String e BlazeFormHtml ()  -- ^ Submit button
+submit text = view $ createFormHtml $ \cfg ->
+    applyClasses' [htmlInputClasses, htmlSubmitClasses] cfg $
+        H.input ! A.type_ "submit"
+                ! A.value (H.stringValue text)
 
 label :: Monad m
       => String

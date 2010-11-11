@@ -21,9 +21,10 @@ import Control.Arrow ((&&&))
 -- | Settings for classes in generated HTML.
 --
 data FormHtmlConfig = FormHtmlConfig
-    { htmlInputClasses :: [String]      -- ^ Classes applied to input elements
-    , htmlLabelClasses :: [String]      -- ^ Classes applied to labels
-    , htmlErrorClasses :: [String]      -- ^ Classes applied to errors
+    { htmlInputClasses     :: [String]  -- ^ Classes applied to input elements
+    , htmlSubmitClasses    :: [String]  -- ^ Classes applied to submit buttons
+    , htmlLabelClasses     :: [String]  -- ^ Classes applied to labels
+    , htmlErrorClasses     :: [String]  -- ^ Classes applied to errors
     , htmlErrorListClasses :: [String]  -- ^ Classes for error lists
     } deriving (Show)
 
@@ -82,9 +83,10 @@ applyClasses applyAttribute fs cfg element = case concat (fs <*> pure cfg) of
 --
 defaultHtmlConfig :: FormHtmlConfig
 defaultHtmlConfig = FormHtmlConfig
-    { htmlInputClasses = ["digestive-input"]
-    , htmlLabelClasses = ["digestive-label"]
-    , htmlErrorClasses = ["digestive-error"]
+    { htmlInputClasses     = ["digestive-input"]
+    , htmlSubmitClasses    = ["digestive-submit"]
+    , htmlLabelClasses     = ["digestive-label"]
+    , htmlErrorClasses     = ["digestive-error"]
     , htmlErrorListClasses = ["digestive-error-list"]
     }
 
@@ -92,9 +94,10 @@ defaultHtmlConfig = FormHtmlConfig
 --
 emptyHtmlConfig :: FormHtmlConfig
 emptyHtmlConfig = FormHtmlConfig
-    { htmlInputClasses = []
-    , htmlLabelClasses = []
-    , htmlErrorClasses = []
+    { htmlInputClasses     = []
+    , htmlSubmitClasses    = []
+    , htmlLabelClasses     = []
+    , htmlErrorClasses     = []
     , htmlErrorListClasses = []
     }
 
