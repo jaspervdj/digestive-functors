@@ -17,7 +17,7 @@ import Control.Applicative (Applicative (..))
 --
 data Result e ok = Error [(FormRange, e)]
                  | Ok ok
-                 deriving (Show)
+                 deriving (Show, Eq)
 
 instance Functor (Result e) where
     fmap _ (Error x) = Error x
