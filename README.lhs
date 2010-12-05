@@ -25,7 +25,6 @@ these examples.
 
 Followed by some more general imports:
 
-> import Data.Monoid (mempty, mappend)
 > import Control.Applicative
 
 A simple example
@@ -81,7 +80,7 @@ We can use a `testForm` function to test a form locally using GHCI:
 >          -> IO ()
 > testForm form tuples = eitherForm form "some-form" env >>= \er ->
 >     putStrLn $ case er of
->         Left html -> renderHtml $ renderFormHtml html
+>         Left html -> renderHtml $ fst $ renderFormHtml html
 >         Right x -> show x
 >   where
 >     env = Environment $ return . flip lookup tuples . formId
