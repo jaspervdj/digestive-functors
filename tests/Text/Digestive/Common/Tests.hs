@@ -6,6 +6,8 @@ import Control.Applicative ((<$>), (<*>))
 
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Framework.Providers.HUnit (testCase)
+import Test.HUnit (Assertion, (@?))
 
 import Text.Digestive.Tests.Util
 import Text.Digestive.Types
@@ -14,6 +16,7 @@ import Text.Digestive.Common
 tests :: [Test]
 tests = [ testProperty "pass through" passThrough
         , testProperty "compose"      compose
+        , testCase     "label ID"     labelId
         ]
 
 -- Build a test case: give a string as only input, run it through a form, the
@@ -40,3 +43,11 @@ compose a b = unId $ do
     form = (,) <$> inputRead view' "read error" Nothing
                <*> inputString view' Nothing
     environment aId bId = fromList [(aId, show a), (bId, b)]
+
+-- Check that the label ID stays the same
+labelId :: Assertion
+labelId = unId $ do
+    [l1, l2, l3] <- viewForm form "form"
+    return $ l1 == l2 && l2 == l3 @? "ID's should be the same"
+  where
+    form = label return ++> inputString (\x _ -> [x]) Nothing <++ label return
