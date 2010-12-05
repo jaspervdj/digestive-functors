@@ -4,6 +4,7 @@
 module Text.Digestive.Types
     ( View (..)
     , Environment (..)
+    , fromList
     , FormState
     , getFormId
     , getFormRange
@@ -51,6 +52,11 @@ instance Monad m => Monoid (Environment m i) where
     x `mappend` NoEnvironment = x
     (Environment env1) `mappend` (Environment env2) = Environment $ \id' ->
         liftM2 mplus (env1 id') (env2 id')
+
+-- | Create an environment from a lookup table
+--
+fromList :: Monad m => [(FormId, i)] -> Environment m i
+fromList list = Environment $ return . flip lookup list
 
 -- | The form state is a state monad under which our applicatives are composed
 --
