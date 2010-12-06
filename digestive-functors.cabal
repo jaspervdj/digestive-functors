@@ -22,6 +22,7 @@ Library
                        Text.Digestive.Types,
                        Text.Digestive.Transform,
                        Text.Digestive.Html,
+                       Text.Digestive.Http,
                        Text.Digestive.Blaze.Html5,
                        Text.Digestive.Result,
                        Text.Digestive.Cli,

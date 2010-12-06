@@ -1,4 +1,5 @@
-module Text.Digestive.Common.Tests
+{-# LANGUAGE TypeSynonymInstances #-}
+module Text.Digestive.Http.Tests
     ( tests
     ) where
 
@@ -10,8 +11,10 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit (Assertion, (@?), (@=?))
 
 import Text.Digestive.Tests.Util
+import Text.Digestive.Result
 import Text.Digestive.Types
 import Text.Digestive.Common
+import Text.Digestive.Http
 
 tests :: [Test]
 tests = [ testProperty "pass through"    passThrough
@@ -19,6 +22,9 @@ tests = [ testProperty "pass through"    passThrough
         , testCase     "label ID"        labelId
         , testCase     "test input bool" testInputBool
         ]
+
+instance HttpInput String where
+    getInputString = id
 
 -- Build a test case: give a string as only input, run it through a form, the
 -- result should stay the same
@@ -51,6 +57,7 @@ labelId = unId $ do
     [l1, l2, l3] <- viewForm form "form"
     return $ l1 == l2 && l2 == l3 @? "ID's should be the same"
   where
+    form :: Form Id String e [FormId] String
     form = label return ++> inputString (\x _ -> [x]) Nothing <++ label return
 
 -- Check that bool inputs work

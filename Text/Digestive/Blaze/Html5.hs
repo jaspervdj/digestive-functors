@@ -23,6 +23,8 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import Text.Digestive.Types
+import Text.Digestive.Http (HttpInput (..))
+import qualified Text.Digestive.Http as Http
 import qualified Text.Digestive.Common as Common
 import Text.Digestive.Html
 
@@ -45,22 +47,22 @@ checked :: Bool -> Html -> Html
 checked False x = x
 checked True  x = x ! A.checked "checked"
 
-inputText :: (Monad m, Functor m)
+inputText :: (Monad m, Functor m, HttpInput i)
           => Maybe String
-          -> Form m String e BlazeFormHtml String
-inputText = Common.inputString $ \id' inp -> createFormHtml $ \cfg ->
+          -> Form m i e BlazeFormHtml String
+inputText = Http.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')
                 ! A.value (H.stringValue $ fromMaybe "" inp)
 
-inputTextArea :: (Monad m, Functor m)
-              => Maybe Int                             -- ^ Rows
-              -> Maybe Int                             -- ^ Columns
-              -> Maybe String                          -- ^ Default input
-              -> Form m String e BlazeFormHtml String  -- ^ Result
-inputTextArea r c = Common.inputString $ \id' inp -> createFormHtml $ \cfg ->
+inputTextArea :: (Monad m, Functor m, HttpInput i)
+              => Maybe Int                        -- ^ Rows
+              -> Maybe Int                        -- ^ Columns
+              -> Maybe String                     -- ^ Default input
+              -> Form m i e BlazeFormHtml String  -- ^ Result
+inputTextArea r c = Http.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $ rows r $ cols c $
         H.textarea ! A.name (H.stringValue $ show id')
                    ! A.id (H.stringValue $ show id')
@@ -71,41 +73,41 @@ inputTextArea r c = Common.inputString $ \id' inp -> createFormHtml $ \cfg ->
     cols Nothing = id
     cols (Just x) = (! A.cols (H.stringValue $ show x))
 
-inputTextRead :: (Monad m, Functor m, Show a, Read a)
+inputTextRead :: (Monad m, Functor m, HttpInput i, Show a, Read a)
               => e
               -> Maybe a
-              -> Form m String e BlazeFormHtml a
-inputTextRead error' = flip Common.inputRead error' $ \id' inp ->
+              -> Form m i e BlazeFormHtml a
+inputTextRead error' = flip Http.inputRead error' $ \id' inp ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')
                 ! A.value (H.stringValue $ fromMaybe "" inp)
 
-inputPassword :: (Monad m, Functor m)
-              => Form m String e BlazeFormHtml String
-inputPassword = flip Common.inputString Nothing $ \id' inp ->
+inputPassword :: (Monad m, Functor m, HttpInput i)
+              => Form m i e BlazeFormHtml String
+inputPassword = flip Http.inputString Nothing $ \id' inp ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "password"
                 ! A.name (H.stringValue $ show id')
                 ! A.id (H.stringValue $ show id')
                 ! A.value (H.stringValue $ fromMaybe "" inp)
 
-inputCheckBox :: (Monad m, Functor m)
+inputCheckBox :: (Monad m, Functor m, HttpInput i)
               => Bool
-              -> Form m String e BlazeFormHtml Bool
-inputCheckBox inp = flip Common.inputBool inp $ \id' inp' ->
+              -> Form m i e BlazeFormHtml Bool
+inputCheckBox inp = flip Http.inputBool inp $ \id' inp' ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         checked inp' $ H.input ! A.type_ "checkbox"
                                ! A.name (H.stringValue $ show id')
                                ! A.id (H.stringValue $ show id')
 
-inputRadio :: (Monad m, Functor m, Eq a)
-           => Bool                             -- ^ Use @<br>@ tags
-           -> a                                -- ^ Default option
-           -> [(a, Html)]                      -- ^ Choices with their names
-           -> Form m String e BlazeFormHtml a  -- ^ Resulting form
-inputRadio br def choices = Common.inputChoice toView def (map fst choices)
+inputRadio :: (Monad m, Functor m, HttpInput i, Eq a)
+           => Bool                        -- ^ Use @<br>@ tags
+           -> a                           -- ^ Default option
+           -> [(a, Html)]                 -- ^ Choices with their names
+           -> Form m i e BlazeFormHtml a  -- ^ Resulting form
+inputRadio br def choices = Http.inputChoice toView def (map fst choices)
   where
     toView group id' sel val = createFormHtml $ \cfg -> do
         applyClasses' [htmlInputClasses] cfg $ checked sel $
