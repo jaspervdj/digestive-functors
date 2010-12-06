@@ -10,20 +10,18 @@ module Text.Digestive.Common
 import Text.Digestive.Types
 import Text.Digestive.Result
 
--- TODO: Check parameter usage
 input :: (Monad m, Functor m)
-      => (Bool -> Maybe i -> d -> s)           -- ^ Get the viewed result
-      -> (Maybe i -> FormRange -> Result e a)  -- ^ Get the returned result
-      -> (FormId -> s -> v)                    -- ^ View constructor
-      -> d                                     -- ^ Default value
-      -> Form m i e v a                        -- ^ Resulting form
+      => (Bool -> Maybe i -> d -> s)  -- ^ Get the viewed result
+      -> (Maybe i -> Result e a)      -- ^ Get the returned result
+      -> (FormId -> s -> v)           -- ^ View constructor
+      -> d                            -- ^ Default value
+      -> Form m i e v a               -- ^ Resulting form
 input toView toResult createView defaultInput = Form $ do
     isInput <- isFormInput
     inp <- getFormInput
     id' <- getFormId
-    range <- getFormRange
     let view' = toView isInput inp defaultInput
-        result' = toResult inp range
+        result' = toResult inp
     return (View (const $ createView id' view'), result')
 
 label :: Monad m

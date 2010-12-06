@@ -30,7 +30,7 @@ inputString :: (Monad m, Functor m, HttpInput i)
 inputString = input toView toResult
   where
     toView _ inp defaultInput = fmap getInputString inp `mplus` defaultInput
-    toResult = const . Ok . fromMaybe "" . fmap getInputString
+    toResult = Ok . fromMaybe "" . fmap getInputString
 
 inputRead :: (Monad m, Functor m, HttpInput i, Read a, Show a)
           => (FormId -> Maybe String -> v)  -- ^ View constructor
@@ -47,7 +47,7 @@ inputBool :: (Monad m, Functor m, HttpInput i)
 inputBool = input toView toResult
   where
     toView isInput inp def = if isInput then readBool inp else def
-    toResult inp _ = Ok $ readBool inp
+    toResult inp = Ok $ readBool inp
     readBool (Just x) = not (null $ getInputString x)
     readBool Nothing  = False
 
@@ -74,5 +74,5 @@ inputFile :: (Monad m, Functor m, HttpInput i)
 inputFile viewCons = input toView toResult viewCons' ()
   where
     toView _ _ _ = ()
-    toResult inp _ = Ok $ fmap getInputFile inp
+    toResult inp = Ok $ fmap getInputFile inp
     viewCons' id' () = viewCons id'

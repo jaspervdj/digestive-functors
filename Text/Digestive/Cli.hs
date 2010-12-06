@@ -88,8 +88,8 @@ prompt descr = Common.input (const $ const $ const [])
                             (\x _ -> Descriptions $ M.singleton x [descr])
                             ""
   where
-    toResult Nothing _ = Error []
-    toResult (Just x) _ = Ok x
+    toResult Nothing = Error []
+    toResult (Just x) = Ok x
 
 -- | Generate a prompt field for a value which can be read
 --
