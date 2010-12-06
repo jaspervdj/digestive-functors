@@ -1,17 +1,21 @@
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances #-}
-import Data.Maybe                         (fromMaybe)
-import Control.Monad                      (liftM, msum, mplus)
-import Control.Applicative                ((<$>), (<*>))
+import Data.Maybe (fromMaybe)
+import Control.Monad (liftM, msum, mplus)
+import Control.Arrow ((&&&))
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Trans (liftIO)
 import Happstack.Server
-import Text.Blaze                         as B
-import Text.Blaze.Html4.Strict            as B hiding (map)
-import Text.Blaze.Html4.Strict.Attributes as B hiding (dir, title) 
-import Text.Blaze.Renderer.Utf8           (renderHtml)
+import Text.Blaze as B
+import Text.Blaze.Html4.Strict as B hiding (map, label)
+import Text.Blaze.Html4.Strict.Attributes as B hiding (dir, title, label)
+import Text.Blaze.Renderer.Utf8 (renderHtml)
+import Control.Monad.Reader.Class (ask)
 
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 
 import Text.Digestive.Types
-import Text.Digestive.Http
+import Text.Digestive.Http (HttpInput (..))
 import Text.Digestive.Blaze.Html5
 
 instance ToMessage B.Html where
@@ -20,34 +24,38 @@ instance ToMessage B.Html where
 
 instance HttpInput Input where
     getInputString = UTF8.toString . inputValue
+    getInputFile = fromMaybe "" . inputFilename &&& inputValue
 
 happstackEnvironment :: Monad m => Environment (ServerPartT m) Input
 happstackEnvironment = Environment $ getDataFn . lookInput . show
 
-data User = User String Int
-          deriving (Show)
+data Upload = Upload UTF8.ByteString String
+            deriving (Show)
 
-userForm :: (Monad m, Functor m) => Form m Input Html BlazeFormHtml User
-userForm = User <$> inputText (Just "username")
-                <*> inputTextRead "Can't read" Nothing
+uploadForm :: (Monad m, Functor m) => Form m Input Html BlazeFormHtml Upload
+uploadForm = Upload <$> fmap (fromMaybe "Unknown" . fmap snd) inputFile
+                    <*> label "Destination name: " ++> inputText Nothing
 
 eitherHappstackForm :: (Monad m, Functor m)
                     => Form (ServerPartT m) Input Html BlazeFormHtml a
                     -> String
                     -> ServerPartT m (Either BlazeFormHtml a)
-eitherHappstackForm form name = dir "get" get' `mplus` post'
-  where
-    get' = liftM Left $ viewForm form name
-    post' = eitherForm form name happstackEnvironment
+eitherHappstackForm form name = withRequest $ \rq -> flip runServerPartT rq $
+    case rqMethod rq of GET -> liftM Left $ viewForm form name
+                        _   -> eitherForm form name happstackEnvironment
 
-user :: ServerPart Response
-user = do
-    result <- eitherHappstackForm (userForm <++ childErrors) "user-form"
-    ok $ toResponse $ case result of
-        Left form' -> form ! B.method "POST" ! action "/" $ do
-            fst $ renderFormHtml form'
-            input ! type_ "submit" ! value "Submit"
-        Right user -> p $ string $ show user
+upload :: ServerPart Response
+upload = do
+    result <- eitherHappstackForm (childErrors ++> uploadForm)  "upload-form"
+    case result of
+        Left form' -> ok $ toResponse $ do
+            let (formHtml, enctype) = renderFormHtml form'
+            form ! B.enctype (stringValue $ show enctype) ! B.method "POST" !  action "/" $ do
+                formHtml
+                input ! type_ "submit" ! value "Upload"
+        Right (Upload lbs fileName) -> do
+            liftIO $ LBS.writeFile fileName lbs            
+            ok $ toResponse $ h1 "File uploaded"
 
 main :: IO ()
-main = simpleHTTP nullConf $ user
+main = simpleHTTP nullConf upload
