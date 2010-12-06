@@ -7,16 +7,17 @@ import Control.Applicative ((<$>), (<*>))
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.Framework.Providers.HUnit (testCase)
-import Test.HUnit (Assertion, (@?))
+import Test.HUnit (Assertion, (@?), (@=?))
 
 import Text.Digestive.Tests.Util
 import Text.Digestive.Types
 import Text.Digestive.Common
 
 tests :: [Test]
-tests = [ testProperty "pass through" passThrough
-        , testProperty "compose"      compose
-        , testCase     "label ID"     labelId
+tests = [ testProperty "pass through"    passThrough
+        , testProperty "compose"         compose
+        , testCase     "label ID"        labelId
+        , testCase     "test input bool" testInputBool
         ]
 
 -- Build a test case: give a string as only input, run it through a form, the
@@ -51,3 +52,16 @@ labelId = unId $ do
     return $ l1 == l2 && l2 == l3 @? "ID's should be the same"
   where
     form = label return ++> inputString (\x _ -> [x]) Nothing <++ label return
+
+-- Check that bool inputs work
+testInputBool :: Assertion
+testInputBool = unId $ do
+    [l1, l2, l3] <- viewForm form "form"
+    er <- eitherForm form "form" $ environment l1 l2 l3
+    return $ er @=? Right (False, True, False)
+  where
+    view' x _ = [x]
+    form = (,,) <$> inputBool view' True
+                <*> inputBool view' True
+                <*> inputBool view' True
+    environment l1 l2 _ = fromList [(l1, ""), (l2, "on")]
