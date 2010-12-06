@@ -15,14 +15,14 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 
 import Text.Digestive.Types
-import Text.Digestive.Http (HttpInput (..))
+import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Blaze.Html5
 
 instance ToMessage B.Html where
     toContentType _ = "text/html; charset=UTF-8"
     toMessage = renderHtml
 
-instance HttpInput Input where
+instance FormInput Input where
     getInputString = UTF8.toString . inputValue
     getInputFile = fromMaybe "" . inputFilename &&& inputValue
 

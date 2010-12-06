@@ -1,6 +1,6 @@
 -- | General functions for forms that are rendered to some sort of HTML
 --
-module Text.Digestive.Html
+module Text.Digestive.Forms.Html
     ( FormHtmlConfig (..)
     , FormEncType (..)
     , FormHtml (..)
