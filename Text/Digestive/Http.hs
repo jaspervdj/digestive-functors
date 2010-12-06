@@ -4,12 +4,15 @@ module Text.Digestive.Http
     , inputRead
     , inputBool
     , inputChoice
+    , inputFile
     ) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mplus)
 import Data.Monoid (Monoid, mconcat)
 import Data.Maybe (fromMaybe)
+
+import qualified Data.ByteString.Lazy as LB
 
 import Text.Digestive.Common
 import Text.Digestive.Types
@@ -18,6 +21,7 @@ import Text.Digestive.Transform
 
 class HttpInput a where
     getInputString :: a -> String
+    getInputFile :: a -> (String, LB.ByteString)
 
 inputString :: (Monad m, Functor m, HttpInput i)
             => (FormId -> Maybe String -> v)  -- ^ View constructor
@@ -63,3 +67,12 @@ inputChoice toView defaultInput choices = Form $ do
   where
     ids id' = map (((show id' ++ "-") ++) . show) [1 .. length choices]
     toView' id' inp key x = toView id' key (inp == x) x
+
+inputFile :: (Monad m, Functor m, HttpInput i)
+          => (FormId -> v)                                 -- ^ View constructor
+          -> Form m i e v (Maybe (String, LB.ByteString))  -- ^ Resulting form
+inputFile viewCons = input toView toResult viewCons' ()
+  where
+    toView _ _ _ = ()
+    toResult inp _ = Ok $ fmap getInputFile inp
+    viewCons' id' () = viewCons id'

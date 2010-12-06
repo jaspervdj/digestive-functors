@@ -7,6 +7,7 @@ module Text.Digestive.Blaze.Html5
     , inputPassword
     , inputCheckBox
     , inputRadio
+    , inputFile
     , submit
     , label
     , errors
@@ -21,6 +22,7 @@ import Data.Monoid (mempty)
 import Text.Blaze.Html5 (Html, (!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import qualified Data.ByteString.Lazy as LB
 
 import Text.Digestive.Types
 import Text.Digestive.Http (HttpInput (..))
@@ -118,6 +120,16 @@ inputRadio br def choices = Http.inputChoice toView def (map fst choices)
         H.label ! A.for (H.stringValue id')
                 $ fromMaybe mempty $ lookup val choices
         when br H.br
+
+inputFile :: (Monad m, Functor m, HttpInput i)
+          => Form m i e BlazeFormHtml (Maybe (String, LB.ByteString))  -- ^ Form
+inputFile = Http.inputFile toView
+  where
+    toView id' = createFormHtmlWith MultiPart $ \cfg -> do
+        applyClasses' [htmlInputClasses] cfg $
+            H.input ! A.type_ "file"
+                    ! A.name (H.stringValue $ show id')
+                    ! A.id (H.stringValue $ show id')
 
 submit :: Monad m
        => String                            -- ^ Text on the submit button
