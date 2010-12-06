@@ -21,11 +21,11 @@ import Text.Digestive.Result
 import Text.Digestive.Transform
 
 input :: (Monad m, Functor m)
-      => (Bool -> Maybe String -> d -> s)           -- ^ Get the viewed result
-      -> (Maybe String -> FormRange -> Result e a)  -- ^ Get the returned result
-      -> (FormId -> s -> v)                         -- ^ View constructor
-      -> d                                          -- ^ Default value
-      -> Form m String e v a                        -- ^ Resulting form
+      => (Bool -> Maybe i -> d -> s)           -- ^ Get the viewed result
+      -> (Maybe i -> FormRange -> Result e a)  -- ^ Get the returned result
+      -> (FormId -> s -> v)                    -- ^ View constructor
+      -> d                                     -- ^ Default value
+      -> Form m i e v a                        -- ^ Resulting form
 input toView toResult createView defaultInput = Form $ do
     isInput <- isFormInput
     inp <- getFormInput
