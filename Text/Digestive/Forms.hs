@@ -1,5 +1,6 @@
 module Text.Digestive.Forms
     ( FormInput (..)
+    , FormFileInput (..)
     , inputString
     , inputRead
     , inputBool
@@ -12,6 +13,8 @@ import Control.Monad (mplus)
 import Data.Monoid (Monoid, mconcat)
 import Data.Maybe (fromMaybe)
 
+import Data.Text (Text)
+import qualified Data.Text as T (pack)
 import qualified Data.ByteString.Lazy as LB
 
 import Text.Digestive.Common
@@ -19,9 +22,31 @@ import Text.Digestive.Types
 import Text.Digestive.Result
 import Text.Digestive.Transform
 
+-- | Class which all backends should implement. @a@ is here the type that is
+-- used to represent a value uploaded by the client in the request
+--
 class FormInput a where
+    -- | Parse the input into a string. This is used for simple text fields
+    -- among other things
+    --
     getInputString :: a -> String
-    getInputFile :: a -> (String, LB.ByteString)
+
+    -- | Parse the input value into 'Text'. The default implementation uses
+    -- 'T.pack . getInputString', a more efficient version may be implemented.
+    --
+    getInputText :: a -> Text
+    getInputText = T.pack . getInputString
+
+    -- | Get a file descriptor for an uploaded file
+    --
+    getInputFile :: a -> FormFileInput
+
+-- | A descriptor for an input file, uploaded by the client
+--
+data FormFileInput = FormFileInput
+    { formFileInputName     :: String         -- ^ Name provided by the client
+    , formFileInputContents :: LB.ByteString  -- ^ Contents of the uploaded file
+    }
 
 inputString :: (Monad m, Functor m, FormInput i)
             => (FormId -> Maybe String -> v)  -- ^ View constructor
@@ -69,8 +94,8 @@ inputChoice toView defaultInput choices = Form $ do
     toView' id' inp key x = toView id' key (inp == x) x
 
 inputFile :: (Monad m, Functor m, FormInput i)
-          => (FormId -> v)                                 -- ^ View constructor
-          -> Form m i e v (Maybe (String, LB.ByteString))  -- ^ Resulting form
+          => (FormId -> v)                       -- ^ View constructor
+          -> Form m i e v (Maybe FormFileInput)  -- ^ Resulting form
 inputFile viewCons = input toView toResult viewCons' ()
   where
     toView _ _ _ = ()

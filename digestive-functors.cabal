@@ -28,4 +28,4 @@ Library
                        Text.Digestive.Cli,
                        Text.Digestive
   Build-depends:       base >= 4 && < 5,
-                       blaze-html, monads-fd, containers, bytestring
+                       blaze-html, monads-fd, containers, bytestring, text

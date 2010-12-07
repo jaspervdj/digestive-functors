@@ -22,10 +22,9 @@ import Data.Monoid (mempty)
 import Text.Blaze.Html5 (Html, (!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import qualified Data.ByteString.Lazy as LB
 
 import Text.Digestive.Types
-import Text.Digestive.Forms (FormInput (..))
+import Text.Digestive.Forms (FormInput (..), FormFileInput)
 import qualified Text.Digestive.Forms as Forms
 import qualified Text.Digestive.Common as Common
 import Text.Digestive.Forms.Html
@@ -122,7 +121,7 @@ inputRadio br def choices = Forms.inputChoice toView def (map fst choices)
         when br H.br
 
 inputFile :: (Monad m, Functor m, FormInput i)
-          => Form m i e BlazeFormHtml (Maybe (String, LB.ByteString))  -- ^ Form
+          => Form m i e BlazeFormHtml (Maybe FormFileInput)  -- ^ Form
 inputFile = Forms.inputFile toView
   where
     toView id' = createFormHtmlWith MultiPart $ \cfg -> do
