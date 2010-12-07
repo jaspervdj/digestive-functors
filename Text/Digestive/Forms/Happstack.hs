@@ -5,7 +5,6 @@ module Text.Digestive.Forms.Happstack
     , eitherHappstackForm
     ) where
 
-import Control.Arrow ((&&&))
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe)
 
@@ -14,12 +13,15 @@ import Happstack.Server ( Input (..), ServerPartT, getDataFn, lookInput
                         , Method (..), withRequest, runServerPartT, rqMethod
                         )
 
-import Text.Digestive.Forms (FormInput (..))
+import Text.Digestive.Forms (FormInput (..), FormFileInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
 instance FormInput Input where
     getInputString = LB.toString . inputValue
-    getInputFile = fromMaybe "" . inputFilename &&& inputValue
+    getInputFile inp = FormFileInput
+        { formFileInputName = fromMaybe "" $ inputFilename inp
+        , formFileInputContents = inputValue inp
+        }
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
