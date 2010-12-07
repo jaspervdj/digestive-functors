@@ -16,6 +16,7 @@ digestive-functors-happstack package.
 
 > import Text.Digestive.Types
 > import Text.Digestive.Blaze.Html5
+> import Text.Digestive.Forms (formFileInputContents)
 > import Text.Digestive.Forms.Happstack (eitherHappstackForm)
 
 The next instance should not be needed once Happstack 0.6 is released, we'll
@@ -31,8 +32,9 @@ We're going to create a very simple file upload server.
 >             deriving (Show)
 
 > uploadForm :: (Monad m, Functor m) => Form m Input Html BlazeFormHtml Upload
-> uploadForm = Upload <$> fmap (fromMaybe "Unknown" . fmap snd) inputFile
->                     <*> label "Destination name: " ++> inputText Nothing
+> uploadForm = Upload
+>     <$> fmap (fromMaybe "Unknown" . fmap formFileInputContents) inputFile
+>     <*> label "Destination name: " ++> inputText Nothing
 
 > upload :: ServerPart Response
 > upload = do
@@ -45,7 +47,7 @@ We're going to create a very simple file upload server.
 >                 formHtml'
 >                 H.input ! A.type_ "submit" ! A.value "Upload"
 >         Right (Upload lbs fileName) -> do
->             liftIO $ LB.writeFile fileName lbs            
+>             liftIO $ LB.writeFile ("/tmp/" ++ fileName) lbs
 >             ok $ toResponse $ H.h1 "File uploaded"
 
 > main :: IO ()
