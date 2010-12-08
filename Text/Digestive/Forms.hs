@@ -28,17 +28,17 @@ class FormInput i f | i -> f where
     -- | Parse the input into a string. This is used for simple text fields
     -- among other things
     --
-    getInputString :: i -> String
+    getInputString :: i -> Maybe String
 
     -- | Parse the input value into 'Text'. The default implementation uses
     -- 'T.pack . getInputString', a more efficient version may be implemented.
     --
-    getInputText :: i -> Text
-    getInputText = T.pack . getInputString
+    getInputText :: i -> Maybe Text
+    getInputText = fmap T.pack . getInputString
 
     -- | Get a file descriptor for an uploaded file
     --
-    getInputFile :: i -> f
+    getInputFile :: i -> Maybe f
 
 inputString :: (Monad m, Functor m, FormInput i f)
             => (FormId -> Maybe String -> v)  -- ^ View constructor
@@ -46,8 +46,8 @@ inputString :: (Monad m, Functor m, FormInput i f)
             -> Form m i e v String            -- ^ Resulting form
 inputString = input toView toResult
   where
-    toView _ inp defaultInput = fmap getInputString inp `mplus` defaultInput
-    toResult = Ok . fromMaybe "" . fmap getInputString
+    toView _ inp defaultInput = (getInputString =<< inp) `mplus` defaultInput
+    toResult = Ok . fromMaybe "" . (getInputString =<<)
 
 inputRead :: (Monad m, Functor m, FormInput i f, Read a, Show a)
           => (FormId -> Maybe String -> v)  -- ^ View constructor
@@ -63,9 +63,10 @@ inputBool :: (Monad m, Functor m, FormInput i f)
           -> Form m i e v Bool       -- ^ Resulting form
 inputBool = input toView toResult
   where
-    toView isInput inp def = if isInput then readBool inp else def
-    toResult inp = Ok $ readBool inp
-    readBool (Just x) = not (null $ getInputString x)
+    toView isInput inp def = if isInput then readBool (getInputString =<< inp)
+                                        else def
+    toResult inp = Ok $ readBool (getInputString =<< inp)
+    readBool (Just x) = not $ null x
     readBool Nothing  = False
 
 inputChoice :: (Monad m, Functor m, FormInput i f, Monoid v, Eq a)
@@ -74,7 +75,7 @@ inputChoice :: (Monad m, Functor m, FormInput i f, Monoid v, Eq a)
             -> [a]                                   -- ^ Choices
             -> Form m i e v a                        -- ^ Resulting form
 inputChoice toView defaultInput choices = Form $ do
-    inputKey <- fromMaybe "" . fmap getInputString <$> getFormInput
+    inputKey <- fromMaybe "" . (getInputString =<<) <$> getFormInput
     id' <- getFormId
     let -- Find the actual input, based on the key, or use the default input
         inp = fromMaybe defaultInput $ lookup inputKey $ zip (ids id') choices
@@ -91,5 +92,5 @@ inputFile :: (Monad m, Functor m, FormInput i f)
 inputFile viewCons = input toView toResult viewCons' ()
   where
     toView _ _ _ = ()
-    toResult inp = Ok $ fmap getInputFile inp
+    toResult inp = Ok $ getInputFile =<< inp
     viewCons' id' () = viewCons id'
