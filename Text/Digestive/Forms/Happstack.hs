@@ -18,9 +18,11 @@ import Happstack.Server ( Input (..), ServerPartT, getDataFn, lookInput
 import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
-instance FormInput Input (Maybe String, LB.ByteString) where
-    getInputString = LB.toString . inputValue
-    getInputFile inp = (inputFilename inp, inputValue inp)
+instance FormInput Input (String, LB.ByteString) where
+    getInputString = Just . LB.toString . inputValue
+    getInputFile inp = do
+        inputFilename' <- inputFilename inp
+        return (inputFilename', inputValue inp)
 
 -- | Simplification of the `Form` type, instantiated to Happstack
 --
