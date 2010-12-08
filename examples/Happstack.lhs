@@ -1,7 +1,7 @@
 Example illustrating happstack with digestive-functors. This requires the
 digestive-functors-happstack package.
 
-> {-# LANGUAGE OverloadedStrings, TypeSynonymInstances #-}
+> {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts #-}
 > import Data.Maybe (fromMaybe)
 > import Control.Applicative ((<$>), (<*>))
 > import Control.Monad.Trans (liftIO)
@@ -16,8 +16,8 @@ digestive-functors-happstack package.
 
 > import Text.Digestive.Types
 > import Text.Digestive.Blaze.Html5
-> import Text.Digestive.Forms (formFileInputContents)
-> import Text.Digestive.Forms.Happstack (eitherHappstackForm)
+> import Text.Digestive.Forms hiding (inputFile)
+> import Text.Digestive.Forms.Happstack
 
 The next instance should not be needed once Happstack 0.6 is released, we'll
 have to live with it for now.
@@ -31,9 +31,10 @@ We're going to create a very simple file upload server.
 > data Upload = Upload LB.ByteString String
 >             deriving (Show)
 
-> uploadForm :: (Monad m, Functor m) => Form m Input Html BlazeFormHtml Upload
+> uploadForm :: (Monad m, Functor m, FormInput i (Maybe String, LB.ByteString))
+>            => Form m i Html BlazeFormHtml Upload
 > uploadForm = Upload
->     <$> fmap (fromMaybe "Unknown" . fmap formFileInputContents) inputFile
+>     <$> fmap (fromMaybe "Unknown" . fmap snd) inputFile
 >     <*> label "Destination name: " ++> inputText Nothing
 
 > upload :: ServerPart Response
