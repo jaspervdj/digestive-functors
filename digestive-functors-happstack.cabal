@@ -19,4 +19,5 @@ Library
   Build-depends:     base >= 4 && < 5,
                      digestive-functors == 0.0.1,
                      happstack-server >= 0.5 && < 0.6,
-                     utf8-string >= 0.3
+                     utf8-string >= 0.3,
+                     bytestring >= 0.9

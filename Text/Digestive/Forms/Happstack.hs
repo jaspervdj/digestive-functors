@@ -1,31 +1,34 @@
 -- | Module providing a happstack backend for the digestive-functors library
 --
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 module Text.Digestive.Forms.Happstack
-    ( happstackEnvironment
+    ( HappstackForm
+    , happstackEnvironment
     , eitherHappstackForm
     ) where
 
 import Control.Monad (liftM)
-import Data.Maybe (fromMaybe)
 
+import Data.ByteString.Lazy as LB
 import Data.ByteString.Lazy.UTF8 as LB (toString)
 import Happstack.Server ( Input (..), ServerPartT, getDataFn, lookInput
                         , Method (..), withRequest, runServerPartT, rqMethod
                         )
 
-import Text.Digestive.Forms (FormInput (..), FormFileInput (..))
+import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
-instance FormInput Input where
+instance FormInput Input (Maybe String, LB.ByteString) where
     getInputString = LB.toString . inputValue
-    getInputFile inp = FormFileInput
-        { formFileInputName = fromMaybe "" $ inputFilename inp
-        , formFileInputContents = inputValue inp
-        }
+    getInputFile inp = (inputFilename inp, inputValue inp)
+
+-- | Simplification of the `Form` type, instantiated to Happstack
+--
+type HappstackForm m e v a = Form (ServerPartT m) Input e v a
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
-happstackEnvironment :: Monad m => Environment (ServerPartT m) Input
+happstackEnvironment :: (Monad m) => Environment (ServerPartT m) Input
 happstackEnvironment = Environment $ getDataFn . lookInput . show
 
 -- | Run a happstack form
@@ -38,9 +41,9 @@ happstackEnvironment = Environment $ getDataFn . lookInput . show
 --   you will get the actual result
 --
 eitherHappstackForm :: (Monad m, Functor m)
-                    => Form (ServerPartT m) Input e v a  -- ^ Form
-                    -> String                            -- ^ Form name
-                    -> ServerPartT m (Either v a)        -- ^ Result
+                    => HappstackForm m e v a       -- ^ Form
+                    -> String                      -- ^ Form name
+                    -> ServerPartT m (Either v a)  -- ^ Result
 eitherHappstackForm form name = withRequest $ \rq -> flip runServerPartT rq $
     case rqMethod rq of GET -> liftM Left $ viewForm form name
                         _   -> eitherForm form name happstackEnvironment
