@@ -1,0 +1,22 @@
+Name:                digestive-functors-snap
+Version:             0.0.1
+Synopsis:            Snap backend for the digestive-functors library
+Description:         This is a snap backend for the digestive-functors library.
+
+Homepage:            http://github.com/jaspervdj/digestive-functors-snap
+License:             BSD3
+License-file:        LICENSE
+Author:              Jasper Van der Jeugt
+Maintainer:          jaspervdj@gmail.com
+Category:            Web
+Build-type:          Simple
+Cabal-version:       >=1.2
+
+
+Library
+  Exposed-modules:   Text.Digestive.Forms.Snap
+  Build-depends:     base >= 4 && < 5,
+                     digestive-functors == 0.0.1,
+                     snap-core >= 0.2 && < 0.3,
+                     bytestring >= 0.9,
+                     utf8-string >= 0.3
