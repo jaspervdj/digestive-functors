@@ -4,7 +4,7 @@ Synopsis:            A general way to consume input using applicative functors
 Description:         Digestive functors is a library to generate and process
     HTML forms.  You can find an introduction here:
 
-    <http://github.com/jaspervdj/digestive-functors/blob/master/README.lhs>
+    <http://github.com/jaspervdj/digestive-functors/blob/master/digestive-functors/README.lhs>
 
 Homepage:            http://github.com/jaspervdj/digestive-functors
 License:             BSD3

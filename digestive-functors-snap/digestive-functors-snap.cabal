@@ -3,7 +3,7 @@ Version:             0.0.1
 Synopsis:            Snap backend for the digestive-functors library
 Description:         This is a snap backend for the digestive-functors library.
 
-Homepage:            http://github.com/jaspervdj/digestive-functors-snap
+Homepage:            http://github.com/jaspervdj/digestive-functors
 License:             BSD3
 License-file:        LICENSE
 Author:              Jasper Van der Jeugt

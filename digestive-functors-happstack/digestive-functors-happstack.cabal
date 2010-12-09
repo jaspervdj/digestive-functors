@@ -4,7 +4,7 @@ Synopsis:            Happstack backend for the digestive-functors library
 Description:         This is a happstack backend for the digestive-functors
     library.
 
-Homepage:            http://github.com/jaspervdj/digestive-functors-happstack
+Homepage:            http://github.com/jaspervdj/digestive-functors
 License:             BSD3
 License-file:        LICENSE
 Author:              Jasper Van der Jeugt
