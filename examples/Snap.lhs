@@ -37,15 +37,15 @@ weights has the same length as the list of values.
 Now, we create a small form in which the user can enter a list (in Haskell
 syntax).
 
-> listForm :: (Read a, Show a) => SnapForm Html BlazeFormHtml [a]
-> listForm = inputTextRead "Can't read list" (Just []) <++ errors
+> listForm :: (Read a, Show a) => [a] -> SnapForm Html BlazeFormHtml [a]
+> listForm def = inputTextRead "Can't read list" (Just def) <++ errors
 
 We compose two of these forms to create a `WeightedSum` form:
 
 > weightedSumForm :: SnapForm Html BlazeFormHtml WeightedSum
 > weightedSumForm = (`validate` equalSize) $ (<++ errors) $ WeightedSum
->     <$> label "Weights: " ++> listForm
->     <*> label "Values: " ++> listForm
+>     <$> label "Weights: " ++> listForm [0.4, 0.4, 0.2]
+>     <*> label "Values: "  ++> listForm [64, 67, 91]
 
 Some code to render blaze templates:
 
