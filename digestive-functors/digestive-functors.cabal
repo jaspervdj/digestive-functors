@@ -17,6 +17,7 @@ Cabal-version:       >=1.2
 
 
 Library
+  Hs-source-dirs:      src
   Exposed-modules:     Text.Digestive.Validate,
                        Text.Digestive.Common,
                        Text.Digestive.Types,
