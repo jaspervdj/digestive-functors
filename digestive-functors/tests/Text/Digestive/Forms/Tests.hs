@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses #-}
 module Text.Digestive.Forms.Tests
     ( tests
     ) where
@@ -23,8 +23,9 @@ tests = [ testProperty "pass through"    passThrough
         , testCase     "test input bool" testInputBool
         ]
 
-instance FormInput String where
-    getInputString = id
+instance FormInput String () where
+    getInputString = Just
+    getInputFile = const Nothing
 
 -- Build a test case: give a string as only input, run it through a form, the
 -- result should stay the same
