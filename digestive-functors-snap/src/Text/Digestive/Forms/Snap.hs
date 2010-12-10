@@ -1,6 +1,6 @@
 -- | Module providing a snap backend for the digestive-functors library
 --
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types #-}
 module Text.Digestive.Forms.Snap
     ( SnapInput
     , SnapForm
@@ -26,11 +26,11 @@ instance FormInput SnapInput () where
 
 -- | Simplification of the `Form` type, instantiated to Snap
 --
-type SnapForm e v a = Form Snap SnapInput e v a
+type SnapForm e v a = (MonadSnap m) => Form m SnapInput e v a
 
 -- | Environment that will fetch input from the parameters parsed by Snap
 --
-snapEnvironment :: Environment Snap SnapInput
+snapEnvironment :: (MonadSnap m) => Environment m SnapInput
 snapEnvironment = Environment $ \id' -> do
     input' <- getParam (SB.fromString $ show id')
     return $ SnapInput <$> input'
@@ -44,9 +44,10 @@ snapEnvironment = Environment $ \id' -> do
 --   used. When errors occur, you will receive the form as a view, otherwise,
 --   you will get the actual result
 --
-eitherSnapForm :: SnapForm e v a     -- ^ Form
+eitherSnapForm :: (MonadSnap m) 
+               => SnapForm e v a     -- ^ Form
                -> String             -- ^ Form name
-               -> Snap (Either v a)  -- ^ Result
+               -> m (Either v a)  -- ^ Result
 eitherSnapForm form name = do
     method' <- rqMethod <$> getRequest
     case method' of GET -> liftM Left $ viewForm form name
