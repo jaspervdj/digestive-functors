@@ -1,6 +1,6 @@
 Name:                digestive-functors-blaze
 Version:             0.0.2.0
-Synopsis:            Snap backend for the digestive-functors library
+Synopsis:            Blaze frontend for the digestive-functors library
 Description:         This is a blaze frontend for the digestive-functors library.
 
 Homepage:            http://github.com/jaspervdj/digestive-functors
