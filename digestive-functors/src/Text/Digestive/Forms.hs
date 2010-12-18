@@ -21,7 +21,7 @@ import Text.Digestive.Types
 import Text.Digestive.Result
 import Text.Digestive.Transform
 
--- | Class which all backends should implement. @a@ is here the type that is
+-- | Class which all backends should implement. @i@ is here the type that is
 -- used to represent a value uploaded by the client in the request
 --
 class FormInput i f | i -> f where
