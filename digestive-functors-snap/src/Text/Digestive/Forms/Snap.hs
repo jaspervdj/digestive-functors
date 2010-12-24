@@ -44,7 +44,7 @@ snapEnvironment = Environment $ \id' -> do
 --   used. When errors occur, you will receive the form as a view, otherwise,
 --   you will get the actual result
 --
-eitherSnapForm :: (MonadSnap m) 
+eitherSnapForm :: (MonadSnap m)
                => SnapForm e v a     -- ^ Form
                -> String             -- ^ Form name
                -> m (Either v a)  -- ^ Result

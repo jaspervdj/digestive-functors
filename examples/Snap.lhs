@@ -4,7 +4,7 @@ digestive-functors-snap package.
 > {-# LANGUAGE OverloadedStrings, TypeSynonymInstances #-}
 > import Control.Applicative ((<$>), (<*>))
 > import Snap.Types
-> import Snap.Http.Server (httpServe)
+> import Snap.Http.Server (httpServe, defaultConfig)
 
 > import Text.Blaze (Html, (!))
 > import qualified Text.Blaze.Html5 as H
@@ -30,7 +30,7 @@ Right, now we can start on the actual webapp. To calculate a weighted sum, it is
 required that every value has a weight. This is why we require that the list of
 weights has the same length as the list of values.
 
-> equalSize :: Validator Snap Html WeightedSum
+> equalSize :: Monad m => Validator m Html WeightedSum
 > equalSize = check "Lists must be of equal size" $ \(WeightedSum l1 l2) ->
 >     length l1 == length l2
 
@@ -94,4 +94,4 @@ correctly (the input validated). We can now print this result.
 Now, we just need a main function to server the handler.
 
 > main :: IO ()
-> main = httpServe "*" 8000 "weighted-sum" Nothing Nothing weightedSumHandler
+> main = httpServe defaultConfig weightedSumHandler
