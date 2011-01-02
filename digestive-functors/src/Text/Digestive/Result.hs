@@ -3,8 +3,10 @@
 module Text.Digestive.Result
     ( Result (..)
     , FormId (..)
+    , mapId
     , FormRange (..)
     , incrementFormId
+    , unitRange
     , isInRange
     , isSubRange
     , retainErrors
@@ -12,6 +14,7 @@ module Text.Digestive.Result
     ) where
 
 import Control.Applicative (Applicative (..))
+import Data.List (intercalate)
 
 -- | Type for failing computations
 --
@@ -35,15 +38,24 @@ instance Applicative (Result e) where
     Ok _ <*> Error y = Error y
     Ok x <*> Ok y = Ok $ x y
 
+isErrorResult (Error _) = True
+isErrorResult (Ok _)    = False
+
 -- | An ID used to identify forms
 --
 data FormId = FormId
     { formPrefix :: String
-    , formId     :: Integer
+    , formIdList :: [Integer]
     } deriving (Eq, Ord)
 
+mapId :: ([Integer] -> [Integer]) -> FormId -> FormId
+mapId f (FormId p is) = FormId p $ f is
+
 instance Show FormId where
-    show (FormId p x) = p ++ "-f" ++ show x
+    show (FormId p xs) = p ++ "-f" ++ (intercalate "." $ reverse $ map show xs)
+
+formId :: FormId -> Integer
+formId = head . formIdList
 
 -- | A range of ID's to specify a group of forms
 --
@@ -53,14 +65,17 @@ data FormRange = FormRange FormId FormId
 -- | Increment a form ID
 --
 incrementFormId :: FormId -> FormId
-incrementFormId (FormId p x) = FormId p $ x + 1
+incrementFormId (FormId p (x:xs)) = FormId p $ (x + 1):xs
+
+unitRange :: FormId -> FormRange
+unitRange i = FormRange i $ incrementFormId i
 
 -- | Check if a 'FormId' is contained in a 'FormRange'
 --
 isInRange :: FormId     -- ^ Id to check for
           -> FormRange  -- ^ Range
           -> Bool       -- ^ If the range contains the id
-isInRange (FormId _ a) (FormRange b c) = a >= formId b && a < formId c
+isInRange a (FormRange b c) = formId a >= formId b && formId a < formId c
 
 -- | Check if a 'FormRange' is contained in another 'FormRange'
 --

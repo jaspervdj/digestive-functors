@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies,
+             NoMonomorphismRestriction #-}
 module Text.Digestive.Forms
     ( FormInput (..)
     , inputString
@@ -6,10 +7,12 @@ module Text.Digestive.Forms
     , inputBool
     , inputChoice
     , inputFile
+    , massInput
     ) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mplus)
+import Control.Monad.State
 import Data.Monoid (Monoid, mconcat)
 import Data.Maybe (fromMaybe)
 
@@ -94,3 +97,44 @@ inputFile viewCons = input toView toResult viewCons' ()
     toView _ _ _ = ()
     toResult inp = Ok $ getInputFile =<< inp
     viewCons' id' () = viewCons id'
+
+up :: Monad m => FormState m i ()
+up = do
+    FormRange s _ <- get
+    put $ unitRange $ mapId (tail . tail) s
+
+down :: Monad m => FormState m i ()
+down = do
+    FormRange s _ <- get
+    put $ unitRange $ mapId (\x -> 0:0:x) s
+
+------------------------------------------------------------------------------
+-- | Converts a formlet repsenting a single item into a formlet representing a
+-- list of those items.  It requires that the first element be the number of
+-- items in the list.
+--
+-- FIXME: This needs to be elaborated
+--
+massInput :: (Monad m, Monoid v, FormInput i f)
+          => Formlet m i e v a
+          -> Formlet m i e v [a]
+massInput single defaults = Form $ do
+    numElems <- getFormInput
+    down
+    let defCount = maybe 1 length defaults
+        count = maybe defCount read $ getInputString =<< numElems
+        fs = replicate count single
+        forms = zipWith ($) fs $ maybe (replicate (length fs) Nothing)
+                                       (map Just) defaults
+    list <- sequence $ map unForm forms
+    up
+    return (mconcat $ map fst list, combineResults [] [] $ map snd list)
+  where
+    combineResults es os [] =
+        case es of
+            [] -> Ok $ reverse os
+            _  -> Error es
+    combineResults es os (r:rs) =
+        case r of
+            Error es' -> combineResults (es ++ es') os rs
+            Ok o      -> combineResults es (o:os) rs

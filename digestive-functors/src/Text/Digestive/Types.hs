@@ -9,8 +9,10 @@ module Text.Digestive.Types
     , getFormId
     , getFormRange
     , getFormInput
+    , getFormInput'
     , isFormInput
     , Form (..)
+    , Formlet (..)
     , view
     , (++>)
     , (<++)
@@ -78,8 +80,12 @@ getFormRange = get
 -- | Utility function: Get the current input
 --
 getFormInput :: Monad m => FormState m i (Maybe i)
-getFormInput = do
-    id' <- getFormId
+getFormInput = getFormId >>= getFormInput'
+
+-- | Gets the input of an arbitrary FormId.
+--
+getFormInput' :: Monad m => FormId -> FormState m i (Maybe i)
+getFormInput' id' = do
     env <- ask
     case env of Environment f -> lift $ lift $ f id'
                 NoEnvironment -> return Nothing
@@ -94,6 +100,8 @@ isFormInput = ask >>= \env -> return $ case env of
 -- | A form represents a number of composed fields
 --
 newtype Form m i e v a = Form {unForm :: FormState m i (View e v, Result e a)}
+
+type Formlet m i e v a = Maybe a -> Form m i e v a
 
 instance Monad m => Functor (Form m i e v) where
     fmap f form = Form $ do
@@ -170,7 +178,7 @@ runForm :: Monad m
 runForm form id' env = evalStateT (runReaderT (unForm form) env) $
     FormRange f0 $ incrementFormId f0
   where
-    f0 = FormId id' 0
+    f0 = FormId id' [0]
 
 -- | Evaluate a form to it's view if it fails
 --
