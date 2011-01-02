@@ -13,7 +13,7 @@ module Text.Digestive.Forms
 import Control.Applicative ((<$>))
 import Control.Monad (mplus)
 import Control.Monad.State
-import Data.Monoid (Monoid, mconcat)
+import Data.Monoid (Monoid, mappend, mconcat)
 import Data.Maybe (fromMaybe)
 
 import Data.Text (Text)
@@ -110,25 +110,35 @@ down = do
 
 ------------------------------------------------------------------------------
 -- | Converts a formlet repsenting a single item into a formlet representing a
--- list of those items.  It requires that the first element be the number of
--- items in the list.
+-- list of those items.  It requires that the user specify a formlet to hold
+-- the length of the list.  Typically this will be a hidden field that is
+-- automatically updated by client-side javascript.
 --
--- FIXME: This needs to be elaborated
+-- The field names must be generated as follows.  Assume that if massInput had
+-- not been used, the field name would have been prefix-f5.  In this case, the
+-- list length field name will be prefix-f5.  The first item in the list will
+-- receive field names starting at prefix-f5.0.0.  If each item is a composed
+-- form with two fields, those fields will have the names prefix-f5.0.0 and
+-- prefix-f5.0.1.  The field names for the second item will be prefix-f5.1.0
+-- and prefix-f5.1.1.
 --
 massInput :: (Monad m, Monoid v, FormInput i f)
-          => Formlet m i e v a
-          -> Formlet m i e v [a]
-massInput single defaults = Form $ do
-    numElems <- getFormInput
-    down
+          => Formlet m i e v Int
+          -> Formlet m i e v a
+          -> Maybe [a]
+          -> Form m i e v [a]
+massInput countField single defaults = Form $ do
     let defCount = maybe 1 length defaults
-        count = maybe defCount read $ getInputString =<< numElems
+    (countView,countRes) <- unForm $ countField (Just defCount)
+    let count = fromMaybe defCount $ getResult countRes
         fs = replicate count single
         forms = zipWith ($) fs $ maybe (replicate (length fs) Nothing)
                                        (map Just) defaults
+    down
     list <- sequence $ map unForm forms
     up
-    return (mconcat $ map fst list, combineResults [] [] $ map snd list)
+    return ( countView `mappend` (mconcat $ map fst list)
+           , combineResults [] [] $ map snd list)
   where
     combineResults es os [] =
         case es of

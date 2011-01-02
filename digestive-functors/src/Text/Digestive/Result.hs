@@ -2,6 +2,7 @@
 --
 module Text.Digestive.Result
     ( Result (..)
+    , getResult
     , FormId (..)
     , mapId
     , FormRange (..)
@@ -38,8 +39,9 @@ instance Applicative (Result e) where
     Ok _ <*> Error y = Error y
     Ok x <*> Ok y = Ok $ x y
 
-isErrorResult (Error _) = True
-isErrorResult (Ok _)    = False
+getResult :: Result e ok -> Maybe ok
+getResult (Error _) = Nothing
+getResult (Ok r) = Just r
 
 -- | An ID used to identify forms
 --
