@@ -13,6 +13,8 @@ module Text.Digestive.Types
     , isFormInput
     , Form (..)
     , Formlet (..)
+    , bracketState
+    , incState
     , view
     , (++>)
     , (<++)
@@ -112,17 +114,25 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
     pure x = Form $ return (mempty, return x)
     f1 <*> f2 = Form $ do
         -- Assuming f1 already has a valid ID
-        FormRange startF1 _ <- get
-        (v1, r1) <- unForm f1
-        FormRange _ endF1 <- get
-
-        -- Set a new, empty range
-        put $ FormRange endF1 $ incrementFormId endF1
-        (v2, r2) <- unForm f2
-        FormRange _ endF2 <- get
-
-        put $ FormRange startF1 endF2
+        ((v1,r1), (v2,r2)) <- bracketState $ do
+            res1 <- unForm f1
+            incState
+            res2 <- unForm f2
+            return (res1, res2)
         return (v1 `mappend` v2, r1 <*> r2)
+
+bracketState :: Monad m => FormState m i a -> FormState m i a
+bracketState k = do
+    FormRange startF1 _ <- get
+    res <- k
+    FormRange _ endF2 <- get
+    put $ FormRange startF1 endF2
+    return res
+
+incState :: Monad m => FormState m i ()
+incState = do
+        FormRange _ endF1 <- get
+        put $ unitRange endF1
 
 -- | Insert a view into the functor
 --
