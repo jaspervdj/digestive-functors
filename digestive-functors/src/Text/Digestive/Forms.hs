@@ -10,7 +10,7 @@ module Text.Digestive.Forms
     , massInput
     ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mplus)
 import Control.Monad.State
 import Data.Monoid (Monoid, mappend, mconcat)
@@ -98,15 +98,15 @@ inputFile viewCons = input toView toResult viewCons' ()
     toResult inp = Ok $ getInputFile =<< inp
     viewCons' id' () = viewCons id'
 
-up :: Monad m => FormState m i ()
-up = do
+up :: Monad m => Int -> FormState m i ()
+up n = do
     FormRange s _ <- get
-    put $ unitRange $ mapId (tail . tail) s
+    put $ unitRange $ mapId ((!!n) . iterate tail) s
 
-down :: Monad m => FormState m i ()
-down = do
+down :: Monad m => Int -> FormState m i ()
+down n = do
     FormRange s _ <- get
-    put $ unitRange $ mapId (\x -> 0:0:x) s
+    put $ unitRange $ mapId ((!!n) . iterate (0:)) s
 
 ------------------------------------------------------------------------------
 -- | Converts a formlet repsenting a single item into a formlet representing a
@@ -134,12 +134,17 @@ massInput countField single defaults = Form $ do
         fs = replicate count single
         forms = zipWith ($) fs $ maybe (replicate (length fs) Nothing)
                                        (map Just) defaults
-    down
-    list <- sequence $ map unForm forms
-    up
+    down 2
+    list <- mapM (incAfter . unForm) forms
+    up 2
     return ( countView `mappend` (mconcat $ map fst list)
            , combineResults [] [] $ map snd list)
   where
+    incAfter k = do
+        res <- k
+        up 1 >> incState >> down 1
+        return res
+
     combineResults es os [] =
         case es of
             [] -> Ok $ reverse os
@@ -148,3 +153,4 @@ massInput countField single defaults = Form $ do
         case r of
             Error es' -> combineResults (es ++ es') os rs
             Ok o      -> combineResults es (o:os) rs
+
