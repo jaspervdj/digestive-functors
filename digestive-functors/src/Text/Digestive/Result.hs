@@ -54,7 +54,8 @@ mapId :: ([Integer] -> [Integer]) -> FormId -> FormId
 mapId f (FormId p is) = FormId p $ f is
 
 instance Show FormId where
-    show (FormId p xs) = p ++ "-f" ++ (intercalate "." $ reverse $ map show xs)
+--    show (FormId p xs) = p ++ "-f" ++ (intercalate "." $ reverse $ map show xs)
+    show (FormId p xs) = p ++ "-fval[" ++ (intercalate "." $ reverse $ map show xs) ++ "]"
 
 formId :: FormId -> Integer
 formId = head . formIdList
