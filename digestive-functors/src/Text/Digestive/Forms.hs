@@ -10,6 +10,8 @@ module Text.Digestive.Forms
     , massInput
     ) where
 
+import Debug.Trace
+
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mplus)
 import Control.Monad.State
@@ -130,10 +132,12 @@ massInput :: (Monad m, Monoid v)
 massInput countField single defaults = Form $ do
     let defCount = maybe 1 length defaults
     (countView,countRes) <- unForm $ countField (Just defCount)
-    let count = fromMaybe defCount $ getResult countRes
+    let countFromForm = getResult countRes
+        count = fromMaybe defCount countFromForm
         fs = replicate count single
-        forms = zipWith ($) fs $ maybe (replicate (length fs) Nothing)
-                                       (map Just) defaults
+        forms = zipWith ($) fs $ maybe (maybe [Nothing] (map Just) defaults)
+                                       (flip replicate Nothing)
+                                       countFromForm
     down 2
     list <- mapM (incAfter . unForm) forms
     up 2
