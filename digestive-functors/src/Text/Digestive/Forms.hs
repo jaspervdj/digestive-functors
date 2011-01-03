@@ -122,7 +122,7 @@ down = do
 -- prefix-f5.0.1.  The field names for the second item will be prefix-f5.1.0
 -- and prefix-f5.1.1.
 --
-massInput :: (Monad m, Monoid v, FormInput i f)
+massInput :: (Monad m, Monoid v)
           => Formlet m i e v Int
           -> Formlet m i e v a
           -> Maybe [a]

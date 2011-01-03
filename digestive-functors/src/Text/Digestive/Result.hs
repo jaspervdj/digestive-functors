@@ -68,6 +68,7 @@ data FormRange = FormRange FormId FormId
 --
 incrementFormId :: FormId -> FormId
 incrementFormId (FormId p (x:xs)) = FormId p $ (x + 1):xs
+incrementFormId (FormId _ []) = error "Bad FormId list"
 
 unitRange :: FormId -> FormRange
 unitRange i = FormRange i $ incrementFormId i
