@@ -57,6 +57,9 @@ instance Monoid a => Monoid (FormHtml a) where
     mappend (FormHtml x f) (FormHtml y g) =
         FormHtml (x `mappend` y) $ f `mappend` g
 
+instance Functor FormHtml where
+    fmap f (FormHtml e g) = FormHtml e (f . g)
+
 -- | Create form HTML with the default encoding type
 --
 createFormHtml :: (FormHtmlConfig -> a) -> FormHtml a
