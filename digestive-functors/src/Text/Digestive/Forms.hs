@@ -7,7 +7,7 @@ module Text.Digestive.Forms
     , inputBool
     , inputChoice
     , inputFile
-    , massInput
+    , inputList
     ) where
 
 import Debug.Trace
@@ -112,11 +112,11 @@ down n = do
 
 ------------------------------------------------------------------------------
 -- | Converts a formlet repsenting a single item into a formlet representing a
--- list of those items.  It requires that the user specify a formlet to hold
--- the length of the list.  Typically this will be a hidden field that is
--- automatically updated by client-side javascript.
+-- dynamically sized list of those items.  It requires that the user specify a
+-- formlet to hold the length of the list.  Typically this will be a hidden
+-- field that is automatically updated by client-side javascript.
 --
--- The field names must be generated as follows.  Assume that if massInput had
+-- The field names must be generated as follows.  Assume that if inputList had
 -- not been used, the field name would have been prefix-f5.  In this case, the
 -- list length field name will be prefix-f5.  The first item in the list will
 -- receive field names starting at prefix-f5.0.0.  If each item is a composed
@@ -124,12 +124,14 @@ down n = do
 -- prefix-f5.0.1.  The field names for the second item will be prefix-f5.1.0
 -- and prefix-f5.1.1.
 --
-massInput :: (Monad m, Monoid v)
+inputList :: (Monad m, Monoid v)
           => Formlet m i e v Int
+          -- ^ A formlet for the list length
           -> Formlet m i e v a
-          -> Maybe [a]
-          -> Form m i e v [a]
-massInput countField single defaults = Form $ do
+          -- ^ The formlet for a single list element
+          -> Formlet m i e v [a]
+          -- ^ The dynamic list formlet
+inputList countField single defaults = Form $ do
     let defCount = maybe 1 length defaults
     (countView,countRes) <- unForm $ countField (Just defCount)
     let countFromForm = getResult countRes
