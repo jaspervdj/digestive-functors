@@ -178,16 +178,22 @@ childErrors = Common.childErrors errorList
 -- this function to work, the javascript code in 'inputListJs' or something
 -- similar must be in scope.
 --
-inputList :: (Monad m, Functor m, FormInput i f, IsString e)
-          => Formlet m i e BlazeFormHtml a
+-- The user needs to specify the whole formlet because transformRead requires
+-- an error parameter, and this function can't specify it without loss of
+-- generality.  The idea is that the extra power of being able to customize
+-- the formlet is worth the small amount of extra code compared to having to
+-- specify the error.
+--
+inputList :: (Monad m, Functor m, FormInput i f)
+          => Formlet m i e BlazeFormHtml Int
+          -- ^ The formlet holding the number of items in the list.
+          -> Formlet m i e BlazeFormHtml a
           -- ^ The formlet used for each list item.  This function surrounds it
           -- with a div tag with the inputListItem class.
           -> Formlet m i e BlazeFormHtml [a]
-inputList single d =
-    mapView (fmap addControls) $ Forms.inputList h s d
+inputList hidden single d =
+    mapView (fmap addControls) $ Forms.inputList hidden s d
   where
-    h def = inputHidden (fmap show def) `transform`
-              transformRead "error in length field"
     s def = mapView (fmap (H.div ! A.class_ "inputListItem")) $ single def
     addControls form = do
         H.div ! A.class_ "inputList" $ do
@@ -266,3 +272,4 @@ inputListJs = unlines
     ,"  }"
     ,"}"
     ]
+
