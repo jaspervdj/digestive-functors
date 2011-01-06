@@ -167,12 +167,7 @@ inputForItems (FieldItemMultiStart id' descr _errs : rest) accum fid = do
 -- mass input item to the correct index.
 --
 modifyId :: FormId -> Integer -> FormId -> FormId
-modifyId parent i = mapFormId (\x -> head x : i : formIdList parent)
-
--- Apply a function to the [Integer] field of a FormId
---
-mapFormId :: ([Integer] -> [Integer]) -> FormId -> FormId
-mapFormId f x = x {formIdList = f (formIdList x)}
+modifyId parent i = mapId (\x -> head x : i : formIdList parent)
 
 -- | Run a Prompt, sequentially prompting the user for each item.
 --
@@ -185,8 +180,8 @@ runPrompt prmpt = do
     inpmap <- InputMap . snd <$> inputForItems (unPromptView prmptv) [] id
     eith   <- eitherForm prmpt "form" (inputMapEnvironment inpmap)
     return $ case eith of
-      Left v  -> Left (fieldItemErrors `concatMap` unPromptView v)
-      Right x -> Right x
+        Left v  -> Left (fieldItemErrors `concatMap` unPromptView v)
+        Right x -> Right x
 
 -- Read the errors from a FieldItem, if any.
 --
@@ -201,5 +196,3 @@ descriptiveErrors :: FormId -> String -> [String] -> [String]
 descriptiveErrors id' descr errs = map str errs
   where
     str err = "(" ++ show id' ++ ") " ++ descr ++ ": " ++ err
-
-

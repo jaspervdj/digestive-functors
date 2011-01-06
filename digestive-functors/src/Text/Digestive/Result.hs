@@ -6,6 +6,7 @@ module Text.Digestive.Result
     , FormId
     , zeroId
     , mapId
+    , formIdList
     , FormRange (..)
     , incrementFormId
     , unitRange
