@@ -12,7 +12,7 @@ module Text.Digestive.Types
     , getFormInput'
     , isFormInput
     , Form (..)
-    , Formlet (..)
+    , Formlet
     , bracketState
     , incState
     , view
@@ -188,9 +188,7 @@ runForm :: Monad m
         -> Environment m i           -- ^ Input environment
         -> m (View e v, Result e a)  -- ^ Result
 runForm form id' env = evalStateT (runReaderT (unForm form) env) $
-    FormRange f0 $ incrementFormId f0
-  where
-    f0 = FormId id' [0]
+    unitRange $ zeroId id'
 
 -- | Evaluate a form to it's view if it fails
 --

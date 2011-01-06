@@ -10,11 +10,9 @@ module Text.Digestive.Forms
     , inputList
     ) where
 
-import Debug.Trace
-
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>))
 import Control.Monad (mplus)
-import Control.Monad.State
+import Control.Monad.State (put, get)
 import Data.Monoid (Monoid, mappend, mconcat)
 import Data.Maybe (fromMaybe)
 
@@ -110,7 +108,7 @@ down n = do
     FormRange s _ <- get
     put $ unitRange $ mapId ((!!n) . iterate (0:)) s
 
--- | Converts a formlet repsenting a single item into a formlet representing a
+-- | Converts a formlet representing a single item into a formlet representing a
 -- dynamically sized list of those items.  It requires that the user specify a
 -- formlet to hold the length of the list.  Typically this will be a hidden
 -- field that is automatically updated by client-side javascript.
@@ -124,12 +122,9 @@ down n = do
 -- and prefix-f5.1.1.
 --
 inputList :: (Monad m, Monoid v)
-          => Formlet m i e v Int
-          -- ^ A formlet for the list length
-          -> Formlet m i e v a
-          -- ^ The formlet for a single list element
-          -> Formlet m i e v [a]
-          -- ^ The dynamic list formlet
+          => Formlet m i e v Int  -- ^ A formlet for the list length
+          -> Formlet m i e v a    -- ^ The formlet for a single list element
+          -> Formlet m i e v [a]  -- ^ The dynamic list formlet
 inputList countField single defaults = Form $ do
     let defCount = maybe 1 length defaults
     (countView,countRes) <- unForm $ countField (Just defCount)
@@ -158,4 +153,3 @@ inputList countField single defaults = Form $ do
         case r of
             Error es' -> combineResults (es ++ es') os rs
             Ok o      -> combineResults es (o:os) rs
-

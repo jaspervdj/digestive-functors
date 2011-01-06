@@ -3,7 +3,8 @@
 module Text.Digestive.Result
     ( Result (..)
     , getResult
-    , FormId (..)
+    , FormId
+    , zeroId
     , mapId
     , FormRange (..)
     , incrementFormId
@@ -46,16 +47,26 @@ getResult (Ok r) = Just r
 -- | An ID used to identify forms
 --
 data FormId = FormId
-    { formPrefix :: String
-    , formIdList :: [Integer]
+    { -- | Global prefix for the form
+      formPrefix :: String
+    , -- | Stack indicating field. Head is most specific to this item
+      formIdList :: [Integer]
     } deriving (Eq, Ord)
+
+-- | The zero ID, i.e. the first ID that is usable
+--
+zeroId :: String -> FormId
+zeroId p = FormId
+    { formPrefix = p
+    , formIdList = [0]
+    }
 
 mapId :: ([Integer] -> [Integer]) -> FormId -> FormId
 mapId f (FormId p is) = FormId p $ f is
 
 instance Show FormId where
---    show (FormId p xs) = p ++ "-f" ++ (intercalate "." $ reverse $ map show xs)
-    show (FormId p xs) = p ++ "-fval[" ++ (intercalate "." $ reverse $ map show xs) ++ "]"
+    show (FormId p xs) =
+        p ++ "-fval[" ++ (intercalate "." $ reverse $ map show xs) ++ "]"
 
 formId :: FormId -> Integer
 formId = head . formIdList
