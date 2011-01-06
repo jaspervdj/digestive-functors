@@ -60,16 +60,15 @@ prompt :: String        -- ^ Description
 prompt descr = Form $ do
     id' <- getFormId
     inp <- getFormInput
+    range <- getFormRange
     let v :: [(FormRange, String)] -> PromptView
-        v errs = PromptView [FieldItemSingle id' descr (map snd matching)]
+        v errs = PromptView [FieldItemSingle id' descr matching]
           where
             -- Only errors which apply specifically to this item
-            matching :: [(FormRange, String)]
-            matching = filter (flip isSubRange range . fst) errs
-        range = unitRange id'
+            matching = retainErrors range errs
         result = case inp of
-          Just x  -> Ok x
-          Nothing -> Error [(range, "No input")]
+            Just x  -> Ok x
+            Nothing -> Error [(range, "No input")]
     return (View v, result)
 
 -- | Convert a prompt for a single item into a prompt for multiple items
@@ -92,8 +91,7 @@ promptList descr prmpt = Form $ do
     -- the contained items are used to enter in a single User.)
     let vstart errs = PromptView [item]
           where
-            item = FieldItemMultiStart id' descr (map snd matching)
-            matching = filter (flip isSubRange range . fst) errs
+            item = FieldItemMultiStart id' descr $ retainErrors range errs
         vend _ = PromptView [FieldItemMultiEnd]
     return (View vstart `mappend` v `mappend` View vend, r1)
   where
