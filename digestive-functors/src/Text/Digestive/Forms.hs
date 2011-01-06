@@ -110,7 +110,6 @@ down n = do
     FormRange s _ <- get
     put $ unitRange $ mapId ((!!n) . iterate (0:)) s
 
-------------------------------------------------------------------------------
 -- | Converts a formlet repsenting a single item into a formlet representing a
 -- dynamically sized list of those items.  It requires that the user specify a
 -- formlet to hold the length of the list.  Typically this will be a hidden

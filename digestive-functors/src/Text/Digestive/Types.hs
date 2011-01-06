@@ -104,6 +104,7 @@ isFormInput = ask >>= \env -> return $ case env of
 newtype Form m i e v a = Form {unForm :: FormState m i (View e v, Result e a)}
 
 -- | A function for generating forms with an optional default value.
+--
 type Formlet m i e v a = Maybe a -> Form m i e v a
 
 instance Monad m => Functor (Form m i e v) where
