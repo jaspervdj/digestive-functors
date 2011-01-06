@@ -32,3 +32,4 @@ Contributors:
 - Ozgun Ataman
 - Alex Mason
 - Andrew Richards
+- Doug Beardsley
