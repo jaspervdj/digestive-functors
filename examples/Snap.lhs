@@ -37,12 +37,12 @@ weights has the same length as the list of values.
 Now, we create a small form in which the user can enter a list (in Haskell
 syntax).
 
-> listForm :: (Read a, Show a) => [a] -> SnapForm Html BlazeFormHtml [a]
+> listForm :: (MonadSnap m, Read a, Show a) => [a] -> SnapForm m Html BlazeFormHtml [a]
 > listForm def = inputTextRead "Can't read list" (Just def) <++ errors
 
 We compose two of these forms to create a `WeightedSum` form:
 
-> weightedSumForm :: SnapForm Html BlazeFormHtml WeightedSum
+> weightedSumForm :: (MonadSnap m) => SnapForm m Html BlazeFormHtml WeightedSum
 > weightedSumForm = (`validate` equalSize) $ (<++ errors) $ WeightedSum
 >     <$> label "Weights: " ++> listForm [0.4, 0.4, 0.2]
 >     <*> label "Values: "  ++> listForm [64, 67, 91]
