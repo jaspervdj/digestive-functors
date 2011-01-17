@@ -142,8 +142,8 @@ inputFile = Forms.inputFile toView
                     ! A.id (H.stringValue $ show id')
 
 submit :: Monad m
-       => String                            -- ^ Text on the submit button
-       -> Form m String e BlazeFormHtml ()  -- ^ Submit button
+       => String                       -- ^ Text on the submit button
+       -> Form m i e BlazeFormHtml ()  -- ^ Submit button
 submit text = view $ createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses, htmlSubmitClasses] cfg $
         H.input ! A.type_ "submit"
