@@ -32,14 +32,6 @@ type HappstackForm m e v a = Form (ServerPartT m) Input e v a
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
-{-
-happstackEnvironment :: (Monad m) => Environment (ServerPartT m) Input
-happstackEnvironment = Environment $ \id -> do
-  res <- (getDataFn . lookInput . show) id
-  case res of
-    (Right a) -> return $ Just a
-    _         -> return Nothing
--}
 happstackEnvironment :: (Monad m, MonadIO m) => Environment (ServerPartT m) Input
 happstackEnvironment = Environment $ \id -> do
   res <- getDataFn . lookInput . show $ id
