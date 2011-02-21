@@ -6,8 +6,10 @@ digestive-functors-happstack package.
 > import Control.Applicative ((<$>), (<*>))
 > import Control.Monad.Trans (liftIO)
 > import Happstack.Server
+> import Data.Monoid (mappend)
+> import System.Directory (copyFile)
 
-> import Text.Blaze (Html, (!))
+> import Text.Blaze (Html, (!), toHtml)
 > import qualified Text.Blaze.Html5 as H
 > import qualified Text.Blaze.Html5.Attributes as A
 > import Text.Blaze.Renderer.Utf8 (renderHtml)
@@ -18,16 +20,9 @@ digestive-functors-happstack package.
 > import Text.Digestive.Blaze.Html5
 > import Text.Digestive.Forms.Happstack
 
-The next instance should not be needed once Happstack 0.6 is released, we'll
-have to live with it for now.
-
-> instance ToMessage Html where
->     toContentType _ = "text/html; charset=UTF-8"
->     toMessage = renderHtml
-
 We're going to create a very simple file upload server.
 
-> data Upload = Upload LB.ByteString String
+> data Upload = Upload FilePath String
 >             deriving (Show)
 
 > uploadForm :: (Monad m, Functor m)
@@ -38,6 +33,7 @@ We're going to create a very simple file upload server.
 
 > upload :: ServerPart Response
 > upload = do
+>     decodeBody $ defaultBodyPolicy "/tmp/" 32000 1000 1000
 >     r <- eitherHappstackForm (childErrors ++> uploadForm)  "upload-form"
 >     case r of
 >         Left form' -> ok $ toResponse $ do
@@ -46,9 +42,11 @@ We're going to create a very simple file upload server.
 >                    ! A.method "POST" ! A.action "/" $ do
 >                 formHtml'
 >                 H.input ! A.type_ "submit" ! A.value "Upload"
->         Right (Upload lbs fileName) -> do
->             liftIO $ LB.writeFile ("/tmp/" ++ fileName) lbs
->             ok $ toResponse $ H.h1 "File uploaded"
+>         Right (Upload fileName destination) -> do
+>             liftIO $ copyFile fileName destination
+>             ok $ toResponse $ do
+>                 H.h1 "File uploaded"
+>                 H.p $ "Location: " `mappend` toHtml destination
 
 > main :: IO ()
 > main = simpleHTTP nullConf upload
