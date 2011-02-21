@@ -1,43 +1,52 @@
 -- | Module providing a happstack backend for the digestive-functors library
 --
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Text.Digestive.Forms.Happstack
     ( HappstackForm
     , happstackEnvironment
     , eitherHappstackForm
     ) where
 
-import Control.Monad (liftM)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad (MonadPlus, liftM)
+import Control.Applicative (Alternative, optional)
 
-import Data.ByteString.Lazy as LB
 import Data.ByteString.Lazy.UTF8 as LB (toString)
-import Happstack.Server (Input (..), getDataFn, lookInput, Method (..), rqMethod)
-import Happstack.Server.Internal.Monads (ServerPartT, withRequest, runServerPartT)
+import Data.Text.Lazy          as Text (toStrict)
+import Data.Text.Lazy.Encoding as Text (decodeUtf8)
+import Happstack.Server ( Input (..), HasRqData (..), lookInput
+                        , Method (..), ServerMonad (..), rqMethod
+                        )
 
 import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
 instance FormInput Input (String, FilePath) where
-    getInputString inp = case inputValue inp of
-      (Right bs) -> Just . LB.toString $ bs
-      _         -> Nothing
-    getInputFile inp = case inputValue inp of
-      (Left fp) -> inputFilename inp >>= \fn -> return (fn, fp)
-      _         -> Nothing
+    getInputString inp =
+        case inputValue inp of
+          (Right bs) -> Just . LB.toString $ bs
+          _          -> Nothing
+    getInputText inp =
+        case inputValue inp of
+          (Right bs) -> Just . Text.toStrict . Text.decodeUtf8 $ bs
+          _          -> Nothing
+
+    getInputFile inp =
+        case inputValue inp of
+          (Left fp) ->
+              do fn <- inputFilename inp
+                 return (fn, fp)
+          _ -> Nothing
 
 -- | Simplification of the `Form` type, instantiated to Happstack
 --
-type HappstackForm m e v a = Form (ServerPartT m) Input e v a
+type HappstackForm m e v a = Form m Input e v a
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
-happstackEnvironment :: (Monad m, MonadIO m) => Environment (ServerPartT m) Input
-happstackEnvironment = Environment $ \id -> do
-  res <- getDataFn . lookInput . show $ id
-  case res of
-    (Right a) -> return (Just a)
-    _         -> return Nothing
+happstackEnvironment :: (HasRqData m, MonadPlus m, Alternative m)
+                     => Environment m Input
+happstackEnvironment = Environment $ optional . lookInput . show
 
 -- | Run a happstack form
 --
@@ -48,10 +57,10 @@ happstackEnvironment = Environment $ \id -> do
 --   used. When errors occur, you will receive the form as a view, otherwise,
 --   you will get the actual result
 --
-eitherHappstackForm :: (Monad m, Functor m, MonadIO m)
+eitherHappstackForm :: (HasRqData m, MonadPlus m, Alternative m, ServerMonad m)
                     => HappstackForm m e v a       -- ^ Form
                     -> String                      -- ^ Form name
-                    -> ServerPartT m (Either v a)  -- ^ Result
-eitherHappstackForm form name = withRequest $ \rq -> flip runServerPartT rq $
+                    -> m (Either v a)              -- ^ Result
+eitherHappstackForm form name = askRq >>= \rq ->
     case rqMethod rq of GET -> liftM Left $ viewForm form name
                         _   -> eitherForm form name happstackEnvironment
