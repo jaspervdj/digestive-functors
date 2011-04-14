@@ -14,7 +14,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (mplus)
 import Control.Monad.State (put, get)
 import Data.Monoid (Monoid, mappend, mconcat)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 
 import Data.Text (Text)
 import qualified Data.Text as T (pack)
@@ -32,12 +32,21 @@ class FormInput i f | i -> f where
     -- among other things
     --
     getInputString :: i -> Maybe String
+    getInputString = listToMaybe . getInputStrings
 
-    -- | Parse the input value into 'Text'. The default implementation uses
-    -- 'T.pack . getInputString', a more efficient version may be implemented.
+    -- | Should be implemented
+    --
+    getInputStrings :: i -> [String]
+
+    -- | Parse the input value into 'Text'
     --
     getInputText :: i -> Maybe Text
-    getInputText = fmap T.pack . getInputString
+    getInputText = listToMaybe . getInputTexts
+
+    -- | Can be overriden for efficiency concerns
+    --
+    getInputTexts :: i -> [Text]
+    getInputTexts = map T.pack . getInputStrings
 
     -- | Get a file descriptor for an uploaded file
     --
@@ -49,7 +58,7 @@ inputString :: (Monad m, Functor m, FormInput i f)
             -> Form m i e v String            -- ^ Resulting form
 inputString = input toView toResult
   where
-    toView _ inp defaultInput = (getInputString =<< inp) `mplus` defaultInput
+    toView _ inp def = (getInputString =<< inp) `mplus` def
     toResult = Ok . fromMaybe "" . (getInputString =<<)
 
 inputRead :: (Monad m, Functor m, FormInput i f, Read a, Show a)
@@ -66,11 +75,12 @@ inputBool :: (Monad m, Functor m, FormInput i f)
           -> Form m i e v Bool       -- ^ Resulting form
 inputBool = input toView toResult
   where
-    toView isInput inp def = if isInput then readBool (getInputString =<< inp)
-                                        else def
+    toView isInput inp def
+        | isInput   = readBool (getInputString =<< inp)
+        | otherwise = def
     toResult inp = Ok $ readBool (getInputString =<< inp)
     readBool (Just x) = not $ null x
-    readBool Nothing  = False
+    readBool _        = False
 
 inputChoice :: (Monad m, Functor m, FormInput i f, Monoid v, Eq a)
             => (FormId -> String -> Bool -> a -> v)  -- ^ Choice constructor

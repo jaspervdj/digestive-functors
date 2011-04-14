@@ -9,12 +9,9 @@ digestive-functors-happstack package.
 > import Data.Monoid (mappend)
 > import System.Directory (copyFile)
 
-> import Text.Blaze (Html, (!), toHtml)
+> import Text.Blaze (Html, (!), toHtml, toValue)
 > import qualified Text.Blaze.Html5 as H
 > import qualified Text.Blaze.Html5.Attributes as A
-> import Text.Blaze.Renderer.Utf8 (renderHtml)
-
-> import qualified Data.ByteString.Lazy as LB
 
 > import Text.Digestive.Types
 > import Text.Digestive.Blaze.Html5
@@ -38,7 +35,7 @@ We're going to create a very simple file upload server.
 >     case r of
 >         Left form' -> ok $ toResponse $ do
 >             let (formHtml', enctype) = renderFormHtml form'
->             H.form ! A.enctype (H.stringValue $ show enctype)
+>             H.form ! A.enctype (toValue $ show enctype)
 >                    ! A.method "POST" ! A.action "/" $ do
 >                 formHtml'
 >                 H.input ! A.type_ "submit" ! A.value "Upload"

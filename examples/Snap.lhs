@@ -6,7 +6,7 @@ digestive-functors-snap package.
 > import Snap.Types
 > import Snap.Http.Server (httpServe, defaultConfig)
 
-> import Text.Blaze (Html, (!))
+> import Text.Blaze (Html, (!), toHtml, toValue)
 > import qualified Text.Blaze.Html5 as H
 > import qualified Text.Blaze.Html5.Attributes as A
 > import Text.Blaze.Renderer.Utf8 (renderHtml)
@@ -77,7 +77,7 @@ form. Either case, we just render the form using blaze.
 >                   "    background-color: rgb(100, 0, 0);\n"
 >                   "}"
 >             H.h1 "Evaluate a weighted sum"
->             H.form ! A.enctype (H.stringValue $ show enctype)
+>             H.form ! A.enctype (toValue $ show enctype)
 >                    ! A.method "POST" ! A.action "/" $ do
 >                 formHtml'
 >                 H.input ! A.type_ "submit" ! A.value "Submit"
@@ -89,7 +89,7 @@ correctly (the input validated). We can now print this result.
 >             H.h1 "HUGE SUCCES"
 >             H.p $ do
 >                 H.strong $ "Result: "
->                 H.string $ show $ weightedSum weightedSum'
+>                 toHtml $ weightedSum weightedSum'
 
 Now, we just need a main function to server the handler.
 

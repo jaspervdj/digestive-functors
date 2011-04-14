@@ -22,14 +22,14 @@ import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
 instance FormInput Input (String, FilePath) where
-    getInputString inp =
+    getInputStrings inp =
         case inputValue inp of
-          (Right bs) -> Just . LB.toString $ bs
-          _          -> Nothing
-    getInputText inp =
+          (Right bs) -> return . LB.toString $ bs
+          _          -> []
+    getInputTexts inp =
         case inputValue inp of
-          (Right bs) -> Just . Text.toStrict . Text.decodeUtf8 $ bs
-          _          -> Nothing
+          (Right bs) -> return . Text.toStrict . Text.decodeUtf8 $ bs
+          _          -> []
 
     getInputFile inp =
         case inputValue inp of

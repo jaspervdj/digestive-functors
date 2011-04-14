@@ -21,7 +21,7 @@ import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 newtype SnapInput = SnapInput {unSnapInput :: SB.ByteString}
 
 instance FormInput SnapInput () where
-    getInputString = Just . SB.toString . unSnapInput
+    getInputStrings = return . SB.toString . unSnapInput
     getInputFile = const Nothing
 
 -- | Simplification of the `Form` type, instantiated to Snap

@@ -22,7 +22,7 @@ import Control.Monad (forM_, unless, when)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 
-import Text.Blaze.Html5 (Html, (!))
+import Text.Blaze.Html5 (Html, (!), toValue, toHtml)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
@@ -43,7 +43,7 @@ applyClasses' :: [FormHtmlConfig -> [String]]  -- ^ Labels to apply
               -> Html                          -- ^ HTML element
               -> Html                          -- ^ Resulting element
 applyClasses' = applyClasses $ \element value ->
-    element ! A.class_ (H.stringValue value)
+    element ! A.class_ (toValue value)
 
 -- | Checks the input element when the argument is true
 --
@@ -56,18 +56,18 @@ inputText :: (Monad m, Functor m, FormInput i f)
 inputText = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
-                ! A.name (H.stringValue $ show id')
-                ! A.id (H.stringValue $ show id')
-                ! A.value (H.stringValue $ fromMaybe "" inp)
+                ! A.name (toValue $ show id')
+                ! A.id (toValue $ show id')
+                ! A.value (toValue $ fromMaybe "" inp)
 
 inputHidden :: (Monad m, Functor m, FormInput i f)
             => Formlet m i e BlazeFormHtml String
 inputHidden = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "hidden"
-                ! A.name (H.stringValue $ show id')
-                ! A.id (H.stringValue $ show id')
-                ! A.value (H.stringValue $ fromMaybe "" inp)
+                ! A.name (toValue $ show id')
+                ! A.id (toValue $ show id')
+                ! A.value (toValue $ fromMaybe "" inp)
 
 inputTextArea :: (Monad m, Functor m, FormInput i f)
               => Maybe Int                        -- ^ Rows
@@ -76,14 +76,14 @@ inputTextArea :: (Monad m, Functor m, FormInput i f)
               -> Form m i e BlazeFormHtml String  -- ^ Result
 inputTextArea r c = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $ rows r $ cols c $
-        H.textarea ! A.name (H.stringValue $ show id')
-                   ! A.id (H.stringValue $ show id')
-                   $ H.string $ fromMaybe "" inp
+        H.textarea ! A.name (toValue $ show id')
+                   ! A.id (toValue $ show id')
+                   $ toHtml $ fromMaybe "" inp
   where
     rows Nothing = id
-    rows (Just x) = (! A.rows (H.stringValue $ show x))
+    rows (Just x) = (! A.rows (toValue $ show x))
     cols Nothing = id
-    cols (Just x) = (! A.cols (H.stringValue $ show x))
+    cols (Just x) = (! A.cols (toValue $ show x))
 
 inputTextRead :: (Monad m, Functor m, FormInput i f, Show a, Read a)
               => e
@@ -92,18 +92,18 @@ inputTextRead :: (Monad m, Functor m, FormInput i f, Show a, Read a)
 inputTextRead error' = flip Forms.inputRead error' $ \id' inp ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
-                ! A.name (H.stringValue $ show id')
-                ! A.id (H.stringValue $ show id')
-                ! A.value (H.stringValue $ fromMaybe "" inp)
+                ! A.name (toValue $ show id')
+                ! A.id (toValue $ show id')
+                ! A.value (toValue $ fromMaybe "" inp)
 
 inputPassword :: (Monad m, Functor m, FormInput i f)
               => Form m i e BlazeFormHtml String
 inputPassword = flip Forms.inputString Nothing $ \id' inp ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "password"
-                ! A.name (H.stringValue $ show id')
-                ! A.id (H.stringValue $ show id')
-                ! A.value (H.stringValue $ fromMaybe "" inp)
+                ! A.name (toValue $ show id')
+                ! A.id (toValue $ show id')
+                ! A.value (toValue $ fromMaybe "" inp)
 
 inputCheckBox :: (Monad m, Functor m, FormInput i f)
               => Bool
@@ -111,8 +111,8 @@ inputCheckBox :: (Monad m, Functor m, FormInput i f)
 inputCheckBox inp = flip Forms.inputBool inp $ \id' inp' ->
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         checked inp' $ H.input ! A.type_ "checkbox"
-                               ! A.name (H.stringValue $ show id')
-                               ! A.id (H.stringValue $ show id')
+                               ! A.name (toValue $ show id')
+                               ! A.id (toValue $ show id')
 
 inputRadio :: (Monad m, Functor m, FormInput i f, Eq a)
            => Bool                        -- ^ Use @<br>@ tags
@@ -124,10 +124,10 @@ inputRadio br def choices = Forms.inputChoice toView def (map fst choices)
     toView group id' sel val = createFormHtml $ \cfg -> do
         applyClasses' [htmlInputClasses] cfg $ checked sel $
             H.input ! A.type_ "radio"
-                    ! A.name (H.stringValue $ show group)
-                    ! A.value (H.stringValue id')
-                    ! A.id (H.stringValue id')
-        H.label ! A.for (H.stringValue id')
+                    ! A.name (toValue $ show group)
+                    ! A.value (toValue id')
+                    ! A.id (toValue id')
+        H.label ! A.for (toValue id')
                 $ fromMaybe mempty $ lookup val choices
         when br H.br
 
@@ -138,8 +138,8 @@ inputFile = Forms.inputFile toView
     toView id' = createFormHtmlWith MultiPart $ \cfg -> do
         applyClasses' [htmlInputClasses] cfg $
             H.input ! A.type_ "file"
-                    ! A.name (H.stringValue $ show id')
-                    ! A.id (H.stringValue $ show id')
+                    ! A.name (toValue $ show id')
+                    ! A.id (toValue $ show id')
 
 submit :: Monad m
        => String                       -- ^ Text on the submit button
@@ -147,15 +147,15 @@ submit :: Monad m
 submit text = view $ createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses, htmlSubmitClasses] cfg $
         H.input ! A.type_ "submit"
-                ! A.value (H.stringValue text)
+                ! A.value (toValue text)
 
 label :: Monad m
       => String
       -> Form m i e BlazeFormHtml ()
 label string = Common.label $ \id' -> createFormHtml $ \cfg ->
     applyClasses' [htmlLabelClasses] cfg $
-        H.label ! A.for (H.stringValue $ show id')
-                $ H.string string
+        H.label ! A.for (toValue $ show id')
+                $ toHtml string
 
 errorList :: [Html] -> BlazeFormHtml
 errorList errors' = createFormHtml $ \cfg -> unless (null errors') $
