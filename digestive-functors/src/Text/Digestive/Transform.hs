@@ -3,6 +3,7 @@
 module Text.Digestive.Transform
     ( Transformer (..)
     , transform
+    , transformFormlet
     , transformEither
     , transformEitherM
     , transformRead
@@ -51,6 +52,16 @@ transform form transformer = Form $ do
                 Left e -> (v1, Error $ map ((,) range) e)
                 -- All fine
                 Right y -> (v1, Ok y)
+
+-- | Apply a transformer to a formlet
+--
+transformFormlet :: Monad m
+                 => (b -> a)             -- ^ Needed to produce defaults
+                 -> Formlet m i e v a    -- ^ Formlet to transform
+                 -> Transformer m e a b  -- ^ Transformer
+                 -> Formlet m i e v b    -- ^ Resulting formlet
+transformFormlet f formlet transformer def =
+    formlet (fmap f def) `transform` transformer
 
 -- | Build a transformer from a simple function that returns an 'Either' result.
 --
