@@ -10,43 +10,47 @@ module Text.Digestive.Forms.Happstack
 
 import Control.Monad (MonadPlus, liftM)
 import Control.Applicative (Alternative, optional)
-
 import Data.ByteString.Lazy.UTF8 as LB (toString)
+import Data.Either
 import Data.Text.Lazy          as Text (toStrict)
 import Data.Text.Lazy.Encoding as Text (decodeUtf8)
-import Happstack.Server ( Input (..), HasRqData (..), lookInput
+import Happstack.Server ( Input (..), HasRqData (..), lookInputs
                         , Method (..), ServerMonad (..), rqMethod
                         )
 
 import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
 
-instance FormInput Input (String, FilePath) where
-    getInputStrings inp =
-        case inputValue inp of
-          (Right bs) -> return . LB.toString $ bs
-          _          -> []
-    getInputTexts inp =
-        case inputValue inp of
-          (Right bs) -> return . Text.toStrict . Text.decodeUtf8 $ bs
-          _          -> []
+instance FormInput [Input] (String, FilePath) where
+    getInputStrings inps =
+        map LB.toString $ rights $ map inputValue inps
 
-    getInputFile inp =
-        case inputValue inp of
-          (Left fp) ->
-              do fn <- inputFilename inp
-                 return (fn, fp)
+    getInputTexts inps =
+        map (Text.toStrict . Text.decodeUtf8) $ rights $ map inputValue inps
+
+    getInputFile inps =
+        case inps of
+          (inp:_) ->
+              case inputValue inp of
+                (Left fp) ->
+                    do fn <- inputFilename inp
+                       return (fn, fp)
+                _ -> Nothing
           _ -> Nothing
 
 -- | Simplification of the `Form` type, instantiated to Happstack
 --
-type HappstackForm m e v a = Form m Input e v a
+type HappstackForm m e v a = Form m [Input] e v a
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
 happstackEnvironment :: (HasRqData m, MonadPlus m, Alternative m)
-                     => Environment m Input
-happstackEnvironment = Environment $ optional . lookInput . show
+                     => Environment m [Input]
+happstackEnvironment = Environment $ fmap toMaybe . lookInputs . show
+    where
+      toMaybe :: [a] -> Maybe [a]
+      toMaybe [] = Nothing
+      toMaybe l  = Just l
 
 -- | Run a happstack form
 --
