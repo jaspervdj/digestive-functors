@@ -3,6 +3,7 @@
 module Text.Digestive.Forms
     ( FormInput (..)
     , inputString
+    , inputText
     , inputRead
     , inputBool
     , inputChoice
@@ -17,7 +18,7 @@ import Data.Monoid (Monoid, mappend, mconcat)
 import Data.Maybe (fromMaybe, listToMaybe)
 
 import Data.Text (Text)
-import qualified Data.Text as T (pack)
+import qualified Data.Text as T (pack, empty)
 
 import Text.Digestive.Common
 import Text.Digestive.Types
@@ -60,6 +61,15 @@ inputString = input toView toResult
   where
     toView _ inp def = (getInputString =<< inp) `mplus` def
     toResult = Ok . fromMaybe "" . (getInputString =<<)
+
+inputText :: (Monad m, Functor m, FormInput i f)
+            => (FormId -> Maybe Text -> v)    -- ^ View constructor
+            -> Maybe Text                     -- ^ Default value
+            -> Form m i e v Text              -- ^ Resulting form
+inputText = input toView toResult
+  where
+    toView _ inp def = (getInputText =<< inp) `mplus` def
+    toResult = Ok . fromMaybe T.empty . (getInputText =<<)
 
 inputRead :: (Monad m, Functor m, FormInput i f, Read a, Show a)
           => (FormId -> Maybe String -> v)  -- ^ View constructor
