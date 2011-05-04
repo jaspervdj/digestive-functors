@@ -7,6 +7,7 @@ module Text.Digestive.Forms
     , inputRead
     , inputBool
     , inputChoice
+    , inputChoices
     , inputFile
     , inputList
     ) where
@@ -15,7 +16,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (mplus)
 import Control.Monad.State (put, get)
 import Data.Monoid (Monoid, mappend, mconcat)
-import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
 import Data.Text (Text)
 import qualified Data.Text as T (pack, empty)
@@ -108,6 +109,31 @@ inputChoice toView defaultInput choices = Form $ do
   where
     ids id' = map (((show id' ++ "-") ++) . show) [1 .. length choices]
     toView' id' inp key x = toView id' key (inp == x) x
+
+-- An input element that allows multiple selections, such as
+-- checkboxes or multiple-select boxes.
+--
+-- When multiple results are submitted, they should all have the same
+-- name attribute.
+inputChoices :: (Monad m, Functor m, FormInput i f, Monoid v, Eq a)
+            => (FormId -> String -> Bool -> a -> v)  -- ^ Choice constructor
+            -> [a]                                   -- ^ Default choices
+            -> [a]                                   -- ^ Choices
+            -> Form m i e v [a]                      -- ^ Resulting form
+inputChoices toView defaults choices = Form $ do
+    inputKeys <- maybe [] getInputStrings <$> getFormInput
+    id' <- getFormId
+    formInput <- isFormInput
+    let -- Find the actual input, based on the key, or use the default input
+        inps = if formInput 
+               then mapMaybe (\inputKey -> lookup inputKey $ zip (ids id') choices) inputKeys
+               else defaults
+        -- Apply the toView' function to all choices
+        view' = mconcat $ zipWith (toView' id' inps) (ids id') choices
+    return (View (const view'), Ok inps)
+  where
+    ids id' = map (((show id' ++ "-") ++) . show) [1 .. length choices]
+    toView' id' inps key x = toView id' key (x `elem` inps) x
 
 inputFile :: (Monad m, Functor m, FormInput i f)
           => (FormId -> v)           -- ^ View constructor
