@@ -7,6 +7,7 @@ module Text.Digestive.Transform
     , transformEither
     , transformEitherM
     , transformRead
+    , required
     ) where
 
 import Prelude hiding ((.), id)
@@ -82,3 +83,9 @@ transformRead :: (Monad m, Read a)
 transformRead error' = transformEither $ \str -> case readsPrec 1 str of
     [(x, "")] -> Right x
     _ -> Left error'
+
+-- | A transformer that converts 'Maybe a' to 'a'.
+required :: (Monad m) => 
+            e  -- ^ error to return if value is 'Nothing'
+         -> Transformer m e (Maybe a) a
+required err = transformEither $ maybe (Left err) Right
