@@ -13,13 +13,14 @@ POST requests into actual values. Some features include:
 - complete control over errors and validation;
 - forms are composable, thus allowing code re-use;
 
-> {-# LANGUAGE OverloadedStrings #-}
+> {-# LANGUAGE OverloadedStrings, MultiParamTypeClasses, FlexibleInstances #-}
 > import Text.Digestive
 
 We're going to use the [blaze-html](http://jaspervdj.be/blaze/) backend for
 these examples.
 
 > import Text.Digestive.Blaze.Html5
+> import Text.Digestive.Forms
 > import Text.Blaze (Html)
 > import Text.Blaze.Renderer.Pretty (renderHtml)
 
@@ -44,7 +45,7 @@ applicative functors can be found
 [here](http://learnyouahaskell.com/functors-applicative-functors-and-monoids).
 
 > addressForm1 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Address
+>              => Form m DummyInput Html BlazeFormHtml Address
 > addressForm1 = Address <$> inputText Nothing
 >                        <*> inputText (Just "Ghent")
 >                        <*> inputTextRead "No read" (Just 9000)
@@ -72,10 +73,18 @@ The `eitherForm` will then either return a view or a value:
 - if a view was returned, it means that some error occurred -- this error should
   be visible in the view, so you can use the view for feedback to the user.
 
-We can use a `testForm` function to test a form locally using GHCI:
+We can now declare a `DummyInput` type and a `testForm` function to test a form
+locally using GHCI. Note that this sort of code normally isn't necesarry: all
+instances should be provided for common Haskell web frameworks.
+
+> newtype DummyInput = DummyInput {unDummyInput :: String}
+
+> instance FormInput DummyInput [Char] where
+>     getInputStrings = return . unDummyInput
+>     getInputFile = Just . unDummyInput
 
 > testForm :: Show a
->          => Form IO String Html BlazeFormHtml a
+>          => Form IO DummyInput Html BlazeFormHtml a
 >          -> [(Integer, String)]
 >          -> IO ()
 > testForm form tuples = eitherForm form "some-form" env >>= \er ->
@@ -83,7 +92,8 @@ We can use a `testForm` function to test a form locally using GHCI:
 >         Left html -> renderHtml $ fst $ renderFormHtml html
 >         Right x -> show x
 >   where
->     env = Environment $ return . flip lookup tuples . formId
+>     env = Environment $
+>         return . fmap DummyInput . flip lookup tuples . head . formIdList
 
 Try loading this file in GHCI and using
 
@@ -112,7 +122,7 @@ are allowed to change the view.
 Let's make our `addressForm1` a little more user-friendly:
 
 > addressForm2 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Address
+>              => Form m DummyInput Html BlazeFormHtml Address
 > addressForm2 = Address
 >     <$> label "Address line: " ++> inputText Nothing
 >     <*> label "City: " ++> inputText (Just "Ghent")
@@ -136,7 +146,7 @@ validation on forms. Say that we only want to accept postal codes in the range
 We can attach this error to the form using the `validate` function.
 
 > addressForm3 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Address
+>              => Form m DummyInput Html BlazeFormHtml Address
 > addressForm3 = Address
 >     <$> inputText Nothing
 >     <*> inputText (Just "Ghent")
@@ -146,7 +156,7 @@ You can see that the form fails using GHCI, but how do we actually view the
 error?
 
 > addressForm4 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Address
+>              => Form m DummyInput Html BlazeFormHtml Address
 > addressForm4 = (++>) childErrors $ Address
 >     <$> inputText Nothing
 >     <*> inputText (Just "Ghent")
@@ -165,7 +175,7 @@ in "BOOYAAAH", and the error will originate directly from that input field.
 We can add all errors relating to the fields in the previous form:
 
 > addressForm5 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Address
+>              => Form m DummyInput Html BlazeFormHtml Address
 > addressForm5 = Address
 >     <$> inputText Nothing                                      <++ errors
 >     <*> inputText (Just "Ghent")                               <++ errors
@@ -186,7 +196,7 @@ dates, to keep the examples simple.
 >              deriving (Show)
 
 > bookingForm1 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Booking
+>              => Form m DummyInput Html BlazeFormHtml Booking
 > bookingForm1 = Booking <$> inputTextRead "No read" Nothing
 >                        <*> inputTextRead "No read" Nothing
 
@@ -198,7 +208,7 @@ A simple validator to ensure the validity of bookings:
 Now, we can use this validator on the booking form:
 
 > bookingForm2 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Booking
+>              => Form m DummyInput Html BlazeFormHtml Booking
 > bookingForm2 = bookingForm1 `validate` correctBooking <++ errors
 
 Congratulations, we now have a working time machine detector! However, the
@@ -208,7 +218,7 @@ we didn't use `errors` in `bookingForm1`.
 That's why the `childErrors` exists.
 
 > bookingForm3 :: (Monad m, Functor m)
->              => Form m String Html BlazeFormHtml Booking
+>              => Form m DummyInput Html BlazeFormHtml Booking
 > bookingForm3 = bookingForm1 `validate` correctBooking <++ childErrors
 
 This will give a listing of all errors regarding `bookingForm1` and all fields
