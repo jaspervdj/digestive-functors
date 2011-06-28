@@ -6,6 +6,7 @@ module Text.Digestive.Forms.Html
     , FormHtml (..)
     , createFormHtml
     , createFormHtmlWith
+    , viewHtml
     , applyClasses
     , defaultHtmlConfig
     , emptyHtmlConfig
@@ -17,6 +18,8 @@ import Data.Monoid (Monoid (..))
 import Data.List (intercalate)
 import Control.Applicative ((<*>), pure)
 import Control.Arrow ((&&&))
+
+import Text.Digestive.Types (Form, view)
 
 -- | Settings for classes in generated HTML.
 --
@@ -69,6 +72,12 @@ createFormHtml = FormHtml mempty
 --
 createFormHtmlWith :: FormEncType -> (FormHtmlConfig -> a) -> FormHtml a
 createFormHtmlWith = FormHtml
+
+-- | A shortcut for inserting HTML to the view, defined as a combination of
+-- 'view' and 'createFormHtml'
+--
+viewHtml :: Monad m => a -> Form m i e (FormHtml a) ()
+viewHtml = view . createFormHtml . const
 
 -- | Apply all classes to an HTML element. If no classes are found, nothing
 -- happens.
