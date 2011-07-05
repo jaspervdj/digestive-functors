@@ -1,21 +1,24 @@
-Name:                digestive-functors-blaze
-Version:             0.1.0.0
-Synopsis:            Blaze frontend for the digestive-functors library
-Description:         This is a blaze frontend for the digestive-functors library.
+Name:          digestive-functors-blaze
+Version:       0.1.0.1
+Synopsis:      Blaze frontend for the digestive-functors library
+Description:   This is a blaze frontend for the digestive-functors library.
 
-Homepage:            http://github.com/jaspervdj/digestive-functors
-License:             BSD3
-License-file:        LICENSE
-Author:              Jasper Van der Jeugt
-Maintainer:          jaspervdj@gmail.com
-Category:            Web
-Build-type:          Simple
-Cabal-version:       >=1.6
-
+Homepage:      http://github.com/jaspervdj/digestive-functors
+License:       BSD3
+License-file:  LICENSE
+Author:        Jasper Van der Jeugt <m@jaspervdj.be>
+Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
+Category:      Web
+Build-type:    Simple
+Cabal-version: >=1.6
 
 Library
-  Hs-source-dirs:    src
-  Exposed-modules:   Text.Digestive.Blaze.Html5
-  Build-depends:     base >= 4 && < 5,
-                     digestive-functors == 0.1.0.*,
-                     blaze-html >= 0.3 && < 0.6
+  Hs-source-dirs: src
+
+  Exposed-modules:
+    Text.Digestive.Blaze.Html5
+
+  Build-depends:
+    base               >= 4     && < 5,
+    digestive-functors >= 0.1.0 && < 0.2,
+    blaze-html         >= 0.4   && < 0.6
