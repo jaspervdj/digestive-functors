@@ -8,6 +8,11 @@ Digestive functors is a library that provides an abstact way to consume input
 using applicative functors. It is mostly geared towards HTML forms, altough it
 can also be used for other tasks.
 
+Help
+----
+
+Checkout the `Snap.lhs` example in the `templates` folder.
+
 Directory layout
 ----------------
 
