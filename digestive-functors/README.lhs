@@ -20,7 +20,7 @@ We're going to use the [blaze-html](http://jaspervdj.be/blaze/) backend for
 these examples.
 
 > import Text.Digestive.Blaze.Html5
-> import Text.Digestive.Forms
+> import Text.Digestive.Forms (FormInput (..))
 > import Text.Blaze (Html)
 > import Text.Blaze.Renderer.Pretty (renderHtml)
 
