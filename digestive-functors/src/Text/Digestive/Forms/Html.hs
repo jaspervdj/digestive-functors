@@ -7,6 +7,7 @@ module Text.Digestive.Forms.Html
     , createFormHtml
     , createFormHtmlWith
     , viewHtml
+    , mapViewHtml
     , applyClasses
     , defaultHtmlConfig
     , emptyHtmlConfig
@@ -19,7 +20,7 @@ import Data.List (intercalate)
 import Control.Applicative ((<*>), pure)
 import Control.Arrow ((&&&))
 
-import Text.Digestive.Types (Form, view)
+import Text.Digestive.Types (Form, mapView, view)
 
 -- | Settings for classes in generated HTML.
 --
@@ -78,6 +79,14 @@ createFormHtmlWith = FormHtml
 --
 viewHtml :: Monad m => a -> Form m i e (FormHtml a) ()
 viewHtml = view . createFormHtml . const
+
+-- | Lifted version of 'mapView'
+--
+mapViewHtml :: (Monad m, Functor m)
+            => (v -> w)                   -- ^ Map over the contained HTML
+            -> Form m i e (FormHtml v) a  -- ^ Initial form
+            -> Form m i e (FormHtml w) a  -- ^ Resulting form
+mapViewHtml f = mapView $ \(FormHtml e h) -> FormHtml e (f . h)
 
 -- | Apply all classes to an HTML element. If no classes are found, nothing
 -- happens.
