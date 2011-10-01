@@ -40,7 +40,7 @@ instance FormInput [Input] (String, FilePath) where
 
 -- | Simplification of the `Form` type, instantiated to Happstack
 --
-type HappstackForm m e v a = Form m [Input] e v a
+type HappstackForm m = Form m [Input]
 
 -- | Environment that will fetch input from the parameters parsed by Happstack
 --
