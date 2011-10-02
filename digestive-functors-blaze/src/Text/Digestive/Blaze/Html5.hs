@@ -63,11 +63,12 @@ inputString = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
 
 inputText :: (Monad m, Functor m, FormInput i f)
           => Formlet m i e BlazeFormHtml Text
-inputText = Forms.inputText $ \id' inp -> createFormHtml $ \_ ->
-  H.input ! A.type_ "text"
-          ! A.name (toValue $ show id')
-          ! A.id (toValue $ show id')
-          ! A.value (toValue $ fromMaybe "" inp)
+inputText = Forms.inputText $ \id' inp -> createFormHtml $ \cfg ->
+    applyClasses' [htmlInputClasses] cfg $
+        H.input ! A.type_ "text"
+                ! A.name (toValue $ show id')
+                ! A.id (toValue $ show id')
+                ! A.value (toValue $ fromMaybe "" inp)
 
 inputHidden :: (Monad m, Functor m, FormInput i f)
             => Formlet m i e BlazeFormHtml String
