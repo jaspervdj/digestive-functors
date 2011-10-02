@@ -32,9 +32,10 @@ Authors:
 
 Contributors:
 
-- Jeremy Shaw
-- Toon Willems
-- Ozgun Ataman
 - Alex Mason
 - Andrew Richards
 - Doug Beardsley
+- Jeremy Shaw
+- Oliver Charles
+- Ozgun Ataman
+- Toon Willems
