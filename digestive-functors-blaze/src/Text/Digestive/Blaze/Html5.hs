@@ -21,6 +21,7 @@ module Text.Digestive.Blaze.Html5
 import Control.Monad (forM_, unless, when)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
+import Data.Text (Text)
 
 import Text.Blaze.Html5 (Html, (!), toValue, toHtml)
 import qualified Text.Blaze.Html5 as H
@@ -51,14 +52,22 @@ checked :: Bool -> Html -> Html
 checked False x = x
 checked True  x = x ! A.checked "checked"
 
-inputText :: (Monad m, Functor m, FormInput i f)
-          => Formlet m i e BlazeFormHtml String
-inputText = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
+inputString :: (Monad m, Functor m, FormInput i f)
+            => Formlet m i e BlazeFormHtml String
+inputString = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (toValue $ show id')
                 ! A.id (toValue $ show id')
                 ! A.value (toValue $ fromMaybe "" inp)
+
+inputText :: (Monad m, Functor m, FormInput i f)
+          => Formlet m i e BlazeFormHtml Text
+inputText = Forms.inputText $ \id' inp -> createFormHtml $ \_ ->
+  H.input ! A.type_ "text"
+          ! A.name (toValue $ show id')
+          ! A.id (toValue $ show id')
+          ! A.value (toValue $ fromMaybe "" inp)
 
 inputHidden :: (Monad m, Functor m, FormInput i f)
             => Formlet m i e BlazeFormHtml String
