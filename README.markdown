@@ -34,6 +34,7 @@ Contributors:
 
 - Alex Mason
 - Andrew Richards
+- Antoine Latter
 - Doug Beardsley
 - Jeremy Shaw
 - Oliver Charles
