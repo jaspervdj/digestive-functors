@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Blaze.Html5
     ( BlazeFormHtml
-    , inputString
     , inputText
+    , inputText'
     , inputHidden
     , inputHidden'
     , inputTextArea
@@ -57,13 +57,13 @@ checked :: Bool -> Html -> Html
 checked False x = x
 checked True  x = x ! A.checked "checked"
 
-inputString :: (Monad m, Functor m, FormInput i f)
-            => Formlet m i e BlazeFormHtml String
-inputString = Forms.inputString inputTextHTML
-
 inputText :: (Monad m, Functor m, FormInput i f)
           => Formlet m i e BlazeFormHtml Text
 inputText = Forms.inputText inputTextHTML
+
+inputText' :: (Monad m, Functor m, FormInput i f)
+           => Formlet m i e BlazeFormHtml String
+inputText' = Forms.inputString inputTextHTML
 
 inputTextHTML :: (H.ToValue b, IsString b, Show a)
               => a -> Maybe b -> FormHtml Html
