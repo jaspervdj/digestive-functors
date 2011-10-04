@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Blaze.Html5
     ( BlazeFormHtml
+    , inputString
     , inputText
     , inputHidden
+    , inputHidden'
     , inputTextArea
+    , inputTextArea'
     , inputTextRead
     , inputPassword
+    , inputPassword'
     , inputCheckBox
     , inputRadio
     , inputFile
@@ -21,6 +25,7 @@ module Text.Digestive.Blaze.Html5
 import Control.Monad (forM_, unless, when)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
+import Data.String (IsString(..))
 import Data.Text (Text)
 
 import Text.Blaze.Html5 (Html, (!), toValue, toHtml)
@@ -54,16 +59,15 @@ checked True  x = x ! A.checked "checked"
 
 inputString :: (Monad m, Functor m, FormInput i f)
             => Formlet m i e BlazeFormHtml String
-inputString = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
-    applyClasses' [htmlInputClasses] cfg $
-        H.input ! A.type_ "text"
-                ! A.name (toValue $ show id')
-                ! A.id (toValue $ show id')
-                ! A.value (toValue $ fromMaybe "" inp)
+inputString = Forms.inputString inputTextHTML
 
 inputText :: (Monad m, Functor m, FormInput i f)
           => Formlet m i e BlazeFormHtml Text
-inputText = Forms.inputText $ \id' inp -> createFormHtml $ \cfg ->
+inputText = Forms.inputText inputTextHTML
+
+inputTextHTML :: (H.ToValue b, IsString b, Show a)
+              => a -> Maybe b -> FormHtml Html
+inputTextHTML id' inp = createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "text"
                 ! A.name (toValue $ show id')
@@ -71,8 +75,16 @@ inputText = Forms.inputText $ \id' inp -> createFormHtml $ \cfg ->
                 ! A.value (toValue $ fromMaybe "" inp)
 
 inputHidden :: (Monad m, Functor m, FormInput i f)
-            => Formlet m i e BlazeFormHtml String
-inputHidden = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
+            => Formlet m i e BlazeFormHtml Text
+inputHidden = Forms.inputText inputHiddenHTML
+
+inputHidden' :: (Monad m, Functor m, FormInput i f)
+             => Formlet m i e BlazeFormHtml String
+inputHidden' = Forms.inputString inputHiddenHTML
+
+inputHiddenHTML :: (H.ToValue b, IsString b, Show a)
+                => a -> Maybe b -> FormHtml Html
+inputHiddenHTML id' inp = createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "hidden"
                 ! A.name (toValue $ show id')
@@ -82,9 +94,20 @@ inputHidden = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
 inputTextArea :: (Monad m, Functor m, FormInput i f)
               => Maybe Int                        -- ^ Rows
               -> Maybe Int                        -- ^ Columns
-              -> Maybe String                     -- ^ Default input
-              -> Form m i e BlazeFormHtml String  -- ^ Result
-inputTextArea r c = Forms.inputString $ \id' inp -> createFormHtml $ \cfg ->
+              -> Maybe Text                       -- ^ Default input
+              -> Form m i e BlazeFormHtml Text    -- ^ Result
+inputTextArea r c = Forms.inputText $ inputTextAreaHTML r c
+
+inputTextArea' :: (Monad m, Functor m, FormInput i f)
+               => Maybe Int                        -- ^ Rows
+               -> Maybe Int                        -- ^ Columns
+               -> Maybe String                     -- ^ Default input
+               -> Form m i e BlazeFormHtml String  -- ^ Result
+inputTextArea' r c = Forms.inputString $ inputTextAreaHTML r c
+
+inputTextAreaHTML :: (H.ToHtml d, IsString d, Show b, Show c, Show a)
+                  => Maybe a -> Maybe b -> c -> Maybe d -> FormHtml Html
+inputTextAreaHTML r c id' inp = createFormHtml $ \cfg ->
     applyClasses' [htmlInputClasses] cfg $ rows r $ cols c $
         H.textarea ! A.name (toValue $ show id')
                    ! A.id (toValue $ show id')
@@ -107,8 +130,16 @@ inputTextRead error' = flip Forms.inputRead error' $ \id' inp ->
                 ! A.value (toValue $ fromMaybe "" inp)
 
 inputPassword :: (Monad m, Functor m, FormInput i f)
-              => Form m i e BlazeFormHtml String
-inputPassword = flip Forms.inputString Nothing $ \id' inp ->
+              => Form m i e BlazeFormHtml Text
+inputPassword = Forms.inputText inputPasswordHTML Nothing
+
+inputPassword' :: (Monad m, Functor m, FormInput i f)
+               => Form m i e BlazeFormHtml String
+inputPassword' = Forms.inputString inputPasswordHTML Nothing
+
+inputPasswordHTML :: (H.ToValue b, IsString b, Show a)
+                  => a -> Maybe b -> FormHtml Html
+inputPasswordHTML id' inp =
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "password"
                 ! A.name (toValue $ show id')
@@ -145,7 +176,7 @@ inputFile :: (Monad m, Functor m, FormInput i f)
           => Form m i e BlazeFormHtml (Maybe f)  -- ^ Form
 inputFile = Forms.inputFile toView
   where
-    toView id' = createFormHtmlWith MultiPart $ \cfg -> do
+    toView id' = createFormHtmlWith MultiPart $ \cfg ->
         applyClasses' [htmlInputClasses] cfg $
             H.input ! A.type_ "file"
                     ! A.name (toValue $ show id')
@@ -204,7 +235,7 @@ inputList hidden single d =
     mapView (fmap addControls) $ Forms.inputList hidden s d
   where
     s def = mapView (fmap (H.div ! A.class_ "inputListItem")) $ single def
-    addControls form = do
+    addControls form =
         H.div ! A.class_ "inputList" $ do
             H.div $ do
                 H.input ! A.type_ "button"

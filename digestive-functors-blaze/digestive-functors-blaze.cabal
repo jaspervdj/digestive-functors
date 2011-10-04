@@ -23,3 +23,5 @@ Library
     digestive-functors >= 0.1.0 && < 0.2,
     blaze-html         >= 0.4   && < 0.6,
     text               >= 0.11  && < 0.12
+
+  GHC-Options:         -threaded -Wall -fwarn-tabs
