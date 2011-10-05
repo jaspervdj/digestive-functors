@@ -9,6 +9,7 @@ module Text.Digestive.Blaze.Html5
     , inputCheckBox
     , inputRadio
     , inputFile
+    , inputSelect
     , submit
     , label
     , errors
@@ -23,6 +24,7 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 import Data.Text (Text)
 
+import Text.Blaze (Attribute)
 import Text.Blaze.Html5 (Html, (!), toValue, toHtml)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -46,11 +48,19 @@ applyClasses' :: [FormHtmlConfig -> [String]]  -- ^ Labels to apply
 applyClasses' = applyClasses $ \element value ->
     element ! A.class_ (toValue value)
 
+-- | Applies an attribute to some HTML, but only if an associated
+-- boolean value is true.
+attrWhenTrue :: Attribute -> Bool -> Html -> Html
+attrWhenTrue a True h  = h ! a
+attrWhenTrue a False h = h
+
 -- | Checks the input element when the argument is true
---
 checked :: Bool -> Html -> Html
-checked False x = x
-checked True  x = x ! A.checked "checked"
+checked = attrWhenTrue (A.checked "checked")
+
+-- | Selects an @<option>@ when the argument is true.
+selected :: Bool -> Html -> Html
+selected = attrWhenTrue (A.selected "selected")
 
 inputString :: (Monad m, Functor m, FormInput i f)
             => Formlet m i e BlazeFormHtml String
@@ -140,6 +150,21 @@ inputRadio br def choices = Forms.inputChoice toView def (map fst choices)
         H.label ! A.for (toValue id')
                 $ fromMaybe mempty $ lookup val choices
         when br H.br
+
+inputSelect :: (Monad m, Functor m, FormInput i f, Eq a)
+            => a                           -- ^ Default option
+            -> [(a, Html)]                 -- ^ Choices with their names
+            -> Form m i e BlazeFormHtml a  -- ^ Resulting form
+inputSelect def choices = Form $ do
+    id' <- getFormId
+    unForm $ mapViewHtml (H.select ! A.name (toValue $ show id') ) $
+      Forms.inputChoice toView def (map fst choices)
+  where
+    toView group id' sel val = createFormHtml $ \cfg -> do
+        applyClasses' [] cfg $ selected sel $
+            H.option ! A.type_ "radio"
+                     ! A.value (toValue id')
+                     $ (fromMaybe mempty $ lookup val choices)
 
 inputFile :: (Monad m, Functor m, FormInput i f)
           => Form m i e BlazeFormHtml (Maybe f)  -- ^ Form
