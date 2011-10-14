@@ -26,7 +26,7 @@ We're going to create a very simple file upload server.
 >            => HappstackForm m Html BlazeFormHtml Upload
 > uploadForm = Upload
 >     <$> fmap (fromMaybe "Unknown" . fmap snd) inputFile
->     <*> label "Destination name: " ++> inputText Nothing
+>     <*> label "Destination name: " ++> inputText' Nothing
 
 > upload :: ServerPart Response
 > upload = do

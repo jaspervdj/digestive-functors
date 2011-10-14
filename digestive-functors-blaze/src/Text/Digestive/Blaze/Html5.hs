@@ -56,8 +56,8 @@ applyClasses' = applyClasses $ \element value ->
 -- | Applies an attribute to some HTML, but only if an associated
 -- boolean value is true.
 attrWhenTrue :: Attribute -> Bool -> Html -> Html
-attrWhenTrue a True h  = h ! a
-attrWhenTrue a False h = h
+attrWhenTrue a True  h = h ! a
+attrWhenTrue _ False h = h
 
 -- | Checks the input element when the argument is true
 checked :: Bool -> Html -> Html
@@ -189,13 +189,13 @@ inputSelect :: (Monad m, Functor m, FormInput i f, Eq a)
 inputSelect def choices = Form $ do
     id' <- getFormId
     unForm $ mapViewHtml (H.select ! A.name (toValue $ show id') ) $
-      Forms.inputChoice toView def (map fst choices)
+        Forms.inputChoice toView def (map fst choices)
   where
-    toView group id' sel val = createFormHtml $ \cfg -> do
-        applyClasses' [] cfg $ selected sel $
+    toView _ id' sel val = createFormHtml $ \cfg -> do
+        applyClasses' [htmlInputClasses] cfg $ selected sel $
             H.option ! A.type_ "radio"
                      ! A.value (toValue id')
-                     $ (fromMaybe mempty $ lookup val choices)
+                     $ fromMaybe mempty $ lookup val choices
 
 inputFile :: (Monad m, Functor m, FormInput i f)
           => Form m i e BlazeFormHtml (Maybe f)  -- ^ Form

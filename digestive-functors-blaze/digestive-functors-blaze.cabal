@@ -1,5 +1,5 @@
 Name:          digestive-functors-blaze
-Version:       0.1.1.0
+Version:       0.2.0.0
 Synopsis:      Blaze frontend for the digestive-functors library
 Description:   This is a blaze frontend for the digestive-functors library.
 
@@ -10,10 +10,11 @@ Author:        Jasper Van der Jeugt <m@jaspervdj.be>
 Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
-Cabal-version: >=1.6
+Cabal-version: >= 1.6
 
 Library
   Hs-source-dirs: src
+  GHC-Options:    -threaded -Wall -fwarn-tabs
 
   Exposed-modules:
     Text.Digestive.Blaze.Html5
@@ -23,5 +24,3 @@ Library
     digestive-functors >= 0.1.0 && < 0.2,
     blaze-html         >= 0.4   && < 0.6,
     text               >= 0.11  && < 0.12
-
-  GHC-Options:         -threaded -Wall -fwarn-tabs
