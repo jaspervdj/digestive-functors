@@ -14,7 +14,7 @@ Cabal-version: >= 1.6
 
 Library
   Hs-source-dirs: src
-  GHC-Options:    -threaded -Wall -fwarn-tabs
+  GHC-options:    -Wall -fwarn-tabs
 
   Exposed-modules:
     Text.Digestive.Blaze.Html5
