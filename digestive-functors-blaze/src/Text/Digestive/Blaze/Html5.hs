@@ -140,21 +140,25 @@ inputTextRead error' = flip Forms.inputRead error' $ \id' inp ->
                 ! A.value (toValue $ fromMaybe "" inp)
 
 inputPassword :: (Monad m, Functor m, FormInput i f)
-              => Form m i e BlazeFormHtml Text
-inputPassword = Forms.inputText inputPasswordHTML Nothing
+              => Bool                                 -- ^ Retain input?
+              -> Form m i e BlazeFormHtml Text        -- ^ Resulting form
+inputPassword retain = Forms.inputText (inputPasswordHTML retain) Nothing
 
 inputPassword' :: (Monad m, Functor m, FormInput i f)
-               => Form m i e BlazeFormHtml String
-inputPassword' = Forms.inputString inputPasswordHTML Nothing
+               => Bool                                -- ^ Retain input?
+               -> Form m i e BlazeFormHtml String     -- ^ Resulting form
+inputPassword' retain = Forms.inputString (inputPasswordHTML retain) Nothing
 
 inputPasswordHTML :: (H.ToValue b, IsString b, Show a)
-                  => a -> Maybe b -> FormHtml Html
-inputPasswordHTML id' inp =
+                  => Bool -> a -> Maybe b -> FormHtml Html
+inputPasswordHTML retain id' inp =
     createFormHtml $ \cfg -> applyClasses' [htmlInputClasses] cfg $
         H.input ! A.type_ "password"
                 ! A.name (toValue $ show id')
                 ! A.id (toValue $ show id')
-                ! A.value (toValue $ fromMaybe "" inp)
+                ! A.value (toValue value)
+  where
+    value = if retain then fromMaybe "" inp else ""
 
 inputCheckBox :: (Monad m, Functor m, FormInput i f)
               => Bool
