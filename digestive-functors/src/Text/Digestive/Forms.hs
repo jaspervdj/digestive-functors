@@ -13,8 +13,9 @@ module Text.Digestive.Forms
     ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (mplus)
+import Control.Monad (liftM, mplus)
 import Control.Monad.State (put, get)
+import Control.Monad.Trans (lift)
 import Data.Monoid (Monoid, mappend, mconcat)
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
@@ -105,7 +106,7 @@ inputChoice toView defaultInput choices = Form $ do
         inp = fromMaybe defaultInput $ lookup inputKey $ zip (ids id') choices
         -- Apply the toView' function to all choices
         view' = mconcat $ zipWith (toView' id' inp) (ids id') choices
-    return (View (const view'), Ok inp)
+    return (View (const view'), return (Ok inp))
   where
     ids id' = map (((show id' ++ "-") ++) . show) [1 .. length choices]
     toView' id' inp key x = toView id' key (inp == x) x
@@ -130,7 +131,7 @@ inputChoices toView defaults choices = Form $ do
                else defaults
         -- Apply the toView' function to all choices
         view' = mconcat $ zipWith (toView' id' inps) (ids id') choices
-    return (View (const view'), Ok inps)
+    return (View (const view'), return (Ok inps))
   where
     ids id' = map (((show id' ++ "-") ++) . show) [1 .. length choices]
     toView' id' inps key x = toView id' key (x `elem` inps) x
@@ -173,9 +174,13 @@ inputList :: (Monad m, Monoid v)
           -> Formlet m i e v [a]  -- ^ The dynamic list formlet
 inputList countField single defaults = Form $ do
     let defCount = maybe 1 length defaults
-    (countView,countRes) <- unForm $ countField (Just defCount)
+    (countView, mcountRes) <- unForm $ countField (Just defCount)
+
+    -- We need to evaluate the count
+    countRes <- lift $ lift mcountRes
     let countFromForm = getResult countRes
-        count = fromMaybe defCount countFromForm
+        count = fromMaybe defCount (getResult countRes)
+
         fs = replicate count single
         forms = zipWith ($) fs $ maybe (maybe [Nothing] (map Just) defaults)
                                        (flip replicate Nothing)
@@ -183,8 +188,10 @@ inputList countField single defaults = Form $ do
     down 2
     list <- mapM (incAfter . unForm) forms
     up 2
+
     return ( countView `mappend` (mconcat $ map fst list)
-           , combineResults [] [] $ map snd list)
+           , liftM (combineResults [] []) . sequence $ map snd list
+           )
   where
     incAfter k = do
         res <- k

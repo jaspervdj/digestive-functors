@@ -10,8 +10,8 @@ module Text.Digestive.Cli
     , runPrompt
     ) where
 
-import Data.Monoid (Monoid, mappend, mempty)
 import Control.Applicative ((<$>))
+import Data.Monoid (Monoid, mappend, mempty)
 
 import Text.Digestive.Result
 import Text.Digestive.Types
@@ -69,7 +69,7 @@ prompt descr = Form $ do
         result = case inp of
             Just x  -> Ok x
             Nothing -> Error [(range, "No input")]
-    return (View v, result)
+    return (View v, return result)
 
 -- | Convert a prompt for a single item into a prompt for multiple items
 --
@@ -78,7 +78,7 @@ promptList :: String     -- ^ Description of resulting multi-prompt
            -> Prompt [a] -- ^ Resulting multiple input prompt
 promptList descr prmpt = Form $ do
     id'     <- getFormId
-    (v, r1) <- unForm $ inputList numPrompt (const prmpt) Nothing
+    (v, rs) <- unForm $ inputList numPrompt (const prmpt) Nothing
     range   <- getFormRange
     -- The monoid for the view will look like this: [vstart, v, vend]
     -- 'vstart' and 'vend' delimit the beginning and end of the inputs that
@@ -93,11 +93,11 @@ promptList descr prmpt = Form $ do
           where
             item = FieldItemMultiStart id' descr $ retainErrors range errs
         vend _ = PromptView [FieldItemMultiEnd]
-    return (View vstart `mappend` v `mappend` View vend, r1)
+    return (View vstart `mappend` v `mappend` View vend, rs)
   where
     numPrompt _ = Form $ do
-                    inp <- getFormInput
-                    return (mempty, readN inp)
+        inp <- getFormInput
+        return (mempty, return (readN inp))
     readN (Just x) = Ok (read x)
     readN Nothing = Error []
 

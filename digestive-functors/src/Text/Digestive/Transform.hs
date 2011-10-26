@@ -12,7 +12,6 @@ module Text.Digestive.Transform
 
 import Prelude hiding ((.), id)
 
-import Control.Monad.Trans (lift)
 import Control.Monad ((<=<))
 import Control.Category (Category, (.), id)
 import Control.Arrow (Arrow, arr, first)
@@ -40,19 +39,20 @@ instance Monad m => Arrow (Transformer m e) where
 --
 transform :: Monad m => Form m i e v a -> Transformer m e a b -> Form m i e v b
 transform form transformer = Form $ do
-    (v1, r1) <- unForm form
+    (v, r) <- unForm form
     range <- getFormRange
-    case r1 of
-        -- We already have an error, cannot continue
-        Error e -> return (v1, Error e)
-        -- Apply transformer
-        Ok x -> do
-            r2 <- lift $ lift $ unTransformer transformer x
-            return $ case r2 of
-                -- Attach the range information to the errors
-                Left e -> (v1, Error $ map ((,) range) e)
-                -- All fine
-                Right y -> (v1, Ok y)
+    return (v, r >>= transform' range)
+  where
+    -- We already have an error, cannot continue
+    transform' _     (Error e) = return (Error e)
+    -- Apply transformer
+    transform' range (Ok x)    = do
+        ex <- unTransformer transformer x
+        return $ case ex of
+            -- Attach the range information to the errors
+            Left e   -> Error $ map ((,) range) e
+            -- All fine
+            Right x' -> Ok x'
 
 -- | Apply a transformer to a formlet
 --

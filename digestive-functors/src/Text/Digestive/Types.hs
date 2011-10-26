@@ -26,7 +26,7 @@ module Text.Digestive.Types
 
 import Data.Monoid (Monoid (..))
 import Control.Arrow (first)
-import Control.Monad (liftM2, mplus)
+import Control.Monad (liftM, liftM2, mplus)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, put, evalStateT)
 import Control.Monad.Trans (lift)
@@ -101,7 +101,9 @@ isFormInput = ask >>= \env -> return $ case env of
 
 -- | A form represents a number of composed fields
 --
-newtype Form m i e v a = Form {unForm :: FormState m i (View e v, Result e a)}
+newtype Form m i e v a = Form
+    { unForm :: FormState m i (View e v, m (Result e a))
+    }
 
 -- | A function for generating forms with an optional default value.
 --
@@ -110,10 +112,10 @@ type Formlet m i e v a = Maybe a -> Form m i e v a
 instance Monad m => Functor (Form m i e v) where
     fmap f form = Form $ do
         (view', result) <- unForm form
-        return (view', fmap f result)
+        return (view', liftM (fmap f) result)
 
 instance (Monad m, Monoid v) => Applicative (Form m i e v) where
-    pure x = Form $ return (mempty, return x)
+    pure x = Form $ return (mempty, return (return x))
     f1 <*> f2 = Form $ do
         -- Assuming f1 already has a valid ID
         ((v1,r1), (v2,r2)) <- bracketState $ do
@@ -121,7 +123,7 @@ instance (Monad m, Monoid v) => Applicative (Form m i e v) where
             incState
             res2 <- unForm f2
             return (res1, res2)
-        return (v1 `mappend` v2, r1 <*> r2)
+        return (v1 `mappend` v2, liftM2 (<*>) r1 r2)
 
 bracketState :: Monad m => FormState m i a -> FormState m i a
 bracketState k = do
@@ -141,7 +143,7 @@ incState = do
 view :: Monad m
      => v                -- ^ View to insert
      -> Form m i e v ()  -- ^ Resulting form
-view view' = Form $ return (View (const view'), Ok ())
+view view' = Form $ return (View (const view'), return (Ok ()))
 
 -- | Append a unit form to the left. This is useful for adding labels or error
 -- fields
@@ -183,10 +185,10 @@ mapView f = Form . fmap (first $ fmap f) . unForm
 -- | Run a form
 --
 runForm :: Monad m
-        => Form m i e v a            -- ^ Form to run
-        -> String                    -- ^ Identifier for the form
-        -> Environment m i           -- ^ Input environment
-        -> m (View e v, Result e a)  -- ^ Result
+        => Form m i e v a                -- ^ Form to run
+        -> String                        -- ^ Identifier for the form
+        -> Environment m i               -- ^ Input environment
+        -> m (View e v, m (Result e a))  -- ^ Result
 runForm form id' env = evalStateT (runReaderT (unForm form) env) $
     unitRange $ zeroId id'
 
@@ -198,9 +200,11 @@ eitherForm :: Monad m
            -> Environment m i  -- ^ Input environment
            -> m (Either v a)   -- ^ Result
 eitherForm form id' env = do
-    (view', result) <- runForm form id' env
-    return $ case result of Error e  -> Left $ unView view' e
-                            Ok x     -> Right x
+    (view', mresult) <- runForm form id' env
+    result <- mresult
+    return $ case result of
+        Error e  -> Left $ unView view' e
+        Ok x     -> Right x
 
 -- | Just evaluate the form to a view. This usually maps to a GET request in the
 -- browser.
