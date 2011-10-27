@@ -19,6 +19,6 @@ Library
   Build-depends:
     base               >= 4   && < 5,
     bytestring         >= 0.9 && < 0.10,
-    digestive-functors >= 0.1 && < 0.2,
+    digestive-functors >= 0.1 && < 0.3,
     snap-core          >= 0.5 && < 0.7,
     utf8-string        >= 0.3 && < 0.4

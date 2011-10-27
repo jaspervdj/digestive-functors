@@ -1,5 +1,5 @@
 Name:          digestive-functors-blaze
-Version:       0.2.0.1
+Version:       0.2.1.0
 Synopsis:      Blaze frontend for the digestive-functors library
 Description:   This is a blaze frontend for the digestive-functors library.
 
@@ -21,6 +21,6 @@ Library
 
   Build-depends:
     base               >= 4     && < 5,
-    digestive-functors >= 0.1.0 && < 0.2,
+    digestive-functors >= 0.1.0 && < 0.3,
     blaze-html         >= 0.4   && < 0.6,
     text               >= 0.11  && < 0.12
