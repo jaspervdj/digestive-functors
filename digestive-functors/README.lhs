@@ -34,8 +34,8 @@ A simple example
 We have a simple data structure for which we want to make an HTML form:
 
 > data Address = Address
->     { addressLine   :: String
->     , addressCity   :: String
+>     { addressLine   :: Text
+>     , addressCity   :: Text
 >     , addressPostal :: Int
 >     } deriving (Show)
 
