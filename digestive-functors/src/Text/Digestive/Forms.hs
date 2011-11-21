@@ -178,13 +178,13 @@ inputList countField single defaults = Form $ do
 
     -- We need to evaluate the count
     countRes <- lift $ lift mcountRes
-    let countFromForm = getResult countRes
-        count = fromMaybe defCount (getResult countRes)
+    let count = fromMaybe defCount (getResult countRes)
 
-        fs = replicate count single
-        forms = zipWith ($) fs $ maybe (maybe [Nothing] (map Just) defaults)
-                                       (flip replicate Nothing)
-                                       countFromForm
+        -- Use the provided defaults, then loop Nothing
+        defaults' = map Just (fromMaybe [] defaults) ++ repeat Nothing
+
+        -- Apply the single form to the defaults
+        forms = zipWith ($) (replicate count single) defaults'
     down 2
     list <- mapM (incAfter . unForm) forms
     up 2
