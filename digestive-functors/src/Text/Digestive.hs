@@ -5,7 +5,7 @@ module Text.Digestive
 
 import Control.Applicative (Applicative (..), (<$>))
 import Data.Map (Map)
-import Data.Monoid (Monoid, mappend)
+import Data.Monoid (Monoid, mappend, mempty)
 import qualified Data.Map as M
 
 --------------------------------------------------------------------------------
@@ -39,28 +39,53 @@ instance Monoid v => Applicative (Validate i v) where
 
 --------------------------------------------------------------------------------
 
+data Tree i a where
+    Pure :: i -> a -> Tree i a
+    App  :: i -> Tree i (b -> a) -> Tree i b -> Tree i a
+
+instance Functor (Tree i) where
+    fmap f (Pure i x)  = Pure i (f x)
+    fmap f (App i x y) = App i (fmap (f .) x) y
+
+instance Monoid i => Applicative (Tree i) where
+    pure x  = Pure mempty x
+    x <*> y = App mempty x y
+
+showTree :: Show i => Tree i a -> [String]
+showTree (Pure i x)  = ["Pure " ++ show i ++ " _"]
+showTree (App i x y) = concat
+    [ ["App " ++ show i]
+    , map indent (showTree x)
+    , map indent (showTree y)
+    ]
+  where
+    indent = ("  " ++)
+
+decorate :: (i -> i) -> Tree i a -> Tree i a
+decorate f (Pure i x)  = Pure (f i) x
+decorate f (App i x y) = App (f i) x y
+
+--------------------------------------------------------------------------------
+
 type Ref = [String]
 
-data Form i v a where
-    Pure :: Ref -> Validate i v a -> Form i v a
-    App  :: Ref -> Form i v (b -> a) -> Form i v b -> Form i v a 
-
-instance Show (Form i v a) where
-    show (Pure r _)  = "(Pure " ++ show r ++ " _)"
-    show (App r x y) =
-        "(App " ++ show r ++ " " ++ show x ++ " " ++ show y ++ ")"
+newtype Form i v a = Form {unForm :: Tree Ref (Validate i v a)}
 
 instance Functor (Form i v) where
-    fmap f (Pure r x)  = Pure r (fmap f x)
-    fmap f (App r x y) = App r (fmap (f .) x) y
+    fmap f = Form . fmap (fmap f) . unForm
 
 instance Monoid v => Applicative (Form i v) where
-    pure x  = Pure [] (pure x)
-    x <*> y = App [] x y
+    pure x            = Form $ pure $ pure x
+    Form x <*> Form y = Form $ (<*>) <$> x <*> y
+
+showForm :: Show i => Form i v a -> [String]
+showForm = showTree . unForm
+
+printForm :: Show i => Form i v a -> IO ()
+printForm = mapM_ putStrLn . showForm
 
 ref :: String -> Form i v a -> Form i v a
-ref r (Pure _ x)  = Pure [r] x
-ref r (App _ x y) = App [r] x y
+ref r = Form . decorate (const [r]) . unForm
 
 --------------------------------------------------------------------------------
 
