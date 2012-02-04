@@ -1,7 +1,8 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
-import Data.Monoid (Monoid, mappend, mempty)
 import Control.Applicative (Applicative (..), (<$>))
+import Control.Arrow (first)
 import Data.Maybe (fromMaybe, maybeToList)
+import Data.Monoid (Monoid, mappend, mempty)
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -170,3 +171,24 @@ readMaybe :: Read a => String -> Maybe a
 readMaybe str = case readsPrec 1 str of
     [(x, "")] -> Just x
     _         -> Nothing
+
+--------------------------------------------------------------------------------
+
+test :: Monoid v => Form i v a -> [(Text, Text)] -> AnnResult v a
+test form env = eval (map (first $ T.split (== '.')) env) form
+
+--------------------------------------------------------------------------------
+
+test01 = test pairForm
+    [ ("fst.name", "Laurel")
+    , ("fst.age", "28")
+    , ("snd.name", "Hardy")
+    , ("snd.age", "26")
+    ]
+
+test02 = test pairForm
+    [ ("fst.name", "Laurel")
+    , ("fst.age", "28")
+    , ("snd.name", "Hardy")
+    , ("snd.age", "foo")
+    ]
