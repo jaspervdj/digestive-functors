@@ -52,6 +52,7 @@ printSomeField (SomeField f) = case f of
 --------------------------------------------------------------------------------
 
 type Ref = Maybe Text
+type Path = [Text]
 
 data Form i v a where
     Pure :: Ref -> Field v a -> Form i v a
@@ -86,32 +87,48 @@ ref r (Pure _ x)  = Pure (Just r) x
 ref r (App _ x y) = App (Just r) x y
 ref r (Map f x)   = Map f (ref r x)
 
+getRef :: Form i v a -> Ref
+getRef (Pure r _)  = r
+getRef (App r _ _) = r
+getRef (Map _ x)   = getRef x
+
 transform :: (a -> Result v b) -> Form i v a -> Form i v b
 transform = Map
 
 --------------------------------------------------------------------------------
 
-type Env = [([Text], Text)]  -- Lol
+type AnnResult v a = Result [(Path, v)] a
 
-eval :: Monoid v => Env -> Form i v a -> Result v a
+ann :: Path -> Result v a -> AnnResult v a
+ann _    (Success x) = Success x
+ann path (Error x)   = Error [(path, x)]
+
+--------------------------------------------------------------------------------
+
+type Env = [(Path, Text)]  -- Lol
+
+eval :: Monoid v => Env -> Form i v a -> AnnResult v a
 eval = eval' []
 
-eval' :: Monoid v => [Text] -> Env -> Form i v a -> Result v a
+eval' :: Monoid v => Path -> Env -> Form i v a -> AnnResult v a
 
-eval' context env (Pure (Just r) field) =
-    let ref = context ++ [r]
-    in  evalField (lookup ref env) field
+eval' context env form = case form of
 
-eval' context env (App r x y) =
-    let ref = context ++ maybeToList r
-        x'  = eval' ref env x
-        y'  = eval' ref env y
-    in  x' <*> y'
+    Pure (Just _) field ->
+        evalField (lookup path env) field
 
-eval' context env (Map f x) =
-    eval' context env x >>= f
+    App r x y ->
+        let x' = eval' path env x
+            y' = eval' path env y
+        in  x' <*> y'
 
-evalField :: Monoid v => Maybe Text -> Field v a -> Result v a
+    Map f x ->
+        eval' context env x >>= ann path . f
+
+  where
+    path = context ++ maybeToList (getRef form)
+
+evalField :: Monoid v => Maybe Text -> Field v a -> AnnResult v a
 evalField _        (Singleton x) = pure x
 evalField Nothing  (Text x)      = pure x
 evalField (Just x) (Text _)      = pure x
