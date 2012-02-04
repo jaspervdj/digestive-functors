@@ -61,8 +61,8 @@ data Form i v a where
 
     Map  :: (b -> Result v a) -> Form i v b -> Form i v a
 
-instance Monoid v => Functor (Form i v) where
-    fmap = Map . (pure .)
+instance Functor (Form i v) where
+    fmap = Map . (return .)
 
 instance Monoid v => Applicative (Form i v) where
     pure x  = Pure Nothing (Singleton x)
@@ -108,10 +108,10 @@ ann path (Error x)   = Error [(path, x)]
 
 type Env = [(Path, Text)]  -- Lol
 
-eval :: Monoid v => Env -> Form i v a -> AnnResult v a
+eval :: Env -> Form i v a -> AnnResult v a
 eval = eval' []
 
-eval' :: Monoid v => Path -> Env -> Form i v a -> AnnResult v a
+eval' :: Path -> Env -> Form i v a -> AnnResult v a
 
 eval' context env form = case form of
 
@@ -129,7 +129,7 @@ eval' context env form = case form of
   where
     path = context ++ maybeToList (getRef form)
 
-evalField :: Monoid v => Maybe Text -> Field v a -> AnnResult v a
+evalField :: Maybe Text -> Field v a -> AnnResult v a
 evalField _        (Singleton x) = pure x
 evalField Nothing  (Text x)      = pure x
 evalField (Just x) (Text _)      = pure x
@@ -157,15 +157,15 @@ pairForm = (,)
 text :: Maybe Text -> Form i v Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
 
-string :: Monoid v => Maybe String -> Form i v String
+string :: Maybe String -> Form i v String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (Monoid v, Read a, Show a) => Maybe a -> Form i v a
+stringRead :: (Read a, Show a) => Maybe a -> Form i Text a
 stringRead = transform readTransform . string . fmap show
   where
     readTransform str = case readMaybe str of
         Just x  -> return x
-        Nothing -> Error mempty
+        Nothing -> Error "PBKAC"
 
 readMaybe :: Read a => String -> Maybe a
 readMaybe str = case readsPrec 1 str of
@@ -174,7 +174,7 @@ readMaybe str = case readsPrec 1 str of
 
 --------------------------------------------------------------------------------
 
-test :: Monoid v => Form i v a -> [(Text, Text)] -> AnnResult v a
+test :: Form i v a -> [(Text, Text)] -> AnnResult v a
 test form env = eval (map (first $ T.split (== '.')) env) form
 
 --------------------------------------------------------------------------------
