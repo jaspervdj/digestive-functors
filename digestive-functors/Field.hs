@@ -84,7 +84,10 @@ showForm form = case form of
 ref :: Text -> Form i v a -> Form i v a
 ref r (Pure _ x)  = Pure (Just r) x
 ref r (App _ x y) = App (Just r) x y
-ref _ f           = f
+ref r (Map f x)   = Map f (ref r x)
+
+transform :: (a -> Result v b) -> Form i v a -> Form i v b
+transform = Map
 
 --------------------------------------------------------------------------------
 
@@ -124,7 +127,7 @@ data User = User Text Int
 userForm :: Form i Text User
 userForm = User
     <$> ref "name" (text Nothing)
-    <*> ref "age" (pure 21)
+    <*> ref "age" (stringRead (Just 21))
 
 pairForm :: Form i Text (User, User)
 pairForm = (,)
@@ -135,3 +138,18 @@ pairForm = (,)
 
 text :: Maybe Text -> Form i v Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
+
+string :: Monoid v => Maybe String -> Form i v String
+string = fmap T.unpack . text . fmap T.pack
+
+stringRead :: (Monoid v, Read a, Show a) => Maybe a -> Form i v a
+stringRead = transform readTransform . string . fmap show
+  where
+    readTransform str = case readMaybe str of
+        Just x  -> return x
+        Nothing -> Error mempty
+
+readMaybe :: Read a => String -> Maybe a
+readMaybe str = case readsPrec 1 str of
+    [(x, "")] -> Just x
+    _         -> Nothing
