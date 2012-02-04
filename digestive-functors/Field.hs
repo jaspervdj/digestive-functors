@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
 import Control.Applicative (Applicative (..), (<$>))
 import Control.Arrow (first)
+import Data.List (findIndex)
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Monoid (Monoid, mappend, mempty)
 
@@ -71,6 +72,11 @@ instance Monoid v => Applicative (Form i v) where
 instance Show (Form i v a) where
     show = unlines . showForm
 
+data SomeForm i v = forall a. SomeForm (Form i v a)
+
+instance Show (SomeForm i v) where
+    show (SomeForm f) = show f
+
 showForm :: Form i v a -> [String]
 showForm form = case form of
     (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
@@ -95,6 +101,19 @@ getRef (Map _ x)   = getRef x
 
 transform :: (a -> Result v b) -> Form i v a -> Form i v b
 transform = Map
+
+lookupForm :: Path -> Form i v a -> [SomeForm i v]
+lookupForm []       form = [SomeForm form]
+lookupForm [r]      form = case getRef form of
+    Just r' | r == r' -> [SomeForm form]
+    _                 -> []
+lookupForm (r : rs) form = case form of
+    Pure _ _        -> []  -- Path goes deeper than what we have
+    App Nothing x y -> lookupForm (r : rs) x ++ lookupForm (r : rs) y
+    App (Just r') x y
+        | r == r'   -> lookupForm rs x ++ lookupForm rs y
+        | otherwise -> []
+    Map _ x         -> lookupForm (r : rs) x
 
 --------------------------------------------------------------------------------
 
@@ -139,13 +158,17 @@ evalField (Just x) (Choice ls _) = pure $
 
 --------------------------------------------------------------------------------
 
-data User = User Text Int
+data User = User Text Int Sex
     deriving (Show)
+
+data Sex = Female | Male
+    deriving (Eq, Show)
 
 userForm :: Form i Text User
 userForm = User
     <$> ref "name" (text Nothing)
     <*> ref "age" (stringRead (Just 21))
+    <*> ref "sex" (choice [(Female, "female"), (Male, "male")] Nothing)
 
 pairForm :: Form i Text (User, User)
 pairForm = (,)
@@ -167,6 +190,10 @@ stringRead = transform readTransform . string . fmap show
         Just x  -> return x
         Nothing -> Error "PBKAC"
 
+choice :: Eq a => [(a, v)] -> Maybe a -> Form i v a
+choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
+    maybe Nothing (\d -> findIndex ((== d) . fst) items) def
+
 readMaybe :: Read a => String -> Maybe a
 readMaybe str = case readsPrec 1 str of
     [(x, "")] -> Just x
@@ -182,8 +209,10 @@ test form env = eval (map (first $ T.split (== '.')) env) form
 test01 = test pairForm
     [ ("fst.name", "Laurel")
     , ("fst.age", "28")
+    , ("fst.sex", "1")
     , ("snd.name", "Hardy")
     , ("snd.age", "26")
+    , ("snd.sex", "1")
     ]
 
 test02 = test pairForm
