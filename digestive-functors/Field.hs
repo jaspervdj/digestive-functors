@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
 import Control.Applicative (Applicative (..), (<$>))
 import Control.Arrow (first)
+import Control.Monad ((<=<))
 import Data.List (findIndex)
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Monoid (Monoid, mappend, mempty)
@@ -89,6 +90,11 @@ showForm form = case form of
   where
     indent = ("  " ++)
 
+children :: Form i v a -> [SomeForm i v]
+children (Pure _ _)  = []
+children (App _ x y) = [SomeForm x, SomeForm y]
+children (Map _ x)   = children x
+
 ref :: Text -> Form i v a -> Form i v a
 ref r (Pure _ x)  = Pure (Just r) x
 ref r (App _ x y) = App (Just r) x y
@@ -100,20 +106,19 @@ getRef (App r _ _) = r
 getRef (Map _ x)   = getRef x
 
 transform :: (a -> Result v b) -> Form i v a -> Form i v b
-transform = Map
+transform f (Map g x) = Map (f <=< g) x  -- Optimization
+transform f x         = Map f x
 
 lookupForm :: Path -> Form i v a -> [SomeForm i v]
-lookupForm []       form = [SomeForm form]
-lookupForm [r]      form = case getRef form of
-    Just r' | r == r' -> [SomeForm form]
-    _                 -> []
-lookupForm (r : rs) form = case form of
-    Pure _ _        -> []  -- Path goes deeper than what we have
-    App Nothing x y -> lookupForm (r : rs) x ++ lookupForm (r : rs) y
-    App (Just r') x y
-        | r == r'   -> lookupForm rs x ++ lookupForm rs y
-        | otherwise -> []
-    Map _ x         -> lookupForm (r : rs) x
+lookupForm path = go path . SomeForm
+  where
+    go []       form            = [form]
+    go (r : rs) (SomeForm form) = case getRef form of
+        Just r'
+            | r == r' && null rs -> [SomeForm form]
+            | r == r'            -> children form >>= go rs
+            | otherwise          -> []
+        Nothing                  -> children form >>= go (r : rs)
 
 --------------------------------------------------------------------------------
 
