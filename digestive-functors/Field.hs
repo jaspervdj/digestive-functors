@@ -1,4 +1,6 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
+module Field where
+
 import Control.Applicative (Applicative (..), (<$>))
 import Control.Arrow (first)
 import Control.Monad ((<=<))
@@ -122,9 +124,7 @@ lookupForm path = go path . SomeForm
 
 --------------------------------------------------------------------------------
 
-type AnnResult v a = Result [(Path, v)] a
-
-ann :: Path -> Result v a -> AnnResult v a
+ann :: Path -> Result v a -> Result [(Path, v)] a
 ann _    (Success x) = Success x
 ann path (Error x)   = Error [(path, x)]
 
@@ -132,10 +132,10 @@ ann path (Error x)   = Error [(path, x)]
 
 type Env = [(Path, Text)]  -- Lol
 
-eval :: Env -> Form i v a -> AnnResult v a
+eval :: Env -> Form i v a -> Result [(Path, v)] a
 eval = eval' []
 
-eval' :: Path -> Env -> Form i v a -> AnnResult v a
+eval' :: Path -> Env -> Form i v a -> Result [(Path, v)] a
 
 eval' context env form = case form of
 
@@ -153,13 +153,26 @@ eval' context env form = case form of
   where
     path = context ++ maybeToList (getRef form)
 
-evalField :: Maybe Text -> Field v a -> AnnResult v a
+evalField :: Maybe Text -> Field v a -> Result [(Path, v)] a
 evalField _        (Singleton x) = pure x
 evalField Nothing  (Text x)      = pure x
 evalField (Just x) (Text _)      = pure x
 evalField Nothing  (Choice ls x) = pure $ fst $ ls !! x
 evalField (Just x) (Choice ls _) = pure $
     fst $ ls !! read (T.unpack x)  -- fix
+
+--------------------------------------------------------------------------------
+
+evalView :: Env -> Form i v a -> Result (View i v a) a
+evalView env form = case eval env form of
+    Success x  -> Success x
+    Error errs -> Error $ View form env errs
+
+data View i v a = View
+    { viewForm   :: Form i v a
+    , viewInput  :: [(Path, Text)]
+    , viewErrors :: [(Path, v)]
+    } deriving (Show)
 
 --------------------------------------------------------------------------------
 
@@ -206,8 +219,8 @@ readMaybe str = case readsPrec 1 str of
 
 --------------------------------------------------------------------------------
 
-test :: Form i v a -> [(Text, Text)] -> AnnResult v a
-test form env = eval (map (first $ T.split (== '.')) env) form
+test :: Form i v a -> [(Text, Text)] -> Result (View i v a) a
+test form env = evalView (map (first $ T.split (== '.')) env) form
 
 --------------------------------------------------------------------------------
 
