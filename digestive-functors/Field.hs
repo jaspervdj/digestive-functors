@@ -54,71 +54,80 @@ printSomeField (SomeField f) = case f of
 
 --------------------------------------------------------------------------------
 
-type Ref = Maybe Text
-type Path = [Text]
+data Tree i v a where
+    Pure :: i -> Field v a -> Tree i v a
+    App  :: i -> Tree i v (b -> a) -> Tree i v b -> Tree i v a
 
-data Form i v a where
-    Pure :: Ref -> Field v a -> Form i v a
-    App  :: Ref -> Form i v (b -> a) -> Form i v b -> Form i v a
+    Map  :: (b -> Result v a) -> Tree i v b -> Tree i v a
 
-    Map  :: (b -> Result v a) -> Form i v b -> Form i v a
-
-instance Functor (Form i v) where
+instance Functor (Tree i v) where
     fmap = Map . (return .)
 
-instance Monoid v => Applicative (Form i v) where
-    pure x  = Pure Nothing (Singleton x)
-    x <*> y = App Nothing x y
+instance (Monoid i, Monoid v) => Applicative (Tree i v) where
+    pure x  = Pure mempty (Singleton x)
+    x <*> y = App mempty x y
 
-instance Show (Form i v a) where
-    show = unlines . showForm
+instance Show i => Show (Tree i v a) where
+    show = unlines . showTree
 
-data SomeForm i v = forall a. SomeForm (Form i v a)
+data SomeTree i v = forall a. SomeTree (Tree i v a)
 
-instance Show (SomeForm i v) where
-    show (SomeForm f) = show f
+instance Show i => Show (SomeTree i v) where
+    show (SomeTree f) = show f
 
-showForm :: Form i v a -> [String]
-showForm form = case form of
-    (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
-    (App r x y) -> concat
-        [ ["App (" ++ show r ++ ")"]
-        , map indent (showForm x)
-        , map indent (showForm y)
+showTree :: Show i => Tree i v a -> [String]
+showTree tree = case tree of
+    (Pure i x)  -> ["Pure (" ++ show i ++ ") (" ++ show x ++ ")"]
+    (App i x y) -> concat
+        [ ["App (" ++ show i ++ ")"]
+        , map indent (showTree x)
+        , map indent (showTree y)
         ]
-    (Map _ x)   -> "Map _" : map indent (showForm x)
+    (Map _ x)   -> "Map _" : map indent (showTree x)
   where
     indent = ("  " ++)
 
-children :: Form i v a -> [SomeForm i v]
-children (Pure _ _)  = []
-children (App _ x y) = [SomeForm x, SomeForm y]
-children (Map _ x)   = children x
-
-ref :: Text -> Form i v a -> Form i v a
-ref r (Pure _ x)  = Pure (Just r) x
-ref r (App _ x y) = App (Just r) x y
-ref r (Map f x)   = Map f (ref r x)
-
-getRef :: Form i v a -> Ref
-getRef (Pure r _)  = r
-getRef (App r _ _) = r
-getRef (Map _ x)   = getRef x
-
-transform :: (a -> Result v b) -> Form i v a -> Form i v b
+transform :: (a -> Result v b) -> Tree i v a -> Tree i v b
 transform f (Map g x) = Map (f <=< g) x  -- Optimization
 transform f x         = Map f x
 
-lookupForm :: Path -> Form i v a -> [SomeForm i v]
-lookupForm path = go path . SomeForm
+annotate :: i -> Tree i v a -> Tree i v a
+annotate i (Pure _ x)  = Pure i x
+annotate i (App _ x y) = App i x y
+annotate i (Map f x)   = Map f (annotate i x)
+
+annotation :: Tree i v a -> i
+annotation (Pure i _)  = i
+annotation (App i _ _) = i
+annotation (Map _ x)   = annotation x
+
+children :: Tree i v a -> [SomeTree i v]
+children (Pure _ _)  = []
+children (App _ x y) = [SomeTree x, SomeTree y]
+children (Map _ x)   = children x
+
+--------------------------------------------------------------------------------
+
+type Ref = Maybe Text
+type Path = [Text]
+type Form = Tree Ref
+
+ref :: Text -> Form v a -> Form v a
+ref = annotate . Just
+
+getRef :: Form v a -> Ref
+getRef = annotation
+
+lookupForm :: Path -> Form v a -> [SomeTree Ref v]
+lookupForm path = go path . SomeTree
   where
-    go []       form            = [form]
-    go (r : rs) (SomeForm form) = case getRef form of
+    go []       tree            = [tree]
+    go (r : rs) (SomeTree tree) = case getRef tree of
         Just r'
-            | r == r' && null rs -> [SomeForm form]
-            | r == r'            -> children form >>= go rs
+            | r == r' && null rs -> [SomeTree tree]
+            | r == r'            -> children tree >>= go rs
             | otherwise          -> []
-        Nothing                  -> children form >>= go (r : rs)
+        Nothing                  -> children tree >>= go (r : rs)
 
 --------------------------------------------------------------------------------
 
@@ -132,10 +141,10 @@ ann path (Error x)   = Error [(path, x)]
 
 type Env = [(Path, Text)]  -- Lol
 
-eval :: Env -> Form i v a -> AnnResult v a
+eval :: Env -> Form v a -> AnnResult v a
 eval = eval' []
 
-eval' :: Path -> Env -> Form i v a -> AnnResult v a
+eval' :: Path -> Env -> Form v a -> AnnResult v a
 
 eval' context env form = case form of
 
@@ -169,33 +178,33 @@ data User = User Text Int Sex
 data Sex = Female | Male
     deriving (Eq, Show)
 
-userForm :: Form i Text User
+userForm :: Form Text User
 userForm = User
     <$> ref "name" (text Nothing)
     <*> ref "age" (stringRead (Just 21))
     <*> ref "sex" (choice [(Female, "female"), (Male, "male")] Nothing)
 
-pairForm :: Form i Text (User, User)
+pairForm :: Form Text (User, User)
 pairForm = (,)
     <$> ref "fst" userForm
     <*> ref "snd" userForm
 
 --------------------------------------------------------------------------------
 
-text :: Maybe Text -> Form i v Text
+text :: Maybe Text -> Form v Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
 
-string :: Maybe String -> Form i v String
+string :: Maybe String -> Form v String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (Read a, Show a) => Maybe a -> Form i Text a
+stringRead :: (Read a, Show a) => Maybe a -> Form Text a
 stringRead = transform readTransform . string . fmap show
   where
     readTransform str = case readMaybe str of
         Just x  -> return x
         Nothing -> Error "PBKAC"
 
-choice :: Eq a => [(a, v)] -> Maybe a -> Form i v a
+choice :: Eq a => [(a, v)] -> Maybe a -> Form v a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
 
@@ -206,7 +215,7 @@ readMaybe str = case readsPrec 1 str of
 
 --------------------------------------------------------------------------------
 
-test :: Form i v a -> [(Text, Text)] -> AnnResult v a
+test :: Form v a -> [(Text, Text)] -> AnnResult v a
 test form env = eval (map (first $ T.split (== '.')) env) form
 
 --------------------------------------------------------------------------------
