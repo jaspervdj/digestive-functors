@@ -25,6 +25,11 @@ fieldInput ref view = fromMaybe "" $ mplus givenInput defaultInput
 
 --------------------------------------------------------------------------------
 
+label :: Text -> Html -> Html
+label ref value = H.label
+    ! A.for (H.toValue ref)
+    $ value
+
 inputText :: Text -> View v a -> Html
 inputText ref view = H.input
     ! A.type_ "text"
@@ -32,10 +37,22 @@ inputText ref view = H.input
     ! A.name  (H.toValue ref)
     ! A.value (H.toValue $ fieldInput ref view)
 
+inputSubmit :: Text -> Html
+inputSubmit value = H.input
+    ! A.type_ "submit"
+    ! A.value (H.toValue value)
+
 --------------------------------------------------------------------------------
 
 userView :: View v a -> Html
 userView v = do
+    label "name" "Name: "
     inputText "name" v
+
+    label "age" "Age: "
     inputText "age" v
+
+    label "sex" "Sex: "
     inputText "sex" v
+
+    inputSubmit "Submit"
