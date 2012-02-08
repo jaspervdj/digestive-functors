@@ -54,6 +54,10 @@ printSomeField (SomeField f) = case f of
     Text t -> putStrLn (T.unpack t)
     _      -> putStrLn "can't print and shit"
 
+fieldDefaultInput :: Field v a -> Maybe Text
+fieldDefaultInput (Text t) = Just t
+fieldDefaultInput _        = Nothing
+
 --------------------------------------------------------------------------------
 
 type Ref = Maybe Text
@@ -121,6 +125,17 @@ lookupForm path = go path . SomeForm
             | r == r'            -> children form >>= go rs
             | otherwise          -> []
         Nothing                  -> children form >>= go (r : rs)
+
+toField :: Form v a -> Maybe (SomeField v)
+toField (Pure _ x) = Just (SomeField x)
+toField (Map _ x)  = toField x
+toField _          = Nothing
+
+formDefaultInput :: Form v a -> Maybe Text
+formDefaultInput form = do
+    someField <- toField form
+    case someField of
+        SomeField field -> fieldDefaultInput field
 
 --------------------------------------------------------------------------------
 
@@ -219,18 +234,18 @@ readMaybe str = case readsPrec 1 str of
 
 --------------------------------------------------------------------------------
 
+toPath :: Text -> Path
+toPath = T.split (== '.')
+
 test :: Form v a -> [(Text, Text)] -> Result (View v a) a
-test form env = evalView (map (first $ T.split (== '.')) env) form
+test form env = evalView (map (first toPath) env) form
 
 --------------------------------------------------------------------------------
 
-test01 = test pairForm
-    [ ("fst.name", "Laurel")
-    , ("fst.age", "28")
-    , ("fst.sex", "1")
-    , ("snd.name", "Hardy")
-    , ("snd.age", "26")
-    , ("snd.sex", "1")
+test01 = test userForm
+    [ ("name", "Laurel")
+    , ("age", "28")
+    , ("sex", "1")
     ]
 
 test02 = test pairForm
