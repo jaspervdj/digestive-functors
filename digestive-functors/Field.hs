@@ -178,16 +178,19 @@ evalField (Just x) (Choice ls _) = pure $
 
 --------------------------------------------------------------------------------
 
-evalView :: Env -> Form v a -> Result (View v a) a
-evalView env form = case eval env form of
-    Success x  -> Success x
-    Error errs -> Error $ View form env errs
-
 data View v a = View
     { viewForm   :: Form v a
     , viewInput  :: [(Path, Text)]
     , viewErrors :: [(Path, v)]
     } deriving (Show)
+
+getForm :: Form v a -> View v a
+getForm form = View form [] []
+
+postForm :: Form v a -> Env -> Either (View v a) a
+postForm form env = case eval env form of
+    Error errs -> Left $ View form env errs
+    Success x  -> Right x
 
 --------------------------------------------------------------------------------
 
@@ -199,7 +202,7 @@ data Sex = Female | Male
 
 userForm :: Form Text User
 userForm = User
-    <$> ref "name" (text Nothing)
+    <$> ref "name" (text (Just "jasper"))
     <*> ref "age" (stringRead (Just 21))
     <*> ref "sex" (choice [(Female, "female"), (Male, "male")] Nothing)
 
@@ -232,13 +235,14 @@ readMaybe str = case readsPrec 1 str of
     [(x, "")] -> Just x
     _         -> Nothing
 
+
 --------------------------------------------------------------------------------
 
 toPath :: Text -> Path
 toPath = T.split (== '.')
 
-test :: Form v a -> [(Text, Text)] -> Result (View v a) a
-test form env = evalView (map (first toPath) env) form
+test :: Form v a -> [(Text, Text)] -> Either (View v a) a
+test form env = postForm form (map (first toPath) env)
 
 --------------------------------------------------------------------------------
 

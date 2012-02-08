@@ -6,6 +6,7 @@ import Data.Maybe (fromMaybe)
 
 import Data.Text (Text)
 import Text.Blaze (Html, (!))
+import Text.Blaze.Renderer.Pretty (renderHtml)
 import qualified Data.Text as T
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -33,8 +34,8 @@ inputText ref view = H.input
 
 --------------------------------------------------------------------------------
 
-test01_ :: View v a -> Html
-test01_ = do
-    inputText "name"
-    inputText "age"
-    inputText "sex"
+userView :: View v a -> Html
+userView v = do
+    inputText "name" v
+    inputText "age" v
+    inputText "sex" v
