@@ -1,14 +1,16 @@
-{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings, Rank2Types #-}
 module Field where
 
 import Control.Applicative (Applicative (..), (<$>))
 import Control.Arrow (first)
 import Control.Monad ((<=<))
 import Data.List (findIndex)
-import Data.Maybe (fromMaybe, maybeToList)
+import Data.Maybe (fromMaybe, listToMaybe, maybeToList)
 import Data.Monoid (Monoid, mappend, mempty)
 
+import GHC.Exts (IsString)
 import Data.Text (Text)
+import Text.Blaze (Html)
 import qualified Data.Text as T
 
 --------------------------------------------------------------------------------
@@ -131,11 +133,22 @@ toField (Pure _ x) = Just (SomeField x)
 toField (Map _ x)  = toField x
 toField _          = Nothing
 
+queryField :: Path
+           -> Form v a
+           -> (forall b. Field v b -> Maybe c)
+           -> Maybe c
+queryField path form f = do
+    SomeForm form'  <- listToMaybe $ lookupForm path form
+    SomeField field <- toField form'
+    f field
+
+{-
 formDefaultInput :: Form v a -> Maybe Text
 formDefaultInput form = do
     someField <- toField form
     case someField of
         SomeField field -> fieldDefaultInput field
+-}
 
 --------------------------------------------------------------------------------
 
@@ -200,13 +213,13 @@ data User = User Text Int Sex
 data Sex = Female | Male
     deriving (Eq, Show)
 
-userForm :: Form Text User
+userForm :: Form Html User
 userForm = User
     <$> ref "name" (text (Just "jasper"))
     <*> ref "age" (stringRead (Just 21))
-    <*> ref "sex" (choice [(Female, "female"), (Male, "male")] Nothing)
+    <*> ref "sex" (choice [(Female, "female"), (Male, "male")] (Just Male))
 
-pairForm :: Form Text (User, User)
+pairForm :: Form Html (User, User)
 pairForm = (,)
     <$> ref "fst" userForm
     <*> ref "snd" userForm
@@ -219,7 +232,7 @@ text def = Pure Nothing $ Text $ fromMaybe "" def
 string :: Maybe String -> Form v String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (Read a, Show a) => Maybe a -> Form Text a
+stringRead :: (IsString s, Read a, Show a) => Maybe a -> Form s a
 stringRead = transform readTransform . string . fmap show
   where
     readTransform str = case readMaybe str of

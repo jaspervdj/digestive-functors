@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Html where
 
-import Control.Monad (mplus)
+import Control.Monad (forM_, mplus)
 import Data.Maybe (fromMaybe)
 
 import Data.Text (Text)
@@ -15,13 +15,23 @@ import Field
 
 --------------------------------------------------------------------------------
 
-fieldInput :: Text -> View v a -> Text
-fieldInput ref view = fromMaybe "" $ mplus givenInput defaultInput
+fieldTextInput :: Text -> View v a -> Text
+fieldTextInput ref view = fromMaybe "" $ mplus givenInput defaultInput
   where
     path         = toPath ref
     givenInput   = lookup path $ viewInput view
-    defaultInput = case lookupForm path (viewForm view) of
-        (SomeForm f : _) -> formDefaultInput f
+    defaultInput = queryField path (viewForm view) $ fieldDefaultInput
+
+fieldChoiceInput :: Text -> View v a -> ([v], Int)
+fieldChoiceInput ref view = fromMaybe ([], 0) $ do
+    (choices, idx) <- defaultInput
+    return (choices, fromMaybe idx givenInput)
+  where
+    path         = toPath ref
+    givenInput   = lookup path (viewInput view) >>= readMaybe . T.unpack
+    defaultInput = queryField path (viewForm view) $ \field -> case field of
+        Choice xs i -> Just (map snd xs, i)        
+        _           -> Nothing
 
 --------------------------------------------------------------------------------
 
@@ -35,7 +45,19 @@ inputText ref view = H.input
     ! A.type_ "text"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    ! A.value (H.toValue $ fieldInput ref view)
+    ! A.value (H.toValue $ fieldTextInput ref view)
+
+inputSelect :: Text -> View Html a -> Html
+inputSelect ref view = H.select
+    ! A.id    (H.toValue ref)
+    ! A.name  (H.toValue ref)
+    $ forM_ (zip choices [0 ..]) $ \(choice, i) -> select i $
+        H.option ! A.value (H.toValue i) $ choice
+  where
+    (choices, idx)  = fieldChoiceInput ref view
+    select i
+        | i == idx  = (! A.selected "selected")
+        | otherwise = id
 
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
@@ -44,7 +66,7 @@ inputSubmit value = H.input
 
 --------------------------------------------------------------------------------
 
-userView :: View v a -> Html
+userView :: View Html a -> Html
 userView v = do
     label "name" "Name: "
     inputText "name" v
@@ -53,6 +75,6 @@ userView v = do
     inputText "age" v
 
     label "sex" "Sex: "
-    inputText "sex" v
+    inputSelect "sex" v
 
     inputSubmit "Submit"
