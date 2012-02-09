@@ -162,28 +162,33 @@ ann path (Error x)   = Error [(path, x)]
 
 --------------------------------------------------------------------------------
 
-type Env = [(Path, Text)]  -- Lol
+type Env m = Path -> m (Maybe Text)
 
-eval :: Monad m => Env -> Form m v a -> m (Result [(Path, v)] a)
+eval :: Monad m => Env m -> Form m v a
+     -> m (Result [(Path, v)] a, [(Path, Text)])
 eval = eval' []
 
-eval' :: Monad m => Path -> Env -> Form m v a -> m (Result [(Path, v)] a)
+eval' :: Monad m => Path -> Env m -> Form m v a
+      -> m (Result [(Path, v)] a, [(Path, Text)])
 
 eval' context env form = case form of
 
-    Pure (Just _) field ->
-        return $ evalField (lookup path env) field
+    Pure (Just _) field -> do
+        val <- env path
+        return $ (evalField val field, [])
 
     App r x y -> do
-        x' <- eval' path env x
-        y' <- eval' path env y
-        return $ x' <*> y'
+        (x', inp1) <- eval' path env x
+        (y', inp2) <- eval' path env y
+        return (x' <*> y', inp1 ++ inp2)
 
     Map f x -> do
-        x' <- eval' context env x
+        (x', inp) <- eval' context env x
         case x' of
-            Success x'' -> f x'' >>= return . ann path
-            Error errs  -> return $ Error errs
+            Success x'' -> do
+                x''' <- f x''  -- This is a bit ridiculous
+                return (ann path x''', inp)
+            Error errs  -> return (Error errs, inp)
 
   where
     path = context ++ maybeToList (getRef form)
@@ -207,9 +212,9 @@ data View m v a = View
 getForm :: Form m v a -> View m v a
 getForm form = View form [] []
 
-postForm :: Monad m => Form m v a -> Env -> m (Either (View m v a) a)
-postForm form env = eval env form >>= \r -> return $ case r of
-    Error errs -> Left $ View form env errs
+postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v a) a)
+postForm form env = eval env form >>= \(r, inp) -> return $ case r of
+    Error errs -> Left $ View form inp errs
     Success x  -> Right x
 
 --------------------------------------------------------------------------------
