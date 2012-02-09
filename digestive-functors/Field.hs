@@ -175,7 +175,7 @@ eval' context env form = case form of
 
     Pure (Just _) field -> do
         val <- env path
-        return $ (evalField val field, [])
+        return $ (evalField val field, maybeToList $ fmap ((,) path) val)
 
     App r x y -> do
         (x', inp1) <- eval' path env x
