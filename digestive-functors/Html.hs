@@ -3,6 +3,7 @@ module Html where
 
 import Control.Monad (forM_, mplus)
 import Data.Maybe (fromMaybe)
+import Data.List (isPrefixOf)
 
 import Data.Text (Text)
 import Text.Blaze (Html, (!))
@@ -32,6 +33,18 @@ fieldChoiceInput ref view = fromMaybe ([], 0) $ do
     defaultInput = queryField path (viewForm view) $ \field -> case field of
         Choice xs i -> Just (map snd xs, i)        
         _           -> Nothing
+
+errors :: Text -> View v a -> [v]
+errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
+
+childErrors :: Text -> View v a -> [v]
+childErrors ref =
+    map snd . filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
+
+--------------------------------------------------------------------------------
+
+errorList :: Text -> View Html a -> Html
+errorList ref view = H.ul $ mapM_ H.li $ errors ref view
 
 --------------------------------------------------------------------------------
 
@@ -70,11 +83,14 @@ userView :: View Html a -> Html
 userView v = do
     label "name" "Name: "
     inputText "name" v
+    errorList "name" v
 
     label "age" "Age: "
     inputText "age" v
+    errorList "age" v
 
     label "sex" "Sex: "
     inputSelect "sex" v
+    errorList "sex" v
 
     inputSubmit "Submit"
