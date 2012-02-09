@@ -16,14 +16,14 @@ import Field
 
 --------------------------------------------------------------------------------
 
-fieldTextInput :: Text -> View v a -> Text
+fieldTextInput :: Text -> View m v a -> Text
 fieldTextInput ref view = fromMaybe "" $ mplus givenInput defaultInput
   where
     path         = toPath ref
     givenInput   = lookup path $ viewInput view
     defaultInput = queryField path (viewForm view) $ fieldDefaultInput
 
-fieldChoiceInput :: Text -> View v a -> ([v], Int)
+fieldChoiceInput :: Text -> View m v a -> ([v], Int)
 fieldChoiceInput ref view = fromMaybe ([], 0) $ do
     (choices, idx) <- defaultInput
     return (choices, fromMaybe idx givenInput)
@@ -34,16 +34,16 @@ fieldChoiceInput ref view = fromMaybe ([], 0) $ do
         Choice xs i -> Just (map snd xs, i)        
         _           -> Nothing
 
-errors :: Text -> View v a -> [v]
+errors :: Text -> View m v a -> [v]
 errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 
-childErrors :: Text -> View v a -> [v]
+childErrors :: Text -> View m v a -> [v]
 childErrors ref =
     map snd . filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
 
 --------------------------------------------------------------------------------
 
-errorList :: Text -> View Html a -> Html
+errorList :: Text -> View m Html a -> Html
 errorList ref view = H.ul $ mapM_ H.li $ errors ref view
 
 --------------------------------------------------------------------------------
@@ -53,14 +53,14 @@ label ref value = H.label
     ! A.for (H.toValue ref)
     $ value
 
-inputText :: Text -> View v a -> Html
+inputText :: Text -> View m v a -> Html
 inputText ref view = H.input
     ! A.type_ "text"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
     ! A.value (H.toValue $ fieldTextInput ref view)
 
-inputSelect :: Text -> View Html a -> Html
+inputSelect :: Text -> View m Html a -> Html
 inputSelect ref view = H.select
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
@@ -79,7 +79,7 @@ inputSubmit value = H.input
 
 --------------------------------------------------------------------------------
 
-userView :: View Html a -> Html
+userView :: View IO Html a -> Html
 userView v = do
     label "name" "Name: "
     inputText "name" v

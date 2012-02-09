@@ -65,28 +65,28 @@ fieldDefaultInput _        = Nothing
 type Ref = Maybe Text
 type Path = [Text]
 
-data Form v a where
-    Pure :: Ref -> Field v a -> Form v a
-    App  :: Ref -> Form v (b -> a) -> Form v b -> Form v a
+data Form m v a where
+    Pure :: Ref -> Field v a -> Form m v a
+    App  :: Ref -> Form m v (b -> a) -> Form m v b -> Form m v a
 
-    Map  :: (b -> Result v a) -> Form v b -> Form v a
+    Map  :: (b -> m (Result v a)) -> Form m v b -> Form m v a
 
-instance Functor (Form v) where
-    fmap = Map . (return .)
+instance Monad m => Functor (Form m v) where
+    fmap = transform . (return .) . (return .)
 
-instance Monoid v => Applicative (Form v) where
+instance (Monad m, Monoid v) => Applicative (Form m v) where
     pure x  = Pure Nothing (Singleton x)
     x <*> y = App Nothing x y
 
-instance Show (Form v a) where
+instance Show (Form m v a) where
     show = unlines . showForm
 
-data SomeForm v = forall a. SomeForm (Form v a)
+data SomeForm m v = forall a. SomeForm (Form m v a)
 
-instance Show (SomeForm v) where
+instance Show (SomeForm m v) where
     show (SomeForm f) = show f
 
-showForm :: Form v a -> [String]
+showForm :: Form m v a -> [String]
 showForm form = case form of
     (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
     (App r x y) -> concat
@@ -98,26 +98,30 @@ showForm form = case form of
   where
     indent = ("  " ++)
 
-children :: Form v a -> [SomeForm v]
+children :: Form m v a -> [SomeForm m v]
 children (Pure _ _)  = []
 children (App _ x y) = [SomeForm x, SomeForm y]
 children (Map _ x)   = children x
 
-ref :: Text -> Form v a -> Form v a
+ref :: Text -> Form m v a -> Form m v a
 ref r (Pure _ x)  = Pure (Just r) x
 ref r (App _ x y) = App (Just r) x y
 ref r (Map f x)   = Map f (ref r x)
 
-getRef :: Form v a -> Ref
+getRef :: Form m v a -> Ref
 getRef (Pure r _)  = r
 getRef (App r _ _) = r
 getRef (Map _ x)   = getRef x
 
-transform :: (a -> Result v b) -> Form v a -> Form v b
-transform f (Map g x) = Map (f <=< g) x  -- Optimization
+transform :: Monad m => (a -> m (Result v b)) -> Form m v a -> Form m v b
+transform f (Map g x) = flip Map x $ \y -> do
+    y' <- g y
+    case y' of
+        Error errs  -> return $ Error errs
+        Success y'' -> f y''
 transform f x         = Map f x
 
-lookupForm :: Path -> Form v a -> [SomeForm v]
+lookupForm :: Path -> Form m v a -> [SomeForm m v]
 lookupForm path = go path . SomeForm
   where
     go []       form            = [form]
@@ -128,13 +132,13 @@ lookupForm path = go path . SomeForm
             | otherwise          -> []
         Nothing                  -> children form >>= go (r : rs)
 
-toField :: Form v a -> Maybe (SomeField v)
+toField :: Form m v a -> Maybe (SomeField v)
 toField (Pure _ x) = Just (SomeField x)
 toField (Map _ x)  = toField x
 toField _          = Nothing
 
 queryField :: Path
-           -> Form v a
+           -> Form m v a
            -> (forall b. Field v b -> Maybe c)
            -> Maybe c
 queryField path form f = do
@@ -160,23 +164,26 @@ ann path (Error x)   = Error [(path, x)]
 
 type Env = [(Path, Text)]  -- Lol
 
-eval :: Env -> Form v a -> Result [(Path, v)] a
+eval :: Monad m => Env -> Form m v a -> m (Result [(Path, v)] a)
 eval = eval' []
 
-eval' :: Path -> Env -> Form v a -> Result [(Path, v)] a
+eval' :: Monad m => Path -> Env -> Form m v a -> m (Result [(Path, v)] a)
 
 eval' context env form = case form of
 
     Pure (Just _) field ->
-        evalField (lookup path env) field
+        return $ evalField (lookup path env) field
 
-    App r x y ->
-        let x' = eval' path env x
-            y' = eval' path env y
-        in  x' <*> y'
+    App r x y -> do
+        x' <- eval' path env x
+        y' <- eval' path env y
+        return $ x' <*> y'
 
-    Map f x ->
-        eval' context env x >>= ann path . f
+    Map f x -> do
+        x' <- eval' context env x
+        case x' of
+            Success x'' -> f x'' >>= return . ann path
+            Error errs  -> return $ Error errs
 
   where
     path = context ++ maybeToList (getRef form)
@@ -191,17 +198,17 @@ evalField (Just x) (Choice ls _) = pure $
 
 --------------------------------------------------------------------------------
 
-data View v a = View
-    { viewForm   :: Form v a
+data View m v a = View
+    { viewForm   :: Form m v a
     , viewInput  :: [(Path, Text)]
     , viewErrors :: [(Path, v)]
     } deriving (Show)
 
-getForm :: Form v a -> View v a
+getForm :: Form m v a -> View m v a
 getForm form = View form [] []
 
-postForm :: Form v a -> Env -> Either (View v a) a
-postForm form env = case eval env form of
+postForm :: Monad m => Form m v a -> Env -> m (Either (View m v a) a)
+postForm form env = eval env form >>= \r -> return $ case r of
     Error errs -> Left $ View form env errs
     Success x  -> Right x
 
@@ -213,33 +220,33 @@ data User = User Text Int Sex
 data Sex = Female | Male
     deriving (Eq, Show)
 
-userForm :: Form Html User
+userForm :: Monad m => Form m Html User
 userForm = User
     <$> ref "name" (text (Just "jasper"))
     <*> ref "age" (stringRead (Just 21))
     <*> ref "sex" (choice [(Female, "female"), (Male, "male")] (Just Male))
 
-pairForm :: Form Html (User, User)
+pairForm :: Monad m => Form m Html (User, User)
 pairForm = (,)
     <$> ref "fst" userForm
     <*> ref "snd" userForm
 
 --------------------------------------------------------------------------------
 
-text :: Maybe Text -> Form v Text
+text :: Maybe Text -> Form m v Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
 
-string :: Maybe String -> Form v String
+string :: Monad m => Maybe String -> Form m v String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (IsString s, Read a, Show a) => Maybe a -> Form s a
+stringRead :: (IsString s, Monad m, Read a, Show a) => Maybe a -> Form m s a
 stringRead = transform readTransform . string . fmap show
   where
-    readTransform str = case readMaybe str of
+    readTransform str = return $ case readMaybe str of
         Just x  -> return x
         Nothing -> Error "PBKAC"
 
-choice :: Eq a => [(a, v)] -> Maybe a -> Form v a
+choice :: Eq a => [(a, v)] -> Maybe a -> Form m v a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
 
@@ -253,21 +260,3 @@ readMaybe str = case readsPrec 1 str of
 
 toPath :: Text -> Path
 toPath = T.split (== '.')
-
-test :: Form v a -> [(Text, Text)] -> Either (View v a) a
-test form env = postForm form (map (first toPath) env)
-
---------------------------------------------------------------------------------
-
-test01 = test userForm
-    [ ("name", "Laurel")
-    , ("age", "28")
-    , ("sex", "1")
-    ]
-
-test02 = test pairForm
-    [ ("fst.name", "Laurel")
-    , ("fst.age", "28")
-    , ("snd.name", "Hardy")
-    , ("snd.age", "foo")
-    ]
