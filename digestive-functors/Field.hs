@@ -265,3 +265,6 @@ readMaybe str = case readsPrec 1 str of
 
 toPath :: Text -> Path
 toPath = T.split (== '.')
+
+fromPath :: Path -> Text
+fromPath = T.intercalate "."

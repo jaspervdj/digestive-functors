@@ -77,10 +77,13 @@ inputSubmit value = H.input
     ! A.type_ "submit"
     ! A.value (H.toValue value)
 
+form :: Text -> Html -> Html
+form action = H.form ! A.method "POST" ! A.action (H.toValue action)
+
 --------------------------------------------------------------------------------
 
-userView :: View IO Html a -> Html
-userView v = do
+userView :: View m Html a -> Html
+userView v = form "/test" $ do
     label "name" "Name: "
     inputText "name" v
     errorList "name" v
