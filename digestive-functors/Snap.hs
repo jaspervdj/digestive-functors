@@ -40,8 +40,8 @@ userView v = form "/test" $ do
     inputText "age" v
     errorList "age" v
 
-    label "sex" "Sex: "
-    inputSelect "sex" v
+    -- label "sex" "Sex: "
+    inputRadio False "sex" v
     errorList "sex" v
 
     inputSubmit "Submit"

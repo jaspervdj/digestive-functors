@@ -2,7 +2,7 @@
 module Html where
 
 import Data.Monoid (mappend)
-import Control.Monad (forM_, mplus)
+import Control.Monad (forM_, mplus, when)
 import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf)
 
@@ -65,8 +65,8 @@ inputSelect :: Text -> View m Html a -> Html
 inputSelect ref view = H.select
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    $ forM_ (zip choices [0 ..]) $ \(choice, i) -> select i $
-        H.option ! A.value (value i) $ choice
+    $ forM_ (zip choices [0 ..]) $ \(c, i) -> select i $
+        H.option ! A.value (value i) $ c
   where
     value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
     (choices, idx)  = fieldChoiceInput ref view
@@ -74,18 +74,22 @@ inputSelect ref view = H.select
         | i == idx  = (! A.selected "selected")
         | otherwise = id
 
-{-
-inputRadio :: Text -> View m Html a -> Html
-inputRadio ref view = forM_ (zip choices [0 ..]) $ \(choice, i) -> select i $
-    H.input
-        ! A.type "radio"
-        ! A.value "value" choice
+inputRadio :: Bool           -- ^ Add @br@ tags?
+           -> Text           -- ^ Form path
+           -> View m Html a  -- ^ View
+           -> Html           -- ^ Resulting HTML
+inputRadio brs ref view = forM_ (zip choices [0 ..]) $ \(c, i) -> do
+    let val = value i
+    select i $ H.input ! A.type_ "radio" ! A.value val
+        ! A.id val ! A.name (H.toValue ref)
+    H.label ! A.for val $ c
+    when brs H.br
   where
+    value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
     (choices, idx)  = fieldChoiceInput ref view
     select i
-        | i == idx  = (! A.selected "selected")
+        | i == idx  = (! A.checked "checked")
         | otherwise = id
--}
 
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
