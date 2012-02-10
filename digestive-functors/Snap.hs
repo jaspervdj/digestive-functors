@@ -18,7 +18,7 @@ postFormSnap :: Snap.MonadSnap m => Form m v a -> m (Either (View m v) a)
 postFormSnap form = postForm form $
     fmap (fmap T.decodeUtf8) . Snap.getParam . T.encodeUtf8 . fromPath
 
-data User = User Text Int Sex
+data User = User Text Int Sex Bool
     deriving (Show)
 
 data Sex = Female | Male
@@ -29,6 +29,7 @@ userForm = User
     <$> "name" .: text (Just "jasper")
     <*> "age"  .: check "Should be positive" (> 0) (stringRead (Just 21))
     <*> "sex"  .: choice [(Female, "Female"), (Male, "Male")] (Just Male)
+    <*> "evil" .: bool True
 
 userView :: View m Html -> Html
 userView v = form "/test" $ do
@@ -43,6 +44,9 @@ userView v = form "/test" $ do
     -- label "sex" "Sex: "
     inputRadio False "sex" v
     errorList "sex" v
+
+    label "evil" "Evil: "
+    inputCheckbox "evil" v
 
     inputSubmit "Submit"
 

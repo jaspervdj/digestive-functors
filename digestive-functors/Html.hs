@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs, OverloadedStrings #-}
 module Html where
 
 import Data.Monoid (mappend)
@@ -8,6 +8,7 @@ import Data.List (isPrefixOf)
 
 import Data.Text (Text)
 import Text.Blaze (Html, (!))
+import Text.Blaze.Internal as H
 import Text.Blaze.Renderer.Pretty (renderHtml)
 import qualified Data.Text as T
 import qualified Text.Blaze.Html5 as H
@@ -23,7 +24,7 @@ fieldTextInput ref (View form input _) =
   where
     path         = toPath ref
     givenInput   = lookup path input
-    defaultInput = queryField path form fieldDefaultInput
+    defaultInput = queryField path form fieldDefaultText
 
 fieldChoiceInput :: Text -> View m v -> ([v], Int)
 fieldChoiceInput ref (View form input _) = fromMaybe ([], 0) $ do
@@ -50,10 +51,12 @@ errorList ref view = H.ul $ mapM_ H.li $ errors ref view
 
 --------------------------------------------------------------------------------
 
+(!?) :: H.Attributable h => h -> (Bool, H.Attribute) -> h
+(!?) h (False, _) = h
+(!?) h (True,  a) = h ! a
+
 label :: Text -> Html -> Html
-label ref value = H.label
-    ! A.for (H.toValue ref)
-    $ value
+label ref value = H.label ! A.for (H.toValue ref) $ value
 
 inputText :: Text -> View m v -> Html
 inputText ref view = H.input
@@ -66,14 +69,13 @@ inputSelect :: Text -> View m Html -> Html
 inputSelect ref view = H.select
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    $ forM_ (zip choices [0 ..]) $ \(c, i) -> select i $
-        H.option ! A.value (value i) $ c
+    $ forM_ (zip choices [0 ..]) $ \(c, i) -> H.option
+        !  A.value (value i)
+        !? (i == idx, A.selected "selected")
+        $ c
   where
     value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
     (choices, idx)  = fieldChoiceInput ref view
-    select i
-        | i == idx  = (! A.selected "selected")
-        | otherwise = id
 
 inputRadio :: Bool         -- ^ Add @br@ tags?
            -> Text         -- ^ Form path
@@ -81,16 +83,25 @@ inputRadio :: Bool         -- ^ Add @br@ tags?
            -> Html         -- ^ Resulting HTML
 inputRadio brs ref view = forM_ (zip choices [0 ..]) $ \(c, i) -> do
     let val = value i
-    select i $ H.input ! A.type_ "radio" ! A.value val
-        ! A.id val ! A.name (H.toValue ref)
+    H.input ! A.type_ "radio" ! A.value val ! A.id val ! A.name (H.toValue ref)
+        !? (i == idx, A.checked "checked")
     H.label ! A.for val $ c
     when brs H.br
   where
     value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
     (choices, idx)  = fieldChoiceInput ref view
-    select i
-        | i == idx  = (! A.checked "checked")
-        | otherwise = id
+
+inputCheckbox :: Text -> View m Html -> Html
+inputCheckbox ref (View form input _) = H.input
+    !  A.type_ "checkbox"
+    !  A.id    (H.toValue ref)
+    !  A.name  (H.toValue ref)
+    !? (selected, A.checked "checked")
+  where
+    path     = toPath ref
+    selected = fromMaybe False $ queryField path form $ \f -> case f of
+        Bool x -> Just $ evalField (lookup path input) (Bool x)
+        _      -> Nothing
 
 inputSubmit :: Text -> Html
 inputSubmit value = H.input

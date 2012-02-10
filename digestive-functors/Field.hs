@@ -42,11 +42,13 @@ data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text
     Choice    :: [(a, v)] -> Int -> Field v a
+    Bool      :: Bool -> Field v Bool
 
 instance Show (Field v a) where
     show (Singleton _) = "Singleton _"
     show (Text t)      = "Text " ++ show t
     show (Choice _ _)  = "Choice _ _"
+    show (Bool b)      = "Bool " ++ show b
 
 data SomeField v = forall a. SomeField (Field v a)
 
@@ -56,9 +58,9 @@ printSomeField (SomeField f) = case f of
     Text t -> putStrLn (T.unpack t)
     _      -> putStrLn "can't print and shit"
 
-fieldDefaultInput :: Field v a -> Maybe Text
-fieldDefaultInput (Text t) = Just t
-fieldDefaultInput _        = Nothing
+fieldDefaultText :: Field v a -> Maybe Text
+fieldDefaultText (Text t) = Just t
+fieldDefaultText _        = Nothing
 
 --------------------------------------------------------------------------------
 
@@ -150,14 +152,6 @@ queryField path form f = do
     SomeField field <- toField form'
     f field
 
-{-
-formDefaultInput :: Form v a -> Maybe Text
-formDefaultInput form = do
-    someField <- toField form
-    case someField of
-        SomeField field -> fieldDefaultInput field
--}
-
 --------------------------------------------------------------------------------
 
 ann :: Path -> Result v a -> Result [(Path, v)] a
@@ -179,7 +173,8 @@ eval' context env form = case form of
 
     Pure (Just _) field -> do
         val <- env path
-        return $ (evalField val field, maybeToList $ fmap ((,) path) val)
+        let x = evalField val field
+        return $ (pure x, maybeToList $ fmap ((,) path) val)
 
     App r x y -> do
         (x', inp1) <- eval' path env x
@@ -197,16 +192,18 @@ eval' context env form = case form of
   where
     path = context ++ maybeToList (getRef form)
 
-evalField :: Maybe Text -> Field v a -> Result [(Path, v)] a
-evalField _        (Singleton x)  = pure x
-evalField Nothing  (Text x)       = pure x
-evalField (Just x) (Text _)       = pure x
-evalField Nothing  (Choice ls x) = pure $ fst $ ls !! x
-evalField (Just x) (Choice ls y) = pure $ fromMaybe (fst $ ls !! y) $ do
+evalField :: Maybe Text -> Field v a -> a
+evalField _        (Singleton x) = x
+evalField Nothing  (Text x)      = x
+evalField (Just x) (Text _)      = x
+evalField Nothing  (Choice ls x) = fst $ ls !! x
+evalField (Just x) (Choice ls y) = fromMaybe (fst $ ls !! y) $ do
     -- Expects input in the form of @foo.bar.2@
     t <- listToMaybe $ reverse $ toPath x
     i <- readMaybe $ T.unpack t
     return $ fst $ ls !! i
+evalField Nothing  (Bool x)      = x
+evalField (Just x) (Bool _)      = x == "on"
 
 --------------------------------------------------------------------------------
 
@@ -242,6 +239,9 @@ stringRead = transform readTransform . string . fmap show
 choice :: Eq a => [(a, v)] -> Maybe a -> Form m v a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
+
+bool :: Bool -> Form m v Bool
+bool = Pure Nothing . Bool
 
 readMaybe :: Read a => String -> Maybe a
 readMaybe str = case readsPrec 1 str of
