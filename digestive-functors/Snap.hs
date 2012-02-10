@@ -14,7 +14,7 @@ import qualified Text.Blaze.Html5 as H
 import Field
 import Html
 
-postFormSnap :: Snap.MonadSnap m => Form m v a -> m (Either (View m v a) a)
+postFormSnap :: Snap.MonadSnap m => Form m v a -> m (Either (View m v) a)
 postFormSnap form = postForm form $
     fmap (fmap T.decodeUtf8) . Snap.getParam . T.encodeUtf8 . fromPath
 
@@ -30,7 +30,7 @@ userForm = User
     <*> "age"  .: check "Should be positive" (> 0) (stringRead (Just 21))
     <*> "sex"  .: choice [(Female, "Female"), (Male, "Male")] (Just Male)
 
-userView :: View m Html a -> Html
+userView :: View m Html -> Html
 userView v = form "/test" $ do
     label "name" "Name: "
     inputText "name" v

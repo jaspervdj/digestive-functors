@@ -210,16 +210,16 @@ evalField (Just x) (Choice ls y) = pure $ fromMaybe (fst $ ls !! y) $ do
 
 --------------------------------------------------------------------------------
 
-data View m v a = View
+data View m v = forall a. View
     { viewForm   :: Form m v a
     , viewInput  :: [(Path, Text)]
     , viewErrors :: [(Path, v)]
-    } deriving (Show)
+    }
 
-getForm :: Form m v a -> View m v a
+getForm :: Form m v a -> View m v
 getForm form = View form [] []
 
-postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v a) a)
+postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v) a)
 postForm form env = eval env form >>= \(r, inp) -> return $ case r of
     Error errs -> Left $ View form inp errs
     Success x  -> Right x

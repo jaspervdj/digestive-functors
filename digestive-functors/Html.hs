@@ -17,34 +17,35 @@ import Field
 
 --------------------------------------------------------------------------------
 
-fieldTextInput :: Text -> View m v a -> Text
-fieldTextInput ref view = fromMaybe "" $ mplus givenInput defaultInput
+fieldTextInput :: Text -> View m v -> Text
+fieldTextInput ref (View form input _) =
+    fromMaybe "" $ mplus givenInput defaultInput
   where
     path         = toPath ref
-    givenInput   = lookup path $ viewInput view
-    defaultInput = queryField path (viewForm view) $ fieldDefaultInput
+    givenInput   = lookup path input
+    defaultInput = queryField path form fieldDefaultInput
 
-fieldChoiceInput :: Text -> View m v a -> ([v], Int)
-fieldChoiceInput ref view = fromMaybe ([], 0) $ do
+fieldChoiceInput :: Text -> View m v -> ([v], Int)
+fieldChoiceInput ref (View form input _) = fromMaybe ([], 0) $ do
     (choices, idx) <- defaultInput
     return (choices, fromMaybe idx givenInput)
   where
     path         = toPath ref
-    givenInput   = lookup path (viewInput view) >>= readMaybe . T.unpack
-    defaultInput = queryField path (viewForm view) $ \field -> case field of
+    givenInput   = lookup path input >>= readMaybe . T.unpack
+    defaultInput = queryField path form $ \field -> case field of
         Choice xs i -> Just (map snd xs, i)        
         _           -> Nothing
 
-errors :: Text -> View m v a -> [v]
+errors :: Text -> View m v -> [v]
 errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 
-childErrors :: Text -> View m v a -> [v]
+childErrors :: Text -> View m v -> [v]
 childErrors ref =
     map snd . filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
 
 --------------------------------------------------------------------------------
 
-errorList :: Text -> View m Html a -> Html
+errorList :: Text -> View m Html -> Html
 errorList ref view = H.ul $ mapM_ H.li $ errors ref view
 
 --------------------------------------------------------------------------------
@@ -54,14 +55,14 @@ label ref value = H.label
     ! A.for (H.toValue ref)
     $ value
 
-inputText :: Text -> View m v a -> Html
+inputText :: Text -> View m v -> Html
 inputText ref view = H.input
     ! A.type_ "text"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
     ! A.value (H.toValue $ fieldTextInput ref view)
 
-inputSelect :: Text -> View m Html a -> Html
+inputSelect :: Text -> View m Html -> Html
 inputSelect ref view = H.select
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
@@ -74,10 +75,10 @@ inputSelect ref view = H.select
         | i == idx  = (! A.selected "selected")
         | otherwise = id
 
-inputRadio :: Bool           -- ^ Add @br@ tags?
-           -> Text           -- ^ Form path
-           -> View m Html a  -- ^ View
-           -> Html           -- ^ Resulting HTML
+inputRadio :: Bool         -- ^ Add @br@ tags?
+           -> Text         -- ^ Form path
+           -> View m Html  -- ^ View
+           -> Html         -- ^ Resulting HTML
 inputRadio brs ref view = forM_ (zip choices [0 ..]) $ \(c, i) -> do
     let val = value i
     select i $ H.input ! A.type_ "radio" ! A.value val
