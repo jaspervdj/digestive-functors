@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Html where
 
+import Data.Monoid (mappend)
 import Control.Monad (forM_, mplus)
 import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf)
@@ -65,12 +66,26 @@ inputSelect ref view = H.select
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
     $ forM_ (zip choices [0 ..]) $ \(choice, i) -> select i $
-        H.option ! A.value (H.toValue i) $ choice
+        H.option ! A.value (value i) $ choice
+  where
+    value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
+    (choices, idx)  = fieldChoiceInput ref view
+    select i
+        | i == idx  = (! A.selected "selected")
+        | otherwise = id
+
+{-
+inputRadio :: Text -> View m Html a -> Html
+inputRadio ref view = forM_ (zip choices [0 ..]) $ \(choice, i) -> select i $
+    H.input
+        ! A.type "radio"
+        ! A.value "value" choice
   where
     (choices, idx)  = fieldChoiceInput ref view
     select i
         | i == idx  = (! A.selected "selected")
         | otherwise = id
+-}
 
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
@@ -79,21 +94,3 @@ inputSubmit value = H.input
 
 form :: Text -> Html -> Html
 form action = H.form ! A.method "POST" ! A.action (H.toValue action)
-
---------------------------------------------------------------------------------
-
-userView :: View m Html a -> Html
-userView v = form "/test" $ do
-    label "name" "Name: "
-    inputText "name" v
-    errorList "name" v
-
-    label "age" "Age: "
-    inputText "age" v
-    errorList "age" v
-
-    label "sex" "Sex: "
-    inputSelect "sex" v
-    errorList "sex" v
-
-    inputSubmit "Submit"

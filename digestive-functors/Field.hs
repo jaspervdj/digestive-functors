@@ -108,6 +108,10 @@ ref r (Pure _ x)  = Pure (Just r) x
 ref r (App _ x y) = App (Just r) x y
 ref r (Map f x)   = Map f (ref r x)
 
+(.:) :: Text -> Form m v a -> Form m v a
+(.:) = ref
+infixr 5 .:
+
 getRef :: Form m v a -> Ref
 getRef (Pure r _)  = r
 getRef (App r _ _) = r
@@ -194,12 +198,15 @@ eval' context env form = case form of
     path = context ++ maybeToList (getRef form)
 
 evalField :: Maybe Text -> Field v a -> Result [(Path, v)] a
-evalField _        (Singleton x) = pure x
-evalField Nothing  (Text x)      = pure x
-evalField (Just x) (Text _)      = pure x
+evalField _        (Singleton x)  = pure x
+evalField Nothing  (Text x)       = pure x
+evalField (Just x) (Text _)       = pure x
 evalField Nothing  (Choice ls x) = pure $ fst $ ls !! x
-evalField (Just x) (Choice ls _) = pure $
-    fst $ ls !! read (T.unpack x)  -- fix
+evalField (Just x) (Choice ls y) = pure $ fromMaybe (fst $ ls !! y) $ do
+    -- Expects input in the form of @foo.bar.2@
+    t <- listToMaybe $ reverse $ toPath x
+    i <- readMaybe $ T.unpack t
+    return $ fst $ ls !! i
 
 --------------------------------------------------------------------------------
 
@@ -216,25 +223,6 @@ postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v a) a)
 postForm form env = eval env form >>= \(r, inp) -> return $ case r of
     Error errs -> Left $ View form inp errs
     Success x  -> Right x
-
---------------------------------------------------------------------------------
-
-data User = User Text Int Sex
-    deriving (Show)
-
-data Sex = Female | Male
-    deriving (Eq, Show)
-
-userForm :: Monad m => Form m Html User
-userForm = User
-    <$> ref "name" (text (Just "jasper"))
-    <*> ref "age" (stringRead (Just 21))
-    <*> ref "sex" (choice [(Female, "female"), (Male, "male")] (Just Male))
-
-pairForm :: Monad m => Form m Html (User, User)
-pairForm = (,)
-    <$> ref "fst" userForm
-    <*> ref "snd" userForm
 
 --------------------------------------------------------------------------------
 
@@ -260,6 +248,11 @@ readMaybe str = case readsPrec 1 str of
     [(x, "")] -> Just x
     _         -> Nothing
 
+check :: Monad m => v -> (a -> Bool) -> Form m v a -> Form m v a
+check err predicate form = transform f form
+  where
+    f x | predicate x = return (return x)
+        | otherwise   = return (Error err)
 
 --------------------------------------------------------------------------------
 
