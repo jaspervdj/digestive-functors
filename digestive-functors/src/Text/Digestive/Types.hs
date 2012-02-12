@@ -20,6 +20,7 @@ module Text.Digestive.Types
     , (<++)
     , mapView
     , runForm
+    , runViewForm
     , eitherForm
     , viewForm
     ) where
@@ -205,6 +206,19 @@ eitherForm form id' env = do
     return $ case result of
         Error e  -> Left $ unView view' e
         Ok x     -> Right x
+
+-- | Evaluate a form, return view and a result if successful
+runViewForm :: Monad m
+            => Form m i e v a
+            -> String
+            -> Environment m i
+            -> m (v, Maybe a)
+runViewForm form id' env = do
+    (view', mresult) <- runForm form id' env
+    result <- mresult
+    return $ case result of
+        Error e -> (unView view' e, Nothing)
+        Ok x    -> (unView view' [], Just x)
 
 -- | Just evaluate the form to a view. This usually maps to a GET request in the
 -- browser.

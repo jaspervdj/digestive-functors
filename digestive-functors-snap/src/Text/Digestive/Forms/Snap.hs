@@ -6,6 +6,7 @@ module Text.Digestive.Forms.Snap
     , SnapForm
     , snapEnvironment
     , eitherSnapForm
+    , runViewSnapForm
     ) where
 
 import Control.Applicative ((<$>))
@@ -16,7 +17,7 @@ import Data.ByteString.UTF8 as SB (toString, fromString)
 import Snap.Types
 
 import Text.Digestive.Forms (FormInput (..))
-import Text.Digestive.Types (Form (..), Environment (..), viewForm, eitherForm)
+import Text.Digestive.Types (Form (..), Environment (..), viewForm, runViewForm, eitherForm)
 
 newtype SnapInput = SnapInput {unSnapInput :: SB.ByteString}
 
@@ -52,3 +53,13 @@ eitherSnapForm form name = do
     method' <- rqMethod <$> getRequest
     case method' of GET -> liftM Left $ viewForm form name
                     _   -> eitherForm form name snapEnvironment
+
+
+-------------------------------------------------------------------------------
+-- | Render a snap form using the current Params
+runViewSnapForm :: (MonadSnap m)
+                => SnapForm m e v a
+                -> String 
+                -> m (v, Maybe a)
+runViewSnapForm form name = runViewForm form name snapEnvironment
+    
