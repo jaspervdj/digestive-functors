@@ -1,5 +1,5 @@
 Name:     digestive-functors
-Version:  0.2.0.1
+Version:  0.2.1.0
 Synopsis: A general way to consume input using applicative functors
 
 Description:         Digestive functors is a library to generate and process
