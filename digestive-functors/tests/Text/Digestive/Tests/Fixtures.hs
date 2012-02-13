@@ -3,6 +3,10 @@ module Text.Digestive.Tests.Fixtures
     ( Type (..)
     , Pokemon (..)
     , pokemonForm
+    , Ball (..)
+    , ballForm
+    , Catch (..)
+    , catchForm
     ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -36,3 +40,27 @@ pokemonForm = Pokemon
     <*> "level" .: levelForm
     <*> "type"  .: typeForm
     <*> "rare"  .: bool False
+
+data Ball = Poke | Great | Ultra | Master
+    deriving (Eq, Show)
+
+ballForm :: Monad m => Form m Text Ball
+ballForm = choice
+    [(Poke, "Poke"), (Great, "Great"), (Ultra, "Ultra"), (Master, "Master")]
+    Nothing
+
+data Catch = Catch
+    { catchPokemon :: Pokemon
+    , catchBall    :: Ball
+    } deriving (Eq, Show)
+
+catchForm :: Monad m => Form m Text Catch
+catchForm = check "You need a better ball" canCatch $ Catch
+    <$> "pokemon" .: pokemonForm
+    <*> "ball"    .: ballForm
+
+canCatch :: Catch -> Bool
+canCatch (Catch (Pokemon _ _ _ False) _)      = True
+canCatch (Catch (Pokemon _ _ _ True)  Ultra)  = True
+canCatch (Catch (Pokemon _ _ _ True)  Master) = True
+canCatch _                                    = False

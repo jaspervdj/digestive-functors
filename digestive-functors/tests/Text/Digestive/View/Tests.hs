@@ -16,12 +16,21 @@ import Text.Digestive.View
 
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
-    [ testCase "postForm [0]" $ (@=?)
+    [ testCase "Simple postForm" $ (@=?)
         (Pokemon "charmander" 5 Fire False) $
         fromRight $ runIdentity $ postForm pokemonForm $ testEnv
             [ ("name",  "charmander")
             , ("level", "5")
             , ("type",  "type.1")
+            ]
+
+    , testCase "Nested postForm" $ (@=?)
+        (Catch (Pokemon "charmander" 5 Fire False) Ultra) $
+        fromRight $ runIdentity $ postForm catchForm $ testEnv
+            [ ("pokemon.name",  "charmander")
+            , ("pokemon.level", "5")
+            , ("pokemon.type",  "type.1")
+            , ("ball",          "ball.2")
             ]
     ]
 
