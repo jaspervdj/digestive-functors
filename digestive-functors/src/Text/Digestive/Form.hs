@@ -126,30 +126,30 @@ ann path (Error x)   = Error [(path, x)]
 
 --------------------------------------------------------------------------------
 
-eval :: Monad m => Env m -> Form m v a
+eval :: Monad m => Method -> Env m -> Form m v a
      -> m (Result [(Path, v)] a, [(Path, Text)])
 eval = eval' []
 
-eval' :: Monad m => Path -> Env m -> Form m v a
+eval' :: Monad m => Path -> Method -> Env m -> Form m v a
       -> m (Result [(Path, v)] a, [(Path, Text)])
 
-eval' context env form = case form of
+eval' context method env form = case form of
 
     Pure Nothing _ ->
         error "No ref specified for field"
 
     Pure (Just _) field -> do
         val <- env path
-        let x = evalField val field
+        let x = evalField method val field
         return $ (pure x, maybeToList $ fmap ((,) path) val)
 
     App _ x y -> do
-        (x', inp1) <- eval' path env x
-        (y', inp2) <- eval' path env y
+        (x', inp1) <- eval' path method env x
+        (y', inp2) <- eval' path method env y
         return (x' <*> y', inp1 ++ inp2)
 
     Map f x -> do
-        (x', inp) <- eval' context env x
+        (x', inp) <- eval' context method env x
         case x' of
             Success x'' -> do
                 x''' <- f x''  -- This is a bit ridiculous

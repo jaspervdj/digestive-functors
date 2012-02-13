@@ -14,12 +14,13 @@ data View m v = forall a. View
     { viewForm   :: Form m v a
     , viewInput  :: [(Path, Text)]
     , viewErrors :: [(Path, v)]
+    , viewMethod :: Method
     }
 
 getForm :: Form m v a -> View m v
-getForm form = View form [] []
+getForm form = View form [] [] Get
 
 postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v) a)
-postForm form env = eval env form >>= \(r, inp) -> return $ case r of
-    Error errs -> Left $ View form inp errs
+postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
+    Error errs -> Left $ View form inp errs Post
     Success x  -> Right x

@@ -4,6 +4,7 @@ module Text.Digestive.Types
     , Path
     , toPath
     , fromPath
+    , Method (..)
     , Env
     ) where
 
@@ -41,5 +42,8 @@ toPath = T.split (== '.')
 
 fromPath :: Path -> Text
 fromPath = T.intercalate "."
+
+data Method = Get | Post
+    deriving (Eq, Ord, Show)
 
 type Env m = Path -> m (Maybe Text)
