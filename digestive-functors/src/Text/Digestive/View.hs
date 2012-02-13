@@ -1,8 +1,13 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
 module Text.Digestive.View
     ( View (..)
+
+      -- * Obtaining a view
     , getForm
     , postForm
+
+      -- * Operations on views
+    , subView
 
       -- * Querying a view
 
@@ -18,7 +23,9 @@ module Text.Digestive.View
 
 import Data.List (findIndex, isPrefixOf)
 import Data.Maybe (fromMaybe)
+
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Text.Digestive.Field
 import Text.Digestive.Form
@@ -43,6 +50,20 @@ postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v) a)
 postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
     Error errs -> Left $ View form inp errs Post
     Success x  -> Right x
+
+subView :: Text -> View m v -> View m v
+subView ref (View form input errs method) = case lookupForm (toPath ref) form of
+    (SomeForm f : _) -> View f input' errs' method
+    _                -> error $
+        "Text.Digestive.View.subView: " ++ T.unpack ref ++ " not found"
+  where
+    path   = toPath ref
+    input' = [(p', i) | (p, i) <- input, p' <- dropPath p]
+    errs'  = [(p', e) | (p, e) <- errs, p' <- dropPath p]
+
+    dropPath xs
+        | path `isPrefixOf` xs = [drop (length path) xs]
+        | otherwise            = []
 
 fieldTextInput :: Text -> View m v -> Text
 fieldTextInput ref (View form input _ method) = fromMaybe "" $
