@@ -14,7 +14,7 @@ module Text.Digestive.Blaze.Html5
     , childErrorList
     ) where
 
-import Data.Monoid (mappend)
+import Data.Monoid (mappend, mempty)
 import Control.Monad (forM_, when)
 
 import Data.Text (Text)
@@ -111,7 +111,11 @@ form :: Text -> Html -> Html
 form action = H.form ! A.method "POST" ! A.action (H.toValue action)
 
 errorList :: Text -> View m Html -> Html
-errorList ref view = H.ul $ mapM_ H.li $ errors ref view
+errorList ref view = case errors ref view of
+    []   -> mempty
+    errs -> H.ul $ mapM_ H.li errs
 
 childErrorList :: Text -> View m Html -> Html
-childErrorList ref view = H.ul $ mapM_ H.li $ childErrors ref view
+childErrorList ref view = case childErrors ref view of
+    []   -> mempty
+    errs -> H.ul $ mapM_ H.li errs
