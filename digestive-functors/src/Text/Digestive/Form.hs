@@ -71,13 +71,13 @@ children (Pure _ _)  = []
 children (App _ x y) = [SomeForm x, SomeForm y]
 children (Map _ x)   = children x
 
-ref :: Text -> Form m v a -> Form m v a
-ref r (Pure _ x)  = Pure (Just r) x
-ref r (App _ x y) = App (Just r) x y
-ref r (Map f x)   = Map f (ref r x)
+setRef :: Ref -> Form m v a -> Form m v a
+setRef r (Pure _ x)  = Pure r x
+setRef r (App _ x y) = App r x y
+setRef r (Map f x)   = Map f (setRef r x)
 
 (.:) :: Text -> Form m v a -> Form m v a
-(.:) = ref
+(.:) = setRef . Just
 infixr 5 .:
 
 getRef :: Form m v a -> Ref
@@ -99,7 +99,9 @@ lookupForm path = go path . SomeForm
     go []       form            = [form]
     go (r : rs) (SomeForm form) = case getRef form of
         Just r'
-            | r == r' && null rs -> [SomeForm form]
+            -- Note how we use `setRef Nothing` to strip the ref away. This is
+            -- really important.
+            | r == r' && null rs -> [SomeForm $ setRef Nothing form]
             | r == r'            -> children form >>= go rs
             | otherwise          -> []
         Nothing                  -> children form >>= go (r : rs)

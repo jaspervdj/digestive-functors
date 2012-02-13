@@ -12,9 +12,9 @@ module Text.Digestive.View
       -- * Querying a view
 
       -- ** Input
-    , fieldTextInput
-    , fieldChoiceInput
-    , fieldBoolInput
+    , fieldInputText
+    , fieldInputChoice
+    , fieldInputBool
 
       -- ** Errors
     , errors
@@ -65,8 +65,8 @@ subView ref (View form input errs method) = case lookupForm (toPath ref) form of
         | path `isPrefixOf` xs = [drop (length path) xs]
         | otherwise            = []
 
-fieldTextInput :: Text -> View m v -> Text
-fieldTextInput ref (View form input _ method) = fromMaybe "" $
+fieldInputText :: Text -> View m v -> Text
+fieldInputText ref (View form input _ method) = fromMaybe "" $
     queryField path form $ \field -> case field of
         Text t -> Just $ evalField method givenInput (Text t)
         _      -> Nothing
@@ -74,8 +74,8 @@ fieldTextInput ref (View form input _ method) = fromMaybe "" $
     path       = toPath ref
     givenInput = lookup path input
 
-fieldChoiceInput :: Text -> View m v -> ([v], Int)
-fieldChoiceInput ref (View form input _ method) = fromMaybe ([], 0) $
+fieldInputChoice :: Text -> View m v -> ([v], Int)
+fieldInputChoice ref (View form input _ method) = fromMaybe ([], 0) $
     queryField path form $ \field -> case field of
         Choice xs i -> do
             let x = evalField method givenInput (Choice xs i)
@@ -86,8 +86,8 @@ fieldChoiceInput ref (View form input _ method) = fromMaybe ([], 0) $
     path       = toPath ref
     givenInput = lookup path input
 
-fieldBoolInput :: Text -> View m v -> Bool
-fieldBoolInput ref (View form input _ method) = fromMaybe False $
+fieldInputBool :: Text -> View m v -> Bool
+fieldInputBool ref (View form input _ method) = fromMaybe False $
     queryField path form $ \field -> case field of
         Bool x -> Just $ evalField method givenInput (Bool x)
         _      -> Nothing

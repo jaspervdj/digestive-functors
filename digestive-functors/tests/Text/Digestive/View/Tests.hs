@@ -37,6 +37,14 @@ tests = testGroup "Text.Digestive.View.Tests"
         ["Cannot parse level"] $
         errors "level" $ subView "pokemon" $ fromLeft $ runIdentity $
             postForm catchForm $ testEnv [("pokemon.level", "hah.")]
+
+    , testCase "subView input" $ (@=?)
+        2 $
+        snd $ fieldInputChoice "type" $ subView "pokemon" $ fromLeft $
+            runIdentity $ postForm catchForm $ testEnv
+                [ ("pokemon.level", "hah.")
+                , ("pokemon.type",  "type.2")
+                ]
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m

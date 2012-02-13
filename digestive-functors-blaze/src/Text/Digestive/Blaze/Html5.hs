@@ -36,7 +36,7 @@ inputText ref view = H.input
     ! A.type_ "text"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    ! A.value (H.toValue $ fieldTextInput ref view)
+    ! A.value (H.toValue $ fieldInputText ref view)
 
 inputTextArea :: Maybe Int    -- ^ Rows
               -> Maybe Int    -- ^ Columns
@@ -44,9 +44,9 @@ inputTextArea :: Maybe Int    -- ^ Rows
               -> View m Html  -- ^ View
               -> Html         -- ^ Resulting HTML
 inputTextArea r c ref view = rows r $ cols c $ H.textarea
-    ! A.id    (H.toValue ref)
-    ! A.name  (H.toValue ref)
-    $ H.toHtml (fieldTextInput ref view)
+    ! A.id     (H.toValue ref)
+    ! A.name   (H.toValue ref)
+    $ H.toHtml (fieldInputText ref view)
   where
     rows (Just x) = (! A.rows (H.toValue x))
     rows _        = id
@@ -58,14 +58,14 @@ inputPassword ref view = H.input
     ! A.type_ "password"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    ! A.value (H.toValue $ fieldTextInput ref view)
+    ! A.value (H.toValue $ fieldInputText ref view)
 
 inputHidden :: Text -> View m v -> Html
 inputHidden ref view = H.input
     ! A.type_ "hidden"
     ! A.id    (H.toValue ref)
     ! A.name  (H.toValue ref)
-    ! A.value (H.toValue $ fieldTextInput ref view)
+    ! A.value (H.toValue $ fieldInputText ref view)
 
 inputSelect :: Text -> View m Html -> Html
 inputSelect ref view = H.select
@@ -76,8 +76,8 @@ inputSelect ref view = H.select
         !? (i == idx, A.selected "selected")
         $ c
   where
-    value i         = H.toValue ref `mappend` "." `mappend` H.toValue i
-    (choices, idx)  = fieldChoiceInput ref view
+    value i        = H.toValue ref `mappend` "." `mappend` H.toValue i
+    (choices, idx) = fieldInputChoice ref view
 
 inputRadio :: Bool         -- ^ Add @br@ tags?
            -> Text         -- ^ Form path
@@ -91,7 +91,7 @@ inputRadio brs ref view = forM_ (zip choices [0 ..]) $ \(c, i) -> do
     when brs H.br
   where
     value i        = H.toValue ref `mappend` "." `mappend` H.toValue i
-    (choices, idx) = fieldChoiceInput ref view
+    (choices, idx) = fieldInputChoice ref view
 
 inputCheckbox :: Text -> View m Html -> Html
 inputCheckbox ref view = H.input
@@ -100,7 +100,7 @@ inputCheckbox ref view = H.input
     !  A.name  (H.toValue ref)
     !? (selected, A.checked "checked")
   where
-    selected = fieldBoolInput ref view
+    selected = fieldInputBool ref view
 
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
