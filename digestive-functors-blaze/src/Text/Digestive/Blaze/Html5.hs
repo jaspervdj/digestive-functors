@@ -11,6 +11,7 @@ module Text.Digestive.Blaze.Html5
     , label
     , form
     , errorList
+    , childErrorList
     ) where
 
 import Data.Monoid (mappend)
@@ -111,3 +112,6 @@ form action = H.form ! A.method "POST" ! A.action (H.toValue action)
 
 errorList :: Text -> View m Html -> Html
 errorList ref view = H.ul $ mapM_ H.li $ errors ref view
+
+childErrorList :: Text -> View m Html -> Html
+childErrorList ref view = H.ul $ mapM_ H.li $ childErrors ref view
