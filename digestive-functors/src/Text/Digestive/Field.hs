@@ -16,7 +16,7 @@ import Text.Digestive.Util
 data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text
-    Choice    :: [(a, v)] -> Int -> Field v a
+    Choice    :: Eq a => [(a, v)] -> Int -> Field v a
     Bool      :: Bool -> Field v Bool
 
 instance Show (Field v a) where
