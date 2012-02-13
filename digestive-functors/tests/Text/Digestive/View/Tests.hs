@@ -32,11 +32,20 @@ tests = testGroup "Text.Digestive.View.Tests"
             , ("pokemon.type",  "type.1")
             , ("ball",          "ball.2")
             ]
+
+    , testCase "subView errors" $ (@=?)
+        ["Cannot parse level"] $
+        errors "level" $ subView "pokemon" $ fromLeft $ runIdentity $
+            postForm catchForm $ testEnv [("pokemon.level", "hah.")]
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m
 testEnv input key = return $ lookup (fromPath key) input
 
+fromLeft :: Either a b -> a
+fromLeft (Left x)  = x
+fromLeft (Right _) = error "fromLeft (Right _)"
+
 fromRight :: Either a b -> b
-fromRight (Right x) = x
 fromRight (Left _)  = error "fromRight (Left _)"
+fromRight (Right x) = x
