@@ -4,12 +4,19 @@ module Text.Digestive.View
     , getForm
     , postForm
 
-      -- * Querying fields of a view
+      -- * Querying a view
+
+      -- ** Input
     , fieldTextInput
     , fieldChoiceInput
+    , fieldBoolInput
+
+      -- ** Errors
+    , errors
+    , childErrors
     ) where
 
-import Data.List (findIndex)
+import Data.List (findIndex, isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
@@ -25,9 +32,9 @@ data View m v = forall a. View
     }
 
 instance Show v => Show (View m v) where
-    show (View form input errors method) =
+    show (View form input errs method) =
         "View " ++ show form ++ " " ++ show input ++
-        " " ++ show errors ++ " " ++ show method
+        " " ++ show errs ++ " " ++ show method
 
 getForm :: Form m v a -> View m v
 getForm form = View form [] [] Get
@@ -57,3 +64,19 @@ fieldChoiceInput ref (View form input _ method) = fromMaybe ([], 0) $
   where
     path       = toPath ref
     givenInput = lookup path input
+
+fieldBoolInput :: Text -> View m v -> Bool
+fieldBoolInput ref (View form input _ method) = fromMaybe False $
+    queryField path form $ \field -> case field of
+        Bool x -> Just $ evalField method givenInput (Bool x)
+        _      -> Nothing
+  where
+    path       = toPath ref
+    givenInput = lookup path input
+
+errors :: Text -> View m v -> [v]
+errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
+
+childErrors :: Text -> View m v -> [v]
+childErrors ref =
+    map snd . filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
