@@ -48,7 +48,7 @@ tests = testGroup "Text.Digestive.View.Tests"
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m
-testEnv input key = return $ lookup (fromPath key) input
+testEnv input key = return $ map snd $ filter ((== fromPath key) . fst) input
 
 fromLeft :: Either a b -> a
 fromLeft (Left x)  = x

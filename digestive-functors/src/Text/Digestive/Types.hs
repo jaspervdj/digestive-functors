@@ -46,4 +46,6 @@ fromPath = T.intercalate "."
 data Method = Get | Post
     deriving (Eq, Ord, Show)
 
-type Env m = Path -> m (Maybe Text)
+-- | An environment (e.g. a server) from which we can read input parameters. A
+-- single key might be associated with multiple text values (multi-select).
+type Env m = Path -> m [Text]

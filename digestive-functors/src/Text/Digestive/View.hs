@@ -65,6 +65,9 @@ subView ref (View form input errs method) = case lookupForm (toPath ref) form of
         | path `isPrefixOf` xs = [drop (length path) xs]
         | otherwise            = []
 
+lookupInput :: Path -> [(Path, Text)] -> [Text]
+lookupInput path = map snd . filter ((== path) . fst)
+
 fieldInputText :: Text -> View m v -> Text
 fieldInputText ref (View form input _ method) = fromMaybe "" $
     queryField path form $ \field -> case field of
@@ -72,7 +75,7 @@ fieldInputText ref (View form input _ method) = fromMaybe "" $
         _      -> Nothing
   where
     path       = toPath ref
-    givenInput = lookup path input
+    givenInput = lookupInput path input
 
 fieldInputChoice :: Text -> View m v -> ([v], Int)
 fieldInputChoice ref (View form input _ method) = fromMaybe ([], 0) $
@@ -84,7 +87,7 @@ fieldInputChoice ref (View form input _ method) = fromMaybe ([], 0) $
         _           -> Nothing
   where
     path       = toPath ref
-    givenInput = lookup path input
+    givenInput = lookupInput path input
 
 fieldInputBool :: Text -> View m v -> Bool
 fieldInputBool ref (View form input _ method) = fromMaybe False $
@@ -93,7 +96,7 @@ fieldInputBool ref (View form input _ method) = fromMaybe False $
         _      -> Nothing
   where
     path       = toPath ref
-    givenInput = lookup path input
+    givenInput = lookupInput path input
 
 errors :: Text -> View m v -> [v]
 errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
