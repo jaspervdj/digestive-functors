@@ -13,6 +13,7 @@ import qualified Data.Text as T
 import Text.Digestive.Types
 import Text.Digestive.Util
 
+-- | A single input field. This usually maps to a single HTML @<input>@ element.
 data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text

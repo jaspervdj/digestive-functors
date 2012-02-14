@@ -28,7 +28,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import Text.Digestive.Field
-import Text.Digestive.Form
+import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 
 data View m v = forall a. View
