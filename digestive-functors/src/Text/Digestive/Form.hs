@@ -17,6 +17,7 @@ module Text.Digestive.Form
 
       -- * Validation
     , check
+    , checkM
     ) where
 
 import Control.Applicative (Applicative (..))
@@ -181,7 +182,11 @@ bool :: Bool -> Form m v Bool
 bool = Pure Nothing . Bool
 
 check :: Monad m => v -> (a -> Bool) -> Form m v a -> Form m v a
-check err predicate form = transform f form
+check err = checkM err . (return .)
+
+checkM :: Monad m => v -> (a -> m Bool) -> Form m v a -> Form m v a
+checkM err predicate form = transform f form
   where
-    f x | predicate x = return (return x)
-        | otherwise   = return (Error err)
+    f x = do
+        r <- predicate x
+        return $ if r then return x else Error err

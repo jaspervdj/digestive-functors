@@ -3,8 +3,6 @@ module Text.Digestive.View.Tests
     ( tests
     ) where
 
-import Control.Monad.Identity (runIdentity)
-
 import Data.Text (Text)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
@@ -18,15 +16,23 @@ tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
         (Pokemon "charmander" 5 Fire False) $
-        fromRight $ runIdentity $ postForm pokemonForm $ testEnv
+        fromRight $ runTrainerM $ postForm pokemonForm $ testEnv
             [ ("name",  "charmander")
             , ("level", "5")
             , ("type",  "type.1")
             ]
 
+    , testCase "Failing checkM" $ (@=?)
+        ["This pokemon will not obey you!"] $
+        childErrors "" $ fromLeft $ runTrainerM $ postForm pokemonForm $ testEnv
+            [ ("name",  "charmander")
+            , ("level", "9000")
+            , ("type",  "type.1")
+            ]
+
     , testCase "Nested postForm" $ (@=?)
         (Catch (Pokemon "charmander" 5 Fire False) Ultra) $
-        fromRight $ runIdentity $ postForm catchForm $ testEnv
+        fromRight $ runTrainerM $ postForm catchForm $ testEnv
             [ ("pokemon.name",  "charmander")
             , ("pokemon.level", "5")
             , ("pokemon.type",  "type.1")
@@ -35,13 +41,13 @@ tests = testGroup "Text.Digestive.View.Tests"
 
     , testCase "subView errors" $ (@=?)
         ["Cannot parse level"] $
-        errors "level" $ subView "pokemon" $ fromLeft $ runIdentity $
+        errors "level" $ subView "pokemon" $ fromLeft $ runTrainerM $
             postForm catchForm $ testEnv [("pokemon.level", "hah.")]
 
     , testCase "subView input" $ (@=?)
         2 $
         snd $ fieldInputChoice "type" $ subView "pokemon" $ fromLeft $
-            runIdentity $ postForm catchForm $ testEnv
+            runTrainerM $ postForm catchForm $ testEnv
                 [ ("pokemon.level", "hah.")
                 , ("pokemon.type",  "type.2")
                 ]

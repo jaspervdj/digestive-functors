@@ -38,7 +38,7 @@ instance Monad (Result v) where
 type Path = [Text]
 
 toPath :: Text -> Path
-toPath = T.split (== '.')
+toPath = filter (not . T.null) . T.split (== '.')
 
 fromPath :: Path -> Text
 fromPath = T.intercalate "."

@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Tests.Fixtures
-    ( Type (..)
+    ( TrainerM
+    , runTrainerM
+    , Type (..)
     , Pokemon (..)
     , pokemonForm
     , Ball (..)
@@ -10,10 +12,18 @@ module Text.Digestive.Tests.Fixtures
     ) where
 
 import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Reader (Reader, ask, runReader)
 
 import Data.Text (Text)
 
 import Text.Digestive.Form
+
+-- Maximum level
+type TrainerM = Reader Int
+
+-- Default max level: 20
+runTrainerM :: TrainerM a -> a
+runTrainerM = flip runReader 20
 
 data Type = Water | Fire | Leaf
     deriving (Eq, Show)
@@ -28,13 +38,17 @@ data Pokemon = Pokemon
     , pokemonRare  :: Bool
     } deriving (Eq, Show)
 
-levelForm :: Monad m => Form m Text Int
+levelForm :: Form TrainerM Text Int
 levelForm =
-    check "Level cannot be higher than 99" (<= 99) $
-    check "Level should be at least 1"     (> 1)   $
+    checkM "This pokemon will not obey you!" checkMaxLevel $
+    check  "Level should be at least 1"      (> 1)         $
     stringRead "Cannot parse level" (Just 5)
+  where
+    checkMaxLevel l = do
+        maxLevel <- ask
+        return $ l <= maxLevel
 
-pokemonForm :: Monad m => Form m Text Pokemon
+pokemonForm :: Form TrainerM Text Pokemon
 pokemonForm = Pokemon
     <$> "name"  .: text Nothing
     <*> "level" .: levelForm
@@ -54,7 +68,7 @@ data Catch = Catch
     , catchBall    :: Ball
     } deriving (Eq, Show)
 
-catchForm :: Monad m => Form m Text Catch
+catchForm :: Form TrainerM Text Catch
 catchForm = check "You need a better ball" canCatch $ Catch
     <$> "pokemon" .: pokemonForm
     <*> "ball"    .: ballForm
