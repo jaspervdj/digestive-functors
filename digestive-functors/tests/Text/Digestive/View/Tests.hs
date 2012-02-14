@@ -30,6 +30,11 @@ tests = testGroup "Text.Digestive.View.Tests"
             , ("type",  "type.1")
             ]
 
+    , testCase "Failing validate" $ (@=?)
+        ["dog is not a pokemon!"] $
+        childErrors "" $ fromLeft $ runTrainerM $ postForm pokemonForm $ testEnv
+            [("name", "dog")]
+
     , testCase "Nested postForm" $ (@=?)
         (Catch (Pokemon "charmander" 5 Fire False) Ultra) $
         fromRight $ runTrainerM $ postForm catchForm $ testEnv

@@ -15,8 +15,10 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader (Reader, ask, runReader)
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Text.Digestive.Form
+import Text.Digestive.Types
 
 -- Maximum level
 type TrainerM = Reader Int
@@ -50,10 +52,16 @@ levelForm =
 
 pokemonForm :: Form TrainerM Text Pokemon
 pokemonForm = Pokemon
-    <$> "name"  .: text Nothing
+    <$> "name"  .: validate isPokemon (text Nothing)
     <*> "level" .: levelForm
     <*> "type"  .: typeForm
     <*> "rare"  .: bool False
+  where
+    definitelyNoPokemon = ["dog", "cat"]
+    isPokemon name
+        | name `notElem` definitelyNoPokemon = Success name
+        | otherwise                          =
+            Error $ name `T.append` " is not a pokemon!"
 
 data Ball = Poke | Great | Ultra | Master
     deriving (Eq, Show)
