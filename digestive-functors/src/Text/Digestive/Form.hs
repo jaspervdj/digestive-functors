@@ -21,6 +21,7 @@ module Text.Digestive.Form
     ) where
 
 import Control.Applicative (Applicative (..))
+import Control.Monad ((>=>))
 import Data.List (findIndex)
 import Data.Maybe (fromMaybe, listToMaybe, maybeToList)
 import Data.Monoid (Monoid)
@@ -87,11 +88,7 @@ getRef (App r _ _) = r
 getRef (Map _ x)   = getRef x
 
 transform :: Monad m => (a -> m (Result v b)) -> Form m v a -> Form m v b
-transform f (Map g x) = flip Map x $ \y -> do
-    y' <- g y
-    case y' of
-        Error errs  -> return $ Error errs
-        Success y'' -> f y''
+transform f (Map g x) = flip Map x $ \y -> bindResult (g y) f
 transform f x         = Map f x
 
 lookupForm :: Path -> Form m v a -> [SomeForm m v]
@@ -153,11 +150,8 @@ eval' context method env form = case form of
 
     Map f x -> do
         (x', inp) <- eval' context method env x
-        case x' of
-            Success x'' -> do
-                x''' <- f x''  -- This is a bit ridiculous
-                return (ann path x''', inp)
-            Error errs  -> return (Error errs, inp)
+        x''       <- bindResult (return x') (f >=> return . ann path)
+        return (x'', inp)
 
   where
     path = context ++ maybeToList (getRef form)
