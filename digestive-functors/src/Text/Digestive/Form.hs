@@ -10,6 +10,7 @@ module Text.Digestive.Form
     , stringRead
     , choice
     , bool
+    , file
 
       -- * Validation
     , check
@@ -46,6 +47,9 @@ choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
 
 bool :: Bool -> Form m v Bool
 bool = Pure Nothing . Bool
+
+file :: Form m v (Maybe FilePath)
+file = Pure Nothing File
 
 check :: Monad m => v -> (a -> Bool) -> Form m v a -> Form m v a
 check err = checkM err . (return .)

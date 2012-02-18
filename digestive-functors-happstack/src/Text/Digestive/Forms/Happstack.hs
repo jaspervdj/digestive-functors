@@ -19,7 +19,7 @@ happstackEnv path = do
     return $ map toFormInput inputs
   where
     toFormInput input = case Happstack.inputValue input of
-        Left filePath -> FileUpload filePath
+        Left filePath -> FileInput filePath
         Right bs      -> TextInput $ TL.toStrict $ TL.decodeUtf8 bs
 
 postFormHappstack :: (Happstack.HasRqData m, Monad m)

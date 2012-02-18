@@ -49,7 +49,7 @@ data Method = Get | Post
 
 data FormInput
     = TextInput Text
-    | FileUpload FilePath
+    | FileInput FilePath
     deriving (Show)
 
 -- | An environment (e.g. a server) from which we can read input parameters. A
