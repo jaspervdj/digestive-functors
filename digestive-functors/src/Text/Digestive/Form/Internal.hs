@@ -5,6 +5,7 @@ module Text.Digestive.Form.Internal
     ( Form (..)
     , SomeForm (..)
     , transform
+    , children
     , (.:)
     , lookupForm
     , toField

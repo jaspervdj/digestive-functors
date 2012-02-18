@@ -7,6 +7,7 @@ module Text.Digestive.Blaze.Html5
     , inputSelect
     , inputRadio
     , inputCheckbox
+    , inputFile
     , inputSubmit
     , label
     , form
@@ -14,6 +15,7 @@ module Text.Digestive.Blaze.Html5
     , childErrorList
     ) where
 
+import Data.Maybe (fromMaybe)
 import Data.Monoid (mappend, mempty)
 import Control.Monad (forM_, when)
 
@@ -102,13 +104,25 @@ inputCheckbox ref view = H.input
   where
     selected = fieldInputBool ref view
 
+inputFile :: Text -> View m Html -> Html
+inputFile ref view = H.input
+    ! A.type_ "file"
+    ! A.id    (H.toValue ref)
+    ! A.name  (H.toValue ref)
+    ! A.value (H.toValue value)
+  where
+    value = fromMaybe "" $ fieldInputFile ref view
+
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
     ! A.type_ "submit"
     ! A.value (H.toValue value)
 
-form :: Text -> Html -> Html
-form action = H.form ! A.method "POST" ! A.action (H.toValue action)
+form :: View m Html -> Text -> Html -> Html
+form view action = H.form
+    ! A.method  "POST"
+    ! A.enctype (H.toValue $ show $ viewEncType view)
+    ! A.action  (H.toValue action)
 
 errorList :: Text -> View m Html -> Html
 errorList ref view = case errors ref view of

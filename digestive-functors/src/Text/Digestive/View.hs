@@ -10,11 +10,14 @@ module Text.Digestive.View
     , subView
 
       -- * Querying a view
+      -- ** Form encoding
+    , viewEncType
 
       -- ** Input
     , fieldInputText
     , fieldInputChoice
     , fieldInputBool
+    , fieldInputFile
 
       -- ** Errors
     , errors
@@ -28,6 +31,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import Text.Digestive.Field
+import Text.Digestive.Form.Encoding
 import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 
@@ -65,6 +69,9 @@ subView ref (View form input errs method) = case lookupForm (toPath ref) form of
         | path `isPrefixOf` xs = [drop (length path) xs]
         | otherwise            = []
 
+viewEncType :: View m v -> FormEncType
+viewEncType (View form _ _ _) = formEncType form
+
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
@@ -94,6 +101,15 @@ fieldInputBool ref (View form input _ method) = fromMaybe False $
     queryField path form $ \field -> case field of
         Bool x -> Just $ evalField method givenInput (Bool x)
         _      -> Nothing
+  where
+    path       = toPath ref
+    givenInput = lookupInput path input
+
+fieldInputFile :: Text -> View m v -> Maybe FilePath
+fieldInputFile ref (View form input _ method) =
+    queryField path form $ \field -> case field of
+        File -> evalField method givenInput File
+        _    -> Nothing
   where
     path       = toPath ref
     givenInput = lookupInput path input
