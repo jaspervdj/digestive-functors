@@ -1,17 +1,42 @@
 Name:     digestive-functors
-Version:  0.2.0.1
-Synopsis: A general way to consume input using applicative functors
+Version:  0.3.0.0
+Synopsis: A practical formlet library
 
-Description:         Digestive functors is a library to generate and process
-    HTML forms.  You can find an introduction here:
+Description:
+    Digestive functors is a library inspired by formlets:
 
-    <http://github.com/jaspervdj/digestive-functors/blob/master/digestive-functors/README.lhs>
+    .
+
+    <http://groups.inf.ed.ac.uk/links/formlets/>
+
+    .
+
+    It is intended to be an improvement of the Haskell formlets library, with as
+    main advantages:
+
+    .
+
+    * better error handling, so a web page can display input errors right next
+      to the corresponding fields;
+
+    .
+
+    * the ability to easily add @\<label\>@ elements;
+
+    .
+
+    * separation of the validation model and the HTML output.
+
+    .
+
+    Tutorial:
+    <http://github.com/jaspervdj/digestive-functors/blob/master/examples/tutorial.lhs>
 
 Homepage:      http://github.com/jaspervdj/digestive-functors
 License:       BSD3
 License-file:  LICENSE
-Author:        Jasper Van der Jeugt
-Maintainer:    jaspervdj@gmail.com
+Author:        Jasper Van der Jeugt <m@jaspervdj.be>
+Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
 Cabal-version: >= 1.6
@@ -21,15 +46,16 @@ Library
   Ghc-options:    -Wall
 
   Exposed-modules:     
-    Text.Digestive.Validate,
-    Text.Digestive.Common,
+    Text.Digestive,
+    Text.Digestive.Form,
+    Text.Digestive.Form.Encoding,
     Text.Digestive.Types,
-    Text.Digestive.Transform,
-    Text.Digestive.Forms,
-    Text.Digestive.Forms.Html,
-    Text.Digestive.Result,
-    Text.Digestive.Cli,
-    Text.Digestive
+    Text.Digestive.View
+
+  Other-modules:
+    Text.Digestive.Field,
+    Text.Digestive.Form.Internal,
+    Text.Digestive.Util
 
   Build-depends:
     base       >= 4       && < 5,
@@ -37,3 +63,8 @@ Library
     containers >= 0.3,
     mtl        >= 1.1.0.0 && < 3,
     text       >= 0.10
+
+
+Source-repository head
+  Type:     git
+  Location: https://github.com/jaspervdj/digestive-functors

@@ -15,6 +15,8 @@ import Data.Monoid (Monoid, mappend)
 import Data.Text (Text)
 import qualified Data.Text as T
 
+-- | A mostly internally used type for representing Success/Error, with a
+-- special applicative instance
 data Result v a
     = Success a
     | Error v
@@ -36,17 +38,22 @@ instance Monad (Result v) where
     (Error x)   >>= _ = Error x
     (Success x) >>= f = f x
 
+-- | Describes a path to a subform
 type Path = [Text]
 
+-- | Create a 'Path' from some text
 toPath :: Text -> Path
 toPath = filter (not . T.null) . T.split (== '.')
 
+-- | Serialize a 'Path' to 'Text'
 fromPath :: Path -> Text
 fromPath = T.intercalate "."
 
+-- | The HTTP methods
 data Method = Get | Post
     deriving (Eq, Ord, Show)
 
+-- | The different input types sent by the browser
 data FormInput
     = TextInput Text
     | FileInput FilePath

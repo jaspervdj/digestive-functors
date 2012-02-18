@@ -87,6 +87,7 @@ setRef r (Pure _ x)  = Pure r x
 setRef r (App _ x y) = App r x y
 setRef r (Map f x)   = Map f (setRef r x)
 
+-- | Operator to set a name for a subform.
 (.:) :: Text -> Form m v a -> Form m v a
 (.:) = setRef . Just
 infixr 5 .:

@@ -45,15 +45,26 @@ choice :: Eq a => [(a, v)] -> Maybe a -> Form m v a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
 
-bool :: Bool -> Form m v Bool
+bool :: Bool           -- ^ Default value
+     -> Form m v Bool  -- ^ Resulting form
 bool = Pure Nothing . Bool
 
 file :: Form m v (Maybe FilePath)
 file = Pure Nothing File
 
-check :: Monad m => v -> (a -> Bool) -> Form m v a -> Form m v a
+-- | Validate the results of a form with a simple predicate
+--
+-- Example:
+--
+-- > check "Can't be empty" (not . null) (string Nothing)
+check :: Monad m
+      => v            -- ^ Error message (if fail)
+      -> (a -> Bool)  -- ^ Validating predicate
+      -> Form m v a   -- ^ Form to validate
+      -> Form m v a   -- ^ Resulting form
 check err = checkM err . (return .)
 
+-- | Version of 'check' which allows monadic validations
 checkM :: Monad m => v -> (a -> m Bool) -> Form m v a -> Form m v a
 checkM err predicate form = validateM f form
   where
@@ -61,8 +72,21 @@ checkM err predicate form = validateM f form
         r <- predicate x
         return $ if r then return x else Error err
 
+-- | This is an extension of 'check' that can be used to apply transformations
+-- that optionally fail
+--
+-- Example: taking the first character of an input string
+--
+-- > head' :: String -> Result String Char
+-- > head' []      = Error "Is empty"
+-- > head' (x : _) = Success x
+-- >
+-- > char :: Monad m => Form m String Char
+-- > char = validate head' (string Nothing)
+--
 validate :: Monad m => (a -> Result v b) -> Form m v a -> Form m v b
 validate = validateM . (return .)
 
+-- | Version of 'validate' which allows monadic validations
 validateM :: Monad m => (a -> m (Result v b)) -> Form m v a -> Form m v b
 validateM = transform
