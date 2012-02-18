@@ -7,7 +7,6 @@ module Text.Digestive.View
     , postForm
 
       -- * Operations on views
-    , mapView
     , subView
 
       -- * Querying a view
@@ -44,6 +43,10 @@ data View m v = forall a. View
     , viewMethod :: Method
     }
 
+instance Monad m => Functor (View m) where
+    fmap f (View form input errs method) = View
+        (formMapView f form) input (map (second f) errs) method
+
 instance Show v => Show (View m v) where
     show (View form input errs method) =
         "View " ++ show form ++ " " ++ show input ++
@@ -56,11 +59,6 @@ postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v) a)
 postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
     Error errs -> Left $ View form inp errs Post
     Success x  -> Right x
-
--- | Change the type used for errors
-mapView :: Monad m => (v -> w) -> View m v -> View m w
-mapView f (View form input errs method) = View
-    (formMapView f form) input (map (second f) errs) method
 
 subView :: Text -> View m v -> View m v
 subView ref (View form input errs method) = case lookupForm (toPath ref) form of
