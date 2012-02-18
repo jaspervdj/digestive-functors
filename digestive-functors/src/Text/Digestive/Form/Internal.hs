@@ -22,7 +22,6 @@ import Data.Text (Text)
 
 import Text.Digestive.Types
 import Text.Digestive.Field
-import Text.Digestive.Util
 
 type Ref = Maybe Text
 
@@ -157,3 +156,12 @@ eval' context method env form = case form of
 
   where
     path = context ++ maybeToList (getRef form)
+
+-- | Utility: bind for 'Result' inside another monad
+bindResult :: Monad m
+           => m (Result v a) -> (a -> m (Result v b)) -> m (Result v b)
+bindResult mx f = do
+    x <- mx
+    case x of
+        Error errs  -> return $ Error errs
+        Success x'  -> f x'

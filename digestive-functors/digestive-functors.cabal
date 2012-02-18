@@ -50,12 +50,12 @@ Library
     Text.Digestive.Form,
     Text.Digestive.Form.Encoding,
     Text.Digestive.Types,
-    Text.Digestive.View
+    Text.Digestive.View,
+    Text.Digestive.Util
 
   Other-modules:
     Text.Digestive.Field,
-    Text.Digestive.Form.Internal,
-    Text.Digestive.Util
+    Text.Digestive.Form.Internal
 
   Build-depends:
     base       >= 4       && < 5,
