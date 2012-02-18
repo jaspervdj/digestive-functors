@@ -3,8 +3,10 @@ module Text.Digestive.Field
     ( Field (..)
     , SomeField (..)
     , evalField
+    , fieldMapView
     ) where
 
+import Control.Arrow (second)
 import Data.Maybe (fromMaybe, listToMaybe)
 
 import Data.Text (Text)
@@ -48,3 +50,10 @@ evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
 evalField Post (FileInput x : _) File          = Just x
 evalField _    _                 File          = Nothing
+
+fieldMapView :: (v -> w) -> Field v a -> Field w a
+fieldMapView _ (Singleton x)   = Singleton x
+fieldMapView _ (Text x)        = Text x
+fieldMapView f (Choice xs i)   = Choice (map (second f) xs) i
+fieldMapView _ (Bool x)        = Bool x
+fieldMapView _ File            = File

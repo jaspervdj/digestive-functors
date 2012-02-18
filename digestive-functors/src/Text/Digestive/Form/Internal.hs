@@ -11,6 +11,7 @@ module Text.Digestive.Form.Internal
     , toField
     , queryField
     , eval
+    , formMapView
     ) where
 
 import Control.Applicative (Applicative (..))
@@ -156,6 +157,11 @@ eval' context method env form = case form of
 
   where
     path = context ++ maybeToList (getRef form)
+
+formMapView :: Monad m => (v -> w) -> Form m v a -> Form m w a
+formMapView f (Pure r x)  = Pure r (fieldMapView f x)
+formMapView f (App r x y) = App r (formMapView f x) (formMapView f y)
+formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
 
 -- | Utility: bind for 'Result' inside another monad
 bindResult :: Monad m

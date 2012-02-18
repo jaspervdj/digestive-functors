@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Types
     ( Result (..)
+    , resultMapError
     , Path
     , toPath
     , fromPath
@@ -37,6 +38,11 @@ instance Monad (Result v) where
     return x          = Success x
     (Error x)   >>= _ = Error x
     (Success x) >>= f = f x
+
+-- | Map over the error type of a 'Result'
+resultMapError :: (v -> w) -> Result v a -> Result w a
+resultMapError f (Error x)   = Error (f x)
+resultMapError _ (Success x) = Success x
 
 -- | Describes a path to a subform
 type Path = [Text]
