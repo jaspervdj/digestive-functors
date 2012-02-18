@@ -33,7 +33,7 @@ import Text.Digestive.Types
 
 data View m v = forall a. View
     { viewForm   :: Form m v a
-    , viewInput  :: [(Path, Text)]
+    , viewInput  :: [(Path, FormInput)]
     , viewErrors :: [(Path, v)]
     , viewMethod :: Method
     }
@@ -65,7 +65,7 @@ subView ref (View form input errs method) = case lookupForm (toPath ref) form of
         | path `isPrefixOf` xs = [drop (length path) xs]
         | otherwise            = []
 
-lookupInput :: Path -> [(Path, Text)] -> [Text]
+lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
 fieldInputText :: Text -> View m v -> Text

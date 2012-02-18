@@ -127,11 +127,11 @@ ann _    (Success x) = Success x
 ann path (Error x)   = Error [(path, x)]
 
 eval :: Monad m => Method -> Env m -> Form m v a
-     -> m (Result [(Path, v)] a, [(Path, Text)])
+     -> m (Result [(Path, v)] a, [(Path, FormInput)])
 eval = eval' []
 
 eval' :: Monad m => Path -> Method -> Env m -> Form m v a
-      -> m (Result [(Path, v)] a, [(Path, Text)])
+      -> m (Result [(Path, v)] a, [(Path, FormInput)])
 
 eval' context method env form = case form of
 

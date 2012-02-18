@@ -5,6 +5,7 @@ module Text.Digestive.Types
     , toPath
     , fromPath
     , Method (..)
+    , FormInput (..)
     , Env
     ) where
 
@@ -46,6 +47,11 @@ fromPath = T.intercalate "."
 data Method = Get | Post
     deriving (Eq, Ord, Show)
 
+data FormInput
+    = TextInput Text
+    | FileUpload FilePath
+    deriving (Show)
+
 -- | An environment (e.g. a server) from which we can read input parameters. A
 -- single key might be associated with multiple text values (multi-select).
-type Env m = Path -> m [Text]
+type Env m = Path -> m [FormInput]

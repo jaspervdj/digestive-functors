@@ -19,10 +19,10 @@ tests = testGroup "Text.Digestive.Field.Tests"
         False @=? evalField Post [] (Bool True)
 
     , testCase "evalField bool post strange input" $
-        False @=? evalField Post ["herp"] (Bool True)
+        False @=? evalField Post [TextInput "herp"] (Bool True)
 
     , testCase "evalField bool post correct input" $
-        True @=? evalField Post ["on"] (Bool True)
+        True @=? evalField Post [TextInput "on"] (Bool True)
 
     , testCase "evalField bool get" $
         True @=? evalField Get [] (Bool True)
