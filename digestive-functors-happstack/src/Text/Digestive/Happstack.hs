@@ -1,6 +1,5 @@
 -- | Module providing a happstack backend for the digestive-functors library
---
-module Text.Digestive.Forms.Happstack
+module Text.Digestive.Happstack
     ( eitherForm
     ) where
 
