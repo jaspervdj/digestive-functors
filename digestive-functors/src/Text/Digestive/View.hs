@@ -58,10 +58,10 @@ instance Show v => Show (View m v) where
 getForm :: Form m v a -> View m v
 getForm form = View [] form [] [] Get
 
-postForm :: Monad m => Form m v a -> Env m -> m (Either (View m v) a)
+postForm :: Monad m => Form m v a -> Env m -> m (View m v, Maybe a)
 postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
-    Error errs -> Left $ View [] form inp errs Post
-    Success x  -> Right x
+    Error errs -> (View [] form inp errs Post, Nothing)
+    Success x  -> (View [] form inp [] Post, Just x)
 
 subView :: Text -> View m v -> View m v
 subView ref (View ctx form input errs method) =

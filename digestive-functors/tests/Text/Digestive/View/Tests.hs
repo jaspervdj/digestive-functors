@@ -15,8 +15,8 @@ import Text.Digestive.View
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
-        (Pokemon "charmander" 5 Fire False) $
-        fromRight $ runTrainerM $ postForm pokemonForm $ testEnv
+        (Just (Pokemon "charmander" 5 Fire False)) $
+        snd $ runTrainerM $ postForm pokemonForm $ testEnv
             [ ("name",  "charmander")
             , ("level", "5")
             , ("type",  "type.1")
@@ -24,7 +24,7 @@ tests = testGroup "Text.Digestive.View.Tests"
 
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
-        childErrors "" $ fromLeft $ runTrainerM $ postForm pokemonForm $ testEnv
+        childErrors "" $ fst $ runTrainerM $ postForm pokemonForm $ testEnv
             [ ("name",  "charmander")
             , ("level", "9000")
             , ("type",  "type.1")
@@ -32,12 +32,12 @@ tests = testGroup "Text.Digestive.View.Tests"
 
     , testCase "Failing validate" $ (@=?)
         ["dog is not a pokemon!"] $
-        childErrors "" $ fromLeft $ runTrainerM $ postForm pokemonForm $ testEnv
+        childErrors "" $ fst $ runTrainerM $ postForm pokemonForm $ testEnv
             [("name", "dog")]
 
     , testCase "Nested postForm" $ (@=?)
-        (Catch (Pokemon "charmander" 5 Fire False) Ultra) $
-        fromRight $ runTrainerM $ postForm catchForm $ testEnv
+        (Just (Catch (Pokemon "charmander" 5 Fire False) Ultra)) $
+        snd $ runTrainerM $ postForm catchForm $ testEnv
             [ ("pokemon.name",  "charmander")
             , ("pokemon.level", "5")
             , ("pokemon.type",  "type.1")
@@ -46,12 +46,12 @@ tests = testGroup "Text.Digestive.View.Tests"
 
     , testCase "subView errors" $ (@=?)
         ["Cannot parse level"] $
-        errors "level" $ subView "pokemon" $ fromLeft $ runTrainerM $
+        errors "level" $ subView "pokemon" $ fst $ runTrainerM $
             postForm catchForm $ testEnv [("pokemon.level", "hah.")]
 
     , testCase "subView input" $ (@=?)
         2 $
-        snd $ fieldInputChoice "type" $ subView "pokemon" $ fromLeft $
+        snd $ fieldInputChoice "type" $ subView "pokemon" $ fst $
             runTrainerM $ postForm catchForm $ testEnv
                 [ ("pokemon.level", "hah.")
                 , ("pokemon.type",  "type.2")
@@ -61,11 +61,3 @@ tests = testGroup "Text.Digestive.View.Tests"
 testEnv :: Monad m => [(Text, Text)] -> Env m
 testEnv input key = return $ map (TextInput . snd) $
     filter ((== fromPath key) . fst) input
-
-fromLeft :: Either a b -> a
-fromLeft (Left x)  = x
-fromLeft (Right _) = error "fromLeft (Right _)"
-
-fromRight :: Either a b -> b
-fromRight (Left _)  = error "fromRight (Left _)"
-fromRight (Right x) = x

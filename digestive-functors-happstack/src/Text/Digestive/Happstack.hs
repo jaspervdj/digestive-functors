@@ -1,6 +1,6 @@
 -- | Module providing a happstack backend for the digestive-functors library
 module Text.Digestive.Happstack
-    ( eitherForm
+    ( runForm
     ) where
 
 import qualified Data.Text as T
@@ -21,9 +21,13 @@ happstackEnv path = do
         Left filePath -> FileInput filePath
         Right bs      -> TextInput $ TL.toStrict $ TL.decodeUtf8 bs
 
-eitherForm :: (Happstack.HasRqData m, Monad m, Happstack.ServerMonad m)
-           => Form m v a -> m (Either (View m v) a)
-eitherForm form = Happstack.askRq >>= \rq ->
+-- | Runs a form with the HTTP input provided by Happstack.
+--
+-- Automatically picks between 'getForm' and 'postForm' based on the request
+-- method.
+runForm :: (Happstack.HasRqData m, Monad m, Happstack.ServerMonad m)
+        => Form m v a -> m (View m v, Maybe a)
+runForm form = Happstack.askRq >>= \rq ->
     case Happstack.rqMethod rq of
-        Happstack.GET -> return $ Left $ getForm form
+        Happstack.GET -> return $ (getForm form, Nothing)
         _             -> postForm form happstackEnv

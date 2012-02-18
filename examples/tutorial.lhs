@@ -190,15 +190,15 @@ an HTTP server for that, and we use [Happstack] for this tutorial. The
 > site :: Happstack.ServerPart Happstack.Response
 > site = do
 >     Happstack.decodeBody $ Happstack.defaultBodyPolicy "/tmp" 4096 4096 4096
->     r <- eitherForm releaseForm
+>     r <- runForm releaseForm
 >     case r of
->         Left view -> do
+>         (view, Nothing) -> do
 >             let view' = fmap H.toHtml view
 >             Happstack.ok $ Happstack.toResponse $ form view' "/" $ do
 >                 releaseView view'
 >                 H.br
 >                 inputSubmit "Submit"
->         Right release -> Happstack.ok $ Happstack.toResponse $ do
+>         (_, Just release) -> Happstack.ok $ Happstack.toResponse $ do
 >                 H.h1 "Release received"
 >                 H.p $ H.toHtml $ show release
 >
