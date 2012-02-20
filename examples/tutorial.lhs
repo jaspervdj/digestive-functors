@@ -128,7 +128,7 @@ Let's write a view for the `User` form. As you can see, we here refer to the
 different fields in the `userForm`. The `errorList` will generate a list of
 errors for the `"mail"` field.
 
-> userView :: View m Html -> Html
+> userView :: View Html -> Html
 > userView view = do
 >     label     "name" view "Name: "
 >     inputText "name" view
@@ -150,7 +150,7 @@ child of the specified form. In this case, this means a list of errors from
 `"package.name"` and `"package.version"`. Note how we use `foo.bar` to refer to
 nested forms.
 
-> releaseView :: View m Html -> Html
+> releaseView :: View Html -> Html
 > releaseView view = do
 >     H.h2 "Author"
 >     userView $ subView "author" view
@@ -162,21 +162,20 @@ nested forms.
 >     label     "package.version" view "Version: "
 >     inputText "package.version" view
 
-The attentive reader might have wondered what the type parameters for `View`
-are. The first is the `Monad` in which the corresponding form operates, and the
-second is the `String`-like type used for e.g. error messages.
+The attentive reader might have wondered what the type parameter for `View` is:
+it is the `String`-like type used for e.g. error messages.
 
 But wait! We have
 
     releaseForm :: Monad m => Form m Text Release
-    releaseView :: View m Html -> Html
+    releaseView :: View Html -> Html
 
-... doesn't this mean that we need a `View m Text` rather than a `View m Html`?
-The answer is yes -- but having `View m Html` allows us to write these views
-more easily with the `digestive-functors-blaze` library. Fortunately, we will be
-able to fix this using the `Functor` instance of `View`.
+... doesn't this mean that we need a `View Text` rather than a `View Html`?  The
+answer is yes -- but having `View Html` allows us to write these views more
+easily with the `digestive-functors-blaze` library. Fortunately, we will be able
+to fix this using the `Functor` instance of `View`.
 
-    fmap :: Monad m => (v -> w) -> View m v -> View m w
+    fmap :: Monad m => (v -> w) -> View v -> View w
 
 A backend
 ---------

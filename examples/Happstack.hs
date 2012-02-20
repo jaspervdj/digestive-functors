@@ -10,7 +10,7 @@ import qualified Text.Blaze.Html5 as H
 
 import Text.Digestive.Blaze.Html5
 import Text.Digestive.Form
-import Text.Digestive.Forms.Happstack
+import Text.Digestive.Happstack
 import Text.Digestive.View
 
 data Upload = Upload (Maybe FilePath) String
@@ -21,13 +21,13 @@ uploadForm = Upload
     <$> "file" .: file
     <*> "name" .: string Nothing
 
-uploadView :: View m Html -> Html
+uploadView :: View Html -> Html
 uploadView view = form view "/" $ do
-    label "file" "File: "
+    label     "file" view "File: "
     inputFile "file" view
     H.br
 
-    label "name" "Destination filename: "
+    label     "name" view "Destination filename: "
     inputText "name" view
     H.br
 
@@ -36,15 +36,15 @@ uploadView view = form view "/" $ do
 upload :: ServerPart Response
 upload = do
     decodeBody $ defaultBodyPolicy "/tmp/" 32000 1000 1000
-    r <- eitherForm uploadForm
+    r <- runForm uploadForm
     case r of
-        Left view -> ok $ toResponse $ uploadView view
-        Right (Upload (Just fileName) destination) -> do
+        (view, Nothing) -> ok $ toResponse $ uploadView view
+        (_, Just (Upload (Just fileName) destination)) -> do
             liftIO $ copyFile fileName destination
             ok $ toResponse $ do
                 H.h1 "File uploaded"
                 H.p $ "Location: " `mappend` toHtml destination
-        Right (Upload Nothing _) ->
+        (_, Just (Upload Nothing _)) ->
             ok $ toResponse $ H.h1 "No file given"
 
 main :: IO ()

@@ -38,7 +38,7 @@ import Text.Digestive.Form.Encoding
 import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 
-data View m v = forall a. View
+data View v = forall a m. Monad m => View
     { viewContext :: Path
     , viewForm    :: Form m v a
     , viewInput   :: [(Path, FormInput)]
@@ -46,40 +46,40 @@ data View m v = forall a. View
     , viewMethod  :: Method
     }
 
-instance Monad m => Functor (View m) where
+instance Functor View where
     fmap f (View ctx form input errs method) = View
         ctx (formMapView f form) input (map (second f) errs) method
 
-instance Show v => Show (View m v) where
+instance Show v => Show (View v) where
     show (View ctx form input errs method) =
         "View " ++ show ctx ++ " " ++ show form ++ " " ++ show input ++
         " " ++ show errs ++ " " ++ show method
 
-getForm :: Form m v a -> View m v
+getForm :: Monad m => Form m v a -> View v
 getForm form = View [] form [] [] Get
 
-postForm :: Monad m => Form m v a -> Env m -> m (View m v, Maybe a)
+postForm :: Monad m => Form m v a -> Env m -> m (View v, Maybe a)
 postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
     Error errs -> (View [] form inp errs Post, Nothing)
     Success x  -> (View [] form inp [] Post, Just x)
 
-subView :: Text -> View m v -> View m v
+subView :: Text -> View v -> View v
 subView ref (View ctx form input errs method) =
     View (ctx ++ path) form input errs method
   where
     path = toPath ref
 
 -- | Determine an absolute 'Path' for a field in the form
-absolutePath :: Text -> View m v -> Path
+absolutePath :: Text -> View v -> Path
 absolutePath ref (View ctx _ _ _ _) = ctx ++ toPath ref
 
-viewEncType :: View m v -> FormEncType
+viewEncType :: View v -> FormEncType
 viewEncType (View _ form _ _ _) = formEncType form
 
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
-fieldInputText :: Text -> View m v -> Text
+fieldInputText :: Text -> View v -> Text
 fieldInputText ref view@(View _ form input _ method) = fromMaybe "" $
     queryField path form $ \field -> case field of
         Text t -> Just $ evalField method givenInput (Text t)
@@ -88,7 +88,7 @@ fieldInputText ref view@(View _ form input _ method) = fromMaybe "" $
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
-fieldInputChoice :: Text -> View m v -> ([v], Int)
+fieldInputChoice :: Text -> View v -> ([v], Int)
 fieldInputChoice ref view@(View _ form input _ method) = fromMaybe ([], 0) $
     queryField path form $ \field -> case field of
         Choice xs i -> do
@@ -100,7 +100,7 @@ fieldInputChoice ref view@(View _ form input _ method) = fromMaybe ([], 0) $
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
-fieldInputBool :: Text -> View m v -> Bool
+fieldInputBool :: Text -> View v -> Bool
 fieldInputBool ref view@(View _ form input _ method) = fromMaybe False $
     queryField path form $ \field -> case field of
         Bool x -> Just $ evalField method givenInput (Bool x)
@@ -109,7 +109,7 @@ fieldInputBool ref view@(View _ form input _ method) = fromMaybe False $
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
-fieldInputFile :: Text -> View m v -> Maybe FilePath
+fieldInputFile :: Text -> View v -> Maybe FilePath
 fieldInputFile ref view@(View _ form input _ method) =
     queryField path form $ \field -> case field of
         File -> evalField method givenInput File
@@ -118,10 +118,10 @@ fieldInputFile ref view@(View _ form input _ method) =
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
-errors :: Text -> View m v -> [v]
+errors :: Text -> View v -> [v]
 errors ref view = map snd $ filter ((== absolutePath ref view) . fst) $
     viewErrors view
 
-childErrors :: Text -> View m v -> [v]
+childErrors :: Text -> View v -> [v]
 childErrors ref view = map snd $
     filter ((absolutePath ref view `isPrefixOf`) . fst) $ viewErrors view
