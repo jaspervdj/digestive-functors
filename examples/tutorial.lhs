@@ -26,12 +26,12 @@ Let's start by creating a very simple datatype to represent a user:
 And dive in immediately to create a `Form` for a user. The `Form m v a` type
 has three parameters:
 
-- `m`: the monad we are operating in, not specified here;
 - `v`: the type for messages and errors (usually a `String`-like type, `Text` in
   this case);
+- `m`: the monad we are operating in, not specified here;
 - `a`: the return type of the `Form`, in this case, this is obviously `User`.
 
-> userForm :: Monad m => Form m Text User
+> userForm :: Monad m => Form Text m User
 
 We create forms by using the `Applicative` interface. A few form types are
 provided in the `Text.Digestive.Form` module, such as `text`, `string`,
@@ -84,7 +84,7 @@ It works! This means we can now easily add a `Package` type and a `Form` for it:
 > data Package = Package Text Version
 >     deriving (Show)
 
-> packageForm :: Monad m => Form m Text Package
+> packageForm :: Monad m => Form Text m Package
 > packageForm = Package
 >     <$> "name"    .: text Nothing
 >     <*> "version" .: validate validateVersion (text (Just "0.0.0.0"))
@@ -99,7 +99,7 @@ written earlier on.
 > data Release = Release User Package
 >     deriving (Show)
 
-> releaseForm :: Monad m => Form m Text Release
+> releaseForm :: Monad m => Form Text m Release
 > releaseForm = Release
 >     <$> "author"  .: userForm
 >     <*> "package" .: packageForm
@@ -167,7 +167,7 @@ it is the `String`-like type used for e.g. error messages.
 
 But wait! We have
 
-    releaseForm :: Monad m => Form m Text Release
+    releaseForm :: Monad m => Form Text m Release
     releaseView :: View Html -> Html
 
 ... doesn't this mean that we need a `View Text` rather than a `View Html`?  The

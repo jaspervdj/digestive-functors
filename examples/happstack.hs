@@ -16,7 +16,7 @@ import Text.Digestive.View
 data Upload = Upload (Maybe FilePath) String
     deriving (Show)
 
-uploadForm :: Form (ServerPartT IO) Html Upload
+uploadForm :: Form Html (ServerPartT IO) Upload
 uploadForm = Upload
     <$> "file" .: file
     <*> "name" .: string Nothing

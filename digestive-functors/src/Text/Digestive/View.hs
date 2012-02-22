@@ -40,7 +40,7 @@ import Text.Digestive.Types
 
 data View v = forall a m. Monad m => View
     { viewContext :: Path
-    , viewForm    :: Form m v a
+    , viewForm    :: Form v m a
     , viewInput   :: [(Path, FormInput)]
     , viewErrors  :: [(Path, v)]
     , viewMethod  :: Method
@@ -55,10 +55,10 @@ instance Show v => Show (View v) where
         "View " ++ show ctx ++ " " ++ show form ++ " " ++ show input ++
         " " ++ show errs ++ " " ++ show method
 
-getForm :: Monad m => Form m v a -> View v
+getForm :: Monad m => Form v m a -> View v
 getForm form = View [] form [] [] Get
 
-postForm :: Monad m => Form m v a -> Env m -> m (View v, Maybe a)
+postForm :: Monad m => Form v m a -> Env m -> m (View v, Maybe a)
 postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
     Error errs -> (View [] form inp errs Post, Nothing)
     Success x  -> (View [] form inp [] Post, Just x)

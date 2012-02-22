@@ -30,7 +30,7 @@ runTrainerM = flip runReader 20
 data Type = Water | Fire | Leaf
     deriving (Eq, Show)
 
-typeForm :: Monad m => Form m Text Type
+typeForm :: Monad m => Form Text m Type
 typeForm = choice [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf")] Nothing
 
 data Pokemon = Pokemon
@@ -40,7 +40,7 @@ data Pokemon = Pokemon
     , pokemonRare  :: Bool
     } deriving (Eq, Show)
 
-levelForm :: Form TrainerM Text Int
+levelForm :: Form Text TrainerM Int
 levelForm =
     checkM "This pokemon will not obey you!" checkMaxLevel $
     check  "Level should be at least 1"      (> 1)         $
@@ -50,7 +50,7 @@ levelForm =
         maxLevel <- ask
         return $ l <= maxLevel
 
-pokemonForm :: Form TrainerM Text Pokemon
+pokemonForm :: Form Text TrainerM Pokemon
 pokemonForm = Pokemon
     <$> "name"  .: validate isPokemon (text Nothing)
     <*> "level" .: levelForm
@@ -66,7 +66,7 @@ pokemonForm = Pokemon
 data Ball = Poke | Great | Ultra | Master
     deriving (Eq, Show)
 
-ballForm :: Monad m => Form m Text Ball
+ballForm :: Monad m => Form Text m Ball
 ballForm = choice
     [(Poke, "Poke"), (Great, "Great"), (Ultra, "Ultra"), (Master, "Master")]
     Nothing
@@ -76,7 +76,7 @@ data Catch = Catch
     , catchBall    :: Ball
     } deriving (Eq, Show)
 
-catchForm :: Form TrainerM Text Catch
+catchForm :: Form Text TrainerM Catch
 catchForm = check "You need a better ball" canCatch $ Catch
     <$> "pokemon" .: pokemonForm
     <*> "ball"    .: ballForm

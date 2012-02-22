@@ -30,12 +30,12 @@ fieldEncType :: Field v a -> FormEncType
 fieldEncType File = MultiPart
 fieldEncType _    = UrlEncoded
 
-formEncType :: Form m v a -> FormEncType
+formEncType :: Form v m a -> FormEncType
 formEncType = mconcat . map fieldEncType' . fieldList
   where
     fieldEncType' (SomeField f) = fieldEncType f
 
-fieldList :: Form m v a -> [SomeField v]
+fieldList :: Form v m a -> [SomeField v]
 fieldList = mapMaybe toField' . fieldList' . SomeForm
   where
     fieldList' (SomeForm f) = SomeForm f : concatMap fieldList' (children f)

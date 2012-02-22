@@ -26,7 +26,7 @@ happstackEnv path = do
 -- Automatically picks between 'getForm' and 'postForm' based on the request
 -- method.
 runForm :: (Happstack.HasRqData m, Monad m, Happstack.ServerMonad m)
-        => Form m v a -> m (View v, Maybe a)
+        => Form v m a -> m (View v, Maybe a)
 runForm form = Happstack.askRq >>= \rq ->
     case Happstack.rqMethod rq of
         Happstack.GET -> return $ (getForm form, Nothing)

@@ -30,38 +30,38 @@ type Ref = Maybe Text
 --
 -- The three type parameters are:
 --
+-- * @v@: the type for textual information, displayed to the user. For example,
+--   error messages are of this type. @v@ stands for "view".
+--
 -- * @m@: the monad in which validators operate. The classical example is when
 --   validating input requires access to a database, in which case this @m@
 --   should be an instance of @MonadIO@.
 --
--- * @v@: the type for textual information, displayed to the user. For example,
---   error messages are of this type. @v@ stands for "view".
---
 -- * @a@: the type of the value returned by the form, used for its Applicative
 --   instance.
 --
-data Form m v a where
-    Pure :: Ref -> Field v a -> Form m v a
-    App  :: Ref -> Form m v (b -> a) -> Form m v b -> Form m v a
+data Form v m a where
+    Pure :: Ref -> Field v a -> Form v m a
+    App  :: Ref -> Form v m (b -> a) -> Form v m b -> Form v m a
 
-    Map  :: (b -> m (Result v a)) -> Form m v b -> Form m v a
+    Map  :: (b -> m (Result v a)) -> Form v m b -> Form v m a
 
-instance Monad m => Functor (Form m v) where
+instance Monad m => Functor (Form v m) where
     fmap = transform . (return .) . (return .)
 
-instance (Monad m, Monoid v) => Applicative (Form m v) where
+instance (Monad m, Monoid v) => Applicative (Form v m) where
     pure x  = Pure Nothing (Singleton x)
     x <*> y = App Nothing x y
 
-instance Show (Form m v a) where
+instance Show (Form v m a) where
     show = unlines . showForm
 
-data SomeForm m v = forall a. SomeForm (Form m v a)
+data SomeForm v m = forall a. SomeForm (Form v m a)
 
-instance Show (SomeForm m v) where
+instance Show (SomeForm v m) where
     show (SomeForm f) = show f
 
-showForm :: Form m v a -> [String]
+showForm :: Form v m a -> [String]
 showForm form = case form of
     (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
     (App r x y) -> concat
@@ -73,31 +73,31 @@ showForm form = case form of
   where
     indent = ("  " ++)
 
-transform :: Monad m => (a -> m (Result v b)) -> Form m v a -> Form m v b
+transform :: Monad m => (a -> m (Result v b)) -> Form v m a -> Form v m b
 transform f (Map g x) = flip Map x $ \y -> bindResult (g y) f
 transform f x         = Map f x
 
-children :: Form m v a -> [SomeForm m v]
+children :: Form v m a -> [SomeForm v m]
 children (Pure _ _)  = []
 children (App _ x y) = [SomeForm x, SomeForm y]
 children (Map _ x)   = children x
 
-setRef :: Ref -> Form m v a -> Form m v a
+setRef :: Ref -> Form v m a -> Form v m a
 setRef r (Pure _ x)  = Pure r x
 setRef r (App _ x y) = App r x y
 setRef r (Map f x)   = Map f (setRef r x)
 
 -- | Operator to set a name for a subform.
-(.:) :: Text -> Form m v a -> Form m v a
+(.:) :: Text -> Form v m a -> Form v m a
 (.:) = setRef . Just
 infixr 5 .:
 
-getRef :: Form m v a -> Ref
+getRef :: Form v m a -> Ref
 getRef (Pure r _)  = r
 getRef (App r _ _) = r
 getRef (Map _ x)   = getRef x
 
-lookupForm :: Path -> Form m v a -> [SomeForm m v]
+lookupForm :: Path -> Form v m a -> [SomeForm v m]
 lookupForm path = go path . SomeForm
   where
     go []       form            = [form]
@@ -110,13 +110,13 @@ lookupForm path = go path . SomeForm
             | otherwise          -> []
         Nothing                  -> children form >>= go (r : rs)
 
-toField :: Form m v a -> Maybe (SomeField v)
+toField :: Form v m a -> Maybe (SomeField v)
 toField (Pure _ x) = Just (SomeField x)
 toField (Map _ x)  = toField x
 toField _          = Nothing
 
 queryField :: Path
-           -> Form m v a
+           -> Form v m a
            -> (forall b. Field v b -> Maybe c)
            -> Maybe c
 queryField path form f = do
@@ -128,11 +128,11 @@ ann :: Path -> Result v a -> Result [(Path, v)] a
 ann _    (Success x) = Success x
 ann path (Error x)   = Error [(path, x)]
 
-eval :: Monad m => Method -> Env m -> Form m v a
+eval :: Monad m => Method -> Env m -> Form v m a
      -> m (Result [(Path, v)] a, [(Path, FormInput)])
 eval = eval' []
 
-eval' :: Monad m => Path -> Method -> Env m -> Form m v a
+eval' :: Monad m => Path -> Method -> Env m -> Form v m a
       -> m (Result [(Path, v)] a, [(Path, FormInput)])
 
 eval' context method env form = case form of
@@ -158,7 +158,7 @@ eval' context method env form = case form of
   where
     path = context ++ maybeToList (getRef form)
 
-formMapView :: Monad m => (v -> w) -> Form m v a -> Form m w a
+formMapView :: Monad m => (v -> w) -> Form v m a -> Form w m a
 formMapView f (Pure r x)  = Pure r (fieldMapView f x)
 formMapView f (App r x y) = App r (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)

@@ -30,26 +30,26 @@ import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 import Text.Digestive.Util
 
-text :: Maybe Text -> Form m v Text
+text :: Maybe Text -> Form v m Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
 
-string :: Monad m => Maybe String -> Form m v String
+string :: Monad m => Maybe String -> Form v m String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (Monad m, Read a, Show a) => v -> Maybe a -> Form m v a
+stringRead :: (Monad m, Read a, Show a) => v -> Maybe a -> Form v m a
 stringRead err = transform readTransform . string . fmap show
   where
     readTransform = return . maybe (Error err) return . readMaybe
 
-choice :: Eq a => [(a, v)] -> Maybe a -> Form m v a
+choice :: Eq a => [(a, v)] -> Maybe a -> Form v m a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
 
 bool :: Bool           -- ^ Default value
-     -> Form m v Bool  -- ^ Resulting form
+     -> Form v m Bool  -- ^ Resulting form
 bool = Pure Nothing . Bool
 
-file :: Form m v (Maybe FilePath)
+file :: Form v m (Maybe FilePath)
 file = Pure Nothing File
 
 -- | Validate the results of a form with a simple predicate
@@ -60,12 +60,12 @@ file = Pure Nothing File
 check :: Monad m
       => v            -- ^ Error message (if fail)
       -> (a -> Bool)  -- ^ Validating predicate
-      -> Form m v a   -- ^ Form to validate
-      -> Form m v a   -- ^ Resulting form
+      -> Form v m a   -- ^ Form to validate
+      -> Form v m a   -- ^ Resulting form
 check err = checkM err . (return .)
 
 -- | Version of 'check' which allows monadic validations
-checkM :: Monad m => v -> (a -> m Bool) -> Form m v a -> Form m v a
+checkM :: Monad m => v -> (a -> m Bool) -> Form v m a -> Form v m a
 checkM err predicate form = validateM f form
   where
     f x = do
@@ -84,9 +84,9 @@ checkM err predicate form = validateM f form
 -- > char :: Monad m => Form m String Char
 -- > char = validate head' (string Nothing)
 --
-validate :: Monad m => (a -> Result v b) -> Form m v a -> Form m v b
+validate :: Monad m => (a -> Result v b) -> Form v m a -> Form v m b
 validate = validateM . (return .)
 
 -- | Version of 'validate' which allows monadic validations
-validateM :: Monad m => (a -> m (Result v b)) -> Form m v a -> Form m v b
+validateM :: Monad m => (a -> m (Result v b)) -> Form v m a -> Form v m b
 validateM = transform

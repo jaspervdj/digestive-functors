@@ -25,5 +25,5 @@ tests = testGroup "Text.Digestive.Field.Tests"
     ]
 
   where
-    formEncType' :: Form Identity Text a -> FormEncType
+    formEncType' :: Form Text Identity a -> FormEncType
     formEncType' = formEncType
