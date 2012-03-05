@@ -16,10 +16,11 @@ module Text.Digestive.Form.Internal
 
 import Control.Applicative (Applicative (..))
 import Control.Monad ((>=>))
-import Data.Maybe (listToMaybe, maybeToList)
+import Data.Maybe (maybeToList)
 import Data.Monoid (Monoid)
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Text.Digestive.Types
 import Text.Digestive.Field
@@ -117,12 +118,15 @@ toField _          = Nothing
 
 queryField :: Path
            -> Form v m a
-           -> (forall b. Field v b -> Maybe c)
-           -> Maybe c
-queryField path form f = do
-    SomeForm form'  <- listToMaybe $ lookupForm path form
-    SomeField field <- toField form'
-    f field
+           -> (forall b. Field v b -> c)
+           -> c
+queryField path form f = case lookupForm path form of
+    []                   -> error $ ref ++ " does not exist"
+    (SomeForm form' : _) -> case toField form' of
+        Just (SomeField field) -> f field
+        _                      -> error $ ref ++ " is not a field"
+  where
+    ref = T.unpack $ fromPath path
 
 ann :: Path -> Result v a -> Result [(Path, v)] a
 ann _    (Success x) = Success x

@@ -80,31 +80,31 @@ lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
 fieldInputText :: Text -> View v -> Text
-fieldInputText ref view@(View _ form input _ method) = fromMaybe "" $
+fieldInputText ref view@(View _ form input _ method) =
     queryField path form $ \field -> case field of
-        Text t -> Just $ evalField method givenInput (Text t)
-        _      -> Nothing
+        Text t -> evalField method givenInput (Text t)
+        _      -> ""  -- TODO: perhaps throw error?
   where
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
 fieldInputChoice :: Text -> View v -> ([v], Int)
-fieldInputChoice ref view@(View _ form input _ method) = fromMaybe ([], 0) $
+fieldInputChoice ref view@(View _ form input _ method) =
     queryField path form $ \field -> case field of
-        Choice xs i -> do
-            let x = evalField method givenInput (Choice xs i)
-            idx <- findIndex (== x) (map fst xs)
-            return (map snd xs, idx)
-        _           -> Nothing
+        Choice xs i ->
+            let x   = evalField method givenInput (Choice xs i)
+                idx = fromMaybe 0 $ findIndex (== x) (map fst xs)
+            in (map snd xs, idx)
+        _           -> ([], 0)  -- TODO: perhaps throw error?
   where
     path       = absolutePath ref view
     givenInput = lookupInput path input
 
 fieldInputBool :: Text -> View v -> Bool
-fieldInputBool ref view@(View _ form input _ method) = fromMaybe False $
+fieldInputBool ref view@(View _ form input _ method) =
     queryField path form $ \field -> case field of
-        Bool x -> Just $ evalField method givenInput (Bool x)
-        _      -> Nothing
+        Bool x -> evalField method givenInput (Bool x)
+        _      -> False  -- TODO: perhaps throw error?
   where
     path       = absolutePath ref view
     givenInput = lookupInput path input
@@ -113,7 +113,7 @@ fieldInputFile :: Text -> View v -> Maybe FilePath
 fieldInputFile ref view@(View _ form input _ method) =
     queryField path form $ \field -> case field of
         File -> evalField method givenInput File
-        _    -> Nothing
+        _    -> Nothing  -- TODO: perhaps throw error?
   where
     path       = absolutePath ref view
     givenInput = lookupInput path input
