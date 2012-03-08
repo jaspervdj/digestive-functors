@@ -9,15 +9,16 @@ module Text.Digestive.Forms.Snap
     , runViewSnapForm
     ) where
 
-import Control.Applicative ((<$>))
-import Control.Monad (liftM)
-
-import Data.ByteString as SB
+-------------------------------------------------------------------------------
+import Control.Applicative  ((<$>))
+import Control.Monad        (liftM)
+import Data.ByteString      as SB
 import Data.ByteString.UTF8 as SB (toString, fromString)
-import Snap.Types
-
+import Snap.Core
+-------------------------------------------------------------------------------
 import Text.Digestive.Forms (FormInput (..))
 import Text.Digestive.Types (Form (..), Environment (..), viewForm, runViewForm, eitherForm)
+-------------------------------------------------------------------------------
 
 newtype SnapInput = SnapInput {unSnapInput :: SB.ByteString}
 
