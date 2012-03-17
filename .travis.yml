@@ -1,0 +1,4 @@
+language: haskell
+before_script:
+  - "cd digestive-functors"
+  - "cabal install HUnit test-framework test-framework-hunit"

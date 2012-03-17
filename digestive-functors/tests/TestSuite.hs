@@ -1,4 +1,4 @@
-module TestSuite
+module Main
     ( main
     ) where
 
