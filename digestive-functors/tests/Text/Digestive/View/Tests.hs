@@ -16,45 +16,50 @@ tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
         (Just (Pokemon "charmander" 5 Fire False)) $
-        snd $ runTrainerM $ postForm pokemonForm $ testEnv
-            [ ("name",  "charmander")
-            , ("level", "5")
-            , ("type",  "type.1")
+        snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
+            [ ("f.name",  "charmander")
+            , ("f.level", "5")
+            , ("f.type",  "type.1")
             ]
 
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
-        childErrors "" $ fst $ runTrainerM $ postForm pokemonForm $ testEnv
-            [ ("name",  "charmander")
-            , ("level", "9000")
-            , ("type",  "type.1")
+        childErrors "" $ fst $ runTrainerM $ postForm "f" pokemonForm $ testEnv
+            [ ("f.name",  "charmander")
+            , ("f.level", "9000")
+            , ("f.type",  "type.1")
             ]
 
     , testCase "Failing validate" $ (@=?)
         ["dog is not a pokemon!"] $
-        childErrors "" $ fst $ runTrainerM $ postForm pokemonForm $ testEnv
-            [("name", "dog")]
+        childErrors "" $ fst $ runTrainerM $ postForm "f" pokemonForm $ testEnv
+            [("f.name", "dog")]
+
+    , testCase "Simple fieldInputChoice" $ (@=?)
+        2 $
+        snd $ fieldInputChoice "type" $ fst $ runTrainerM $
+            postForm "f" pokemonForm $ testEnv [("f.type",  "type.2")]
 
     , testCase "Nested postForm" $ (@=?)
         (Just (Catch (Pokemon "charmander" 5 Fire False) Ultra)) $
-        snd $ runTrainerM $ postForm catchForm $ testEnv
-            [ ("pokemon.name",  "charmander")
-            , ("pokemon.level", "5")
-            , ("pokemon.type",  "type.1")
-            , ("ball",          "ball.2")
+        snd $ runTrainerM $ postForm "f" catchForm $ testEnv
+            [ ("f.pokemon.name",  "charmander")
+            , ("f.pokemon.level", "5")
+            , ("f.pokemon.type",  "type.1")
+            , ("f.ball",          "ball.2")
             ]
 
     , testCase "subView errors" $ (@=?)
         ["Cannot parse level"] $
         errors "level" $ subView "pokemon" $ fst $ runTrainerM $
-            postForm catchForm $ testEnv [("pokemon.level", "hah.")]
+            postForm "f" catchForm $ testEnv [("f.pokemon.level", "hah.")]
 
     , testCase "subView input" $ (@=?)
         2 $
         snd $ fieldInputChoice "type" $ subView "pokemon" $ fst $
-            runTrainerM $ postForm catchForm $ testEnv
-                [ ("pokemon.level", "hah.")
-                , ("pokemon.type",  "type.2")
+            runTrainerM $ postForm "f" catchForm $ testEnv
+                [ ("f.pokemon.level", "hah.")
+                , ("f.pokemon.type",  "type.2")
                 ]
     ]
 

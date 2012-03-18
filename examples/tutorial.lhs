@@ -189,7 +189,7 @@ an HTTP server for that, and we use [Happstack] for this tutorial. The
 > site :: Happstack.ServerPart Happstack.Response
 > site = do
 >     Happstack.decodeBody $ Happstack.defaultBodyPolicy "/tmp" 4096 4096 4096
->     r <- runForm releaseForm
+>     r <- runForm "test" releaseForm
 >     case r of
 >         (view, Nothing) -> do
 >             let view' = fmap H.toHtml view

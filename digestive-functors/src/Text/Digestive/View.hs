@@ -39,7 +39,8 @@ import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 
 data View v = forall a m. Monad m => View
-    { viewContext :: Path
+    { viewName    :: Text
+    , viewContext :: Path
     , viewForm    :: Form v m a
     , viewInput   :: [(Path, FormInput)]
     , viewErrors  :: [(Path, v)]
@@ -47,49 +48,56 @@ data View v = forall a m. Monad m => View
     }
 
 instance Functor View where
-    fmap f (View ctx form input errs method) = View
-        ctx (formMapView f form) input (map (second f) errs) method
+    fmap f (View name ctx form input errs method) = View
+        name ctx (formMapView f form) input (map (second f) errs) method
 
 instance Show v => Show (View v) where
-    show (View ctx form input errs method) =
-        "View " ++ show ctx ++ " " ++ show form ++ " " ++ show input ++
-        " " ++ show errs ++ " " ++ show method
+    show (View name ctx form input errs method) =
+        "View " ++ show name ++ " " ++ show ctx ++ " " ++ show form ++ " " ++
+        show input ++ " " ++ show errs ++ " " ++ show method
 
-getForm :: Monad m => Form v m a -> View v
-getForm form = View [] form [] [] Get
+getForm :: Monad m => Text -> Form v m a -> View v
+getForm name form = View name [] form [] [] Get
 
-postForm :: Monad m => Form v m a -> Env m -> m (View v, Maybe a)
-postForm form env = eval Post env form >>= \(r, inp) -> return $ case r of
-    Error errs -> (View [] form inp errs Post, Nothing)
-    Success x  -> (View [] form inp [] Post, Just x)
+postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
+postForm name form env = eval Post env' form >>= \(r, inp) -> return $ case r of
+    Error errs -> (View name [] form inp errs Post, Nothing)
+    Success x  -> (View name [] form inp [] Post, Just x)
+  where
+    env' = env . (name :)
 
 subView :: Text -> View v -> View v
-subView ref (View ctx form input errs method) =
-    View (ctx ++ path) form input errs method
+subView ref (View name ctx form input errs method) =
+    View name (ctx ++ path) form input errs method
   where
     path = toPath ref
 
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path
-absolutePath ref (View ctx _ _ _ _) = ctx ++ toPath ref
+absolutePath ref view@(View name _ _ _ _ _) = name : viewPath ref view
+
+-- | Internal version of 'absolutePath' which does not take the form name into
+-- account
+viewPath :: Text -> View v -> Path
+viewPath ref (View _ ctx _ _ _ _) = ctx ++ toPath ref
 
 viewEncType :: View v -> FormEncType
-viewEncType (View _ form _ _ _) = formEncType form
+viewEncType (View _ _ form _ _ _) = formEncType form
 
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
 fieldInputText :: Text -> View v -> Text
-fieldInputText ref view@(View _ form input _ method) =
+fieldInputText ref view@(View _ _ form input _ method) =
     queryField path form $ \field -> case field of
         Text t -> evalField method givenInput (Text t)
         _      -> ""  -- TODO: perhaps throw error?
   where
-    path       = absolutePath ref view
+    path       = viewPath ref view
     givenInput = lookupInput path input
 
 fieldInputChoice :: Text -> View v -> ([v], Int)
-fieldInputChoice ref view@(View _ form input _ method) =
+fieldInputChoice ref view@(View _ _ form input _ method) =
     queryField path form $ \field -> case field of
         Choice xs i ->
             let x   = evalField method givenInput (Choice xs i)
@@ -97,31 +105,31 @@ fieldInputChoice ref view@(View _ form input _ method) =
             in (map snd xs, idx)
         _           -> ([], 0)  -- TODO: perhaps throw error?
   where
-    path       = absolutePath ref view
+    path       = viewPath ref view
     givenInput = lookupInput path input
 
 fieldInputBool :: Text -> View v -> Bool
-fieldInputBool ref view@(View _ form input _ method) =
+fieldInputBool ref view@(View _ _ form input _ method) =
     queryField path form $ \field -> case field of
         Bool x -> evalField method givenInput (Bool x)
         _      -> False  -- TODO: perhaps throw error?
   where
-    path       = absolutePath ref view
+    path       = viewPath ref view
     givenInput = lookupInput path input
 
 fieldInputFile :: Text -> View v -> Maybe FilePath
-fieldInputFile ref view@(View _ form input _ method) =
+fieldInputFile ref view@(View _ _ form input _ method) =
     queryField path form $ \field -> case field of
         File -> evalField method givenInput File
         _    -> Nothing  -- TODO: perhaps throw error?
   where
-    path       = absolutePath ref view
+    path       = viewPath ref view
     givenInput = lookupInput path input
 
 errors :: Text -> View v -> [v]
-errors ref view = map snd $ filter ((== absolutePath ref view) . fst) $
+errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
     viewErrors view
 
 childErrors :: Text -> View v -> [v]
 childErrors ref view = map snd $
-    filter ((absolutePath ref view `isPrefixOf`) . fst) $ viewErrors view
+    filter ((viewPath ref view `isPrefixOf`) . fst) $ viewErrors view

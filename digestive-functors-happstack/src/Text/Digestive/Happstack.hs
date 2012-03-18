@@ -3,6 +3,7 @@ module Text.Digestive.Happstack
     ( runForm
     ) where
 
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
@@ -26,8 +27,10 @@ happstackEnv path = do
 -- Automatically picks between 'getForm' and 'postForm' based on the request
 -- method.
 runForm :: (Happstack.HasRqData m, Monad m, Happstack.ServerMonad m)
-        => Form v m a -> m (View v, Maybe a)
-runForm form = Happstack.askRq >>= \rq ->
+        => Text                 -- ^ Name for the form
+        -> Form v m a           -- ^ Form to run
+        -> m (View v, Maybe a)  -- ^ Result
+runForm name form = Happstack.askRq >>= \rq ->
     case Happstack.rqMethod rq of
-        Happstack.GET -> return $ (getForm form, Nothing)
-        _             -> postForm form happstackEnv
+        Happstack.GET -> return $ (getForm name form, Nothing)
+        _             -> postForm name form happstackEnv
