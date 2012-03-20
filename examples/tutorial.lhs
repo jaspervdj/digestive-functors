@@ -81,13 +81,19 @@ A quick test in GHCi:
 
 It works! This means we can now easily add a `Package` type and a `Form` for it:
 
-> data Package = Package Text Version
+> data Category = Web | Text | Math
+>     deriving (Bounded, Enum, Eq, Show)
+
+> data Package = Package Text Version Category
 >     deriving (Show)
 
 > packageForm :: Monad m => Form Text m Package
 > packageForm = Package
->     <$> "name"    .: text Nothing
->     <*> "version" .: validate validateVersion (text (Just "0.0.0.0"))
+>     <$> "name"     .: text Nothing
+>     <*> "version"  .: validate validateVersion (text (Just "0.0.0.1"))
+>     <*> "category" .: choice categories Nothing
+>   where
+>     categories = [(x, T.pack (show x)) | x <- [minBound .. maxBound]]
 
 Composing forms
 ---------------
@@ -161,6 +167,8 @@ nested forms.
 >     inputText "package.name" view
 >     label     "package.version" view "Version: "
 >     inputText "package.version" view
+>     label       "package.category" view "Category: "
+>     inputSelect "package.category" view
 
 The attentive reader might have wondered what the type parameter for `View` is:
 it is the `String`-like type used for e.g. error messages.
