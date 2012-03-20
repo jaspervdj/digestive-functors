@@ -146,9 +146,11 @@ form view action = H.form
 errorList :: Text -> View Html -> Html
 errorList ref view = case errors ref view of
     []   -> mempty
-    errs -> H.ul $ mapM_ H.li errs
+    errs -> H.ul ! A.class_ "digestive-functors-error-list" $ forM_ errs $ \e ->
+        H.li ! A.class_ "digestive-functors-error" $ e
 
 childErrorList :: Text -> View Html -> Html
 childErrorList ref view = case childErrors ref view of
     []   -> mempty
-    errs -> H.ul $ mapM_ H.li errs
+    errs -> H.ul ! A.class_ "digestive-functors-error-list" $ forM_ errs $ \e ->
+        H.li ! A.class_ "digestive-functors-error" $ e

@@ -3,10 +3,11 @@
 > import Data.Maybe (isJust)
 
 > import Data.Text (Text)
-> import Text.Blaze (Html)
+> import Text.Blaze (Html, (!))
 > import qualified Data.Text as T
 > import qualified Happstack.Server as Happstack
 > import qualified Text.Blaze.Html5 as H
+> import qualified Text.Blaze.Html5.Attributes as A
 
 > import Text.Digestive
 > import Text.Digestive.Blaze.Html5
@@ -207,13 +208,36 @@ an HTTP server for that, and we use [Happstack] for this tutorial. The
 >     case r of
 >         (view, Nothing) -> do
 >             let view' = fmap H.toHtml view
->             Happstack.ok $ Happstack.toResponse $ form view' "/" $ do
->                 releaseView view'
->                 H.br
->                 inputSubmit "Submit"
->         (_, Just release) -> Happstack.ok $ Happstack.toResponse $ do
+>             Happstack.ok $ Happstack.toResponse $ form view' "/" $
+>                 template $ do
+>                     css
+>                     releaseView view'
+>                     H.br
+>                     inputSubmit "Submit"
+>         (_, Just release) -> Happstack.ok $ Happstack.toResponse $
+>             template $ do
+>                 css
 >                 H.h1 "Release received"
 >                 H.p $ H.toHtml $ show release
 >
 > main :: IO ()
 > main = Happstack.simpleHTTP Happstack.nullConf site
+
+Utilities
+---------
+
+> template :: Html -> Html
+> template body = H.docTypeHtml $ do
+>     H.head $ do
+>         H.title "digestive-functors tutorial"
+>         css
+>     H.body body
+
+> css :: Html
+> css = H.style ! A.type_ "text/css" $ do
+>     "label {width: 130px; float: left; clear: both}"
+>     "ul.digestive-functors-error-list {"
+>     "    color: red;"
+>     "    list-style-type: none;"
+>     "    padding-left: 0px;"
+>     "}"
