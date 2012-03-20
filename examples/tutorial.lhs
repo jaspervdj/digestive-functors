@@ -163,12 +163,18 @@ nested forms.
 >
 >     H.h2 "Package"
 >     childErrorList "package" view
+>
 >     label     "package.name" view "Name: "
 >     inputText "package.name" view
+>     H.br
+>
 >     label     "package.version" view "Version: "
 >     inputText "package.version" view
+>     H.br
+>
 >     label       "package.category" view "Category: "
 >     inputSelect "package.category" view
+>     H.br
 
 The attentive reader might have wondered what the type parameter for `View` is:
 it is the `String`-like type used for e.g. error messages.
