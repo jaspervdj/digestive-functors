@@ -43,7 +43,7 @@ Cabal-version: >= 1.6
 
 Library
   Hs-source-dirs: src
-  Ghc-options:    -Wall
+  Ghc-options:    -Wall -fwarn-tabs
 
   Exposed-modules:     
     Text.Digestive,
