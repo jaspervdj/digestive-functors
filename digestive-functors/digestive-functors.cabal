@@ -39,7 +39,7 @@ Author:        Jasper Van der Jeugt <m@jaspervdj.be>
 Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
-Cabal-version: >= 1.6
+Cabal-version: >= 1.8
 
 Library
   Hs-source-dirs: src
