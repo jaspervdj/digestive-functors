@@ -11,7 +11,7 @@ can also be used for other tasks.
 Help
 ----
 
-Checkout the `Snap.lhs` example in the `templates` folder.
+Checkout the `tutorial.lhs` example in the `examples` folder.
 
 Directory layout
 ----------------
