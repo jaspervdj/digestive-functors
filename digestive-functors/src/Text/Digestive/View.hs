@@ -1,4 +1,5 @@
-{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings,
+        ScopedTypeVariables #-}
 module Text.Digestive.View
     ( View (..)
 
@@ -87,44 +88,56 @@ viewEncType (View _ _ form _ _ _) = formEncType form
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
-fieldInputText :: Text -> View v -> Text
+fieldInputText :: forall v. Text -> View v -> Text
 fieldInputText ref view@(View _ _ form input _ method) =
-    queryField path form $ \field -> case field of
-        Text t -> evalField method givenInput (Text t)
-        _      -> ""  -- TODO: perhaps throw error?
+    queryField path form eval'
   where
     path       = viewPath ref view
     givenInput = lookupInput path input
 
-fieldInputChoice :: Text -> View v -> ([v], Int)
+    eval' :: Field v b -> Text
+    eval' field = case field of
+        Text t -> evalField method givenInput (Text t)
+        _      -> ""  -- TODO: perhaps throw error?
+
+fieldInputChoice :: forall v. Text -> View v -> ([v], Int)
 fieldInputChoice ref view@(View _ _ form input _ method) =
-    queryField path form $ \field -> case field of
+    queryField path form eval'
+  where
+    path       = viewPath ref view
+    givenInput = lookupInput path input
+
+    eval' :: Field v b -> ([v], Int)
+    eval' field = case field of
         Choice xs i ->
             let x   = evalField method givenInput (Choice xs i)
                 idx = fromMaybe 0 $ findIndex (== x) (map fst xs)
             in (map snd xs, idx)
         _           -> ([], 0)  -- TODO: perhaps throw error?
+
+fieldInputBool :: forall v. Text -> View v -> Bool
+fieldInputBool ref view@(View _ _ form input _ method) =
+    queryField path form eval'
   where
     path       = viewPath ref view
     givenInput = lookupInput path input
 
-fieldInputBool :: Text -> View v -> Bool
-fieldInputBool ref view@(View _ _ form input _ method) =
-    queryField path form $ \field -> case field of
+    eval' :: Field v b -> Bool
+    eval' field = case field of
         Bool x -> evalField method givenInput (Bool x)
         _      -> False  -- TODO: perhaps throw error?
+
+fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
+fieldInputFile ref view@(View _ _ form input _ method) =
+    queryField path form eval'
   where
     path       = viewPath ref view
     givenInput = lookupInput path input
 
-fieldInputFile :: Text -> View v -> Maybe FilePath
-fieldInputFile ref view@(View _ _ form input _ method) =
-    queryField path form $ \field -> case field of
+    eval' :: Field v b -> Maybe FilePath
+    eval' field = case field of
         File -> evalField method givenInput File
         _    -> Nothing  -- TODO: perhaps throw error?
-  where
-    path       = viewPath ref view
-    givenInput = lookupInput path input
 
 errors :: Text -> View v -> [v]
 errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
