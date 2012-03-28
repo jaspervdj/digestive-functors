@@ -5,7 +5,6 @@ import Control.Exception (SomeException, try)
 import Data.ByteString (ByteString)
 import Data.Lens.Template
 import Data.Text (Text)
-import Snap.Core
 import Snap.Http.Server (defaultConfig, httpServe)
 import Snap.Snaplet
 import Snap.Snaplet.Heist
@@ -28,14 +27,20 @@ instance HasHeist App where
 type AppHandler = Handler App App
 
 data User = User
-    { userName :: Text
-    , userAge  :: Int
+    { userName     :: Text
+    , userPassword :: Text
+    , userAge      :: Int
+    , userAbout    :: Text
+    , userForgery  :: Text
     } deriving (Show)
 
 userForm :: Monad m => Form Text m User
 userForm = User
-    <$> "name" .: text (Just "Jasper")
-    <*> "age"  .: stringRead "Can't parse age" Nothing
+    <$> "name"     .: text (Just "Jasper")
+    <*> "password" .: text Nothing
+    <*> "age"      .: stringRead "Can't parse age" (Just 21)
+    <*> "about"    .: text (Just "About me")
+    <*> "forgery"  .: text (Just "forgery!")
 
 form :: Handler App App ()
 form = do
@@ -44,10 +49,7 @@ form = do
         Just x  -> heistLocal (bindUser x) $ render "user"
         Nothing -> heistLocal (bindDigestiveSplices view) $ render "form"
   where
-    bindUser user = bindStrings
-        [ ("name", userName user)
-        , ("age", T.pack (show $ userAge user))
-        ]
+    bindUser = bindString "user" . T.pack . show
 
 routes :: [(ByteString, Handler App App ())]
 routes = [("/", form)]
