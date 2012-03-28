@@ -4,12 +4,18 @@ module Text.Digestive.Heist
     ) where
 
 import Control.Monad (liftM)
-
 import Data.Maybe (fromMaybe)
+import Data.Monoid (mappend)
+
 import Data.Text (Text)
 import Text.Digestive.View
 import Text.Templating.Heist
+import qualified Data.Text as T
 import qualified Text.XmlHtml as X
+
+attr :: Bool -> (Text, Text) -> [(Text, Text)] -> [(Text, Text)]
+attr False _ = id
+attr True  a = (a :)
 
 makeElement :: Text -> [X.Node] -> [(Text, Text)] -> [X.Node]
 makeElement name nodes = return . flip (X.Element name) nodes
@@ -66,17 +72,61 @@ inputHidden view = do
         ("type", "hidden") : ("id", ref') :
         ("name", ref') : ("value", value) : attrs
 
+inputSelect :: Monad m => View Text -> Splice m
+inputSelect view = do
+    (ref, attrs) <- getRefAttributes
+    let ref'           = absoluteRef ref view
+        (choices, idx) = fieldInputChoice ref view
+        children       = zipWith makeOption choices [0 ..]
+        value i        = ref' `mappend` "." `mappend` T.pack (show i)
+        makeOption c i = X.Element "option"
+            (attr (idx == i) ("selected", "selected") [("value", value i)])
+            [X.TextNode c]
+    return $ makeElement "select" children $
+        ("id", ref') : ("name", ref') : attrs
+
+inputRadio :: Monad m => View Text -> Splice m
+inputRadio view = do
+    (ref, attrs) <- getRefAttributes
+
+    let ref'           = absoluteRef ref view
+        (choices, idx) = fieldInputChoice ref view
+
+        children       = concat $ zipWith makeOption choices [0 ..]
+        value i        = ref' `mappend` "." `mappend` T.pack (show i)
+        makeOption c i =
+            [ X.Element "input"
+                (attr (idx == i) ("checked", "checked") $
+                    ("type", "radio") : ("value", value i) :
+                    ("id",    value i) : ("name", ref') :
+                    attrs ) []
+            , X.Element "label" [("for", value i)] [X.TextNode c]
+            ]
+
+    return children
+
+inputCheckbox :: Monad m => View Text -> Splice m
+inputCheckbox view = do
+    (ref, attrs) <- getRefAttributes
+    let ref'  = absoluteRef ref view
+        value = fieldInputBool ref view
+    return $ makeElement "input" [] $ attr value ("checked", "checked") $
+        ("type", "checkbox") : ("id", ref') : ("name", ref') : attrs
+
 inputSubmit :: Monad m => View v -> Splice m
 inputSubmit _ = do
     (_, attrs) <- getRefAttributes
     return $ makeElement "input" [] $ ("type", "submit") : attrs
 
-bindDigestiveSplices :: Monad m => View v -> HeistState m -> HeistState m
+bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
 bindDigestiveSplices view = bindSplices
     [ ("dfLabel",         label view)
     , ("dfInputText",     inputText view)
     , ("dfInputTextArea", inputTextArea view)
     , ("dfInputPassword", inputPassword view)
     , ("dfInputHidden",   inputHidden view)
+    , ("dfInputSelect",   inputSelect view)
+    , ("dfInputRadio",    inputRadio view)
+    , ("dfInputCheckbox", inputCheckbox view)
     , ("dfInputSubmit",   inputSubmit view)
     ]

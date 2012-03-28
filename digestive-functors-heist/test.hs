@@ -26,21 +26,31 @@ instance HasHeist App where
 
 type AppHandler = Handler App App
 
+data Employment = Employed | Unemployed | Student
+    deriving (Bounded, Enum, Eq, Show)
+
+employments :: [(Employment, Text)]
+employments = [(e, T.pack (show e)) | e <- [minBound .. maxBound]]
+
 data User = User
-    { userName     :: Text
-    , userPassword :: Text
-    , userAge      :: Int
-    , userAbout    :: Text
-    , userForgery  :: Text
+    { userName       :: Text
+    , userPassword   :: Text
+    , userAge        :: Int
+    , userAbout      :: Text
+    , userForgery    :: Text
+    , userEmployment :: Employment
+    , userMarried    :: Bool
     } deriving (Show)
 
 userForm :: Monad m => Form Text m User
 userForm = User
-    <$> "name"     .: text (Just "Jasper")
-    <*> "password" .: text Nothing
-    <*> "age"      .: stringRead "Can't parse age" (Just 21)
-    <*> "about"    .: text (Just "About me")
-    <*> "forgery"  .: text (Just "forgery!")
+    <$> "name"       .: text (Just "Jasper")
+    <*> "password"   .: text Nothing
+    <*> "age"        .: stringRead "Can't parse age" (Just 21)
+    <*> "about"      .: text (Just "About me")
+    <*> "forgery"    .: text (Just "forgery!")
+    <*> "employment" .: choice employments Nothing
+    <*> "married"    .: bool False
 
 form :: Handler App App ()
 form = do

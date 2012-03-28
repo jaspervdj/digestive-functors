@@ -16,5 +16,12 @@
 
     <dfInputTextHidden ref="forgery" />
 
+    <dfInputRadio ref="employment" />
+    <br>
+
+    <dfLabel ref="married">Married: </dfLabel>
+    <dfInputCheckbox ref="married" />
+    <br>
+
     <dfInputSubmit value="Enter" />
 </form>
