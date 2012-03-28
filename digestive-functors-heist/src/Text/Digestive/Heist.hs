@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Heist
-    ( bindDigestiveSplices
+    ( digestiveSplices
+    , bindDigestiveSplices
     ) where
 
 import Control.Monad (liftM)
@@ -119,7 +120,10 @@ inputSubmit _ = do
     return $ makeElement "input" [] $ ("type", "submit") : attrs
 
 bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
-bindDigestiveSplices view = bindSplices
+bindDigestiveSplices = bindSplices . digestiveSplices
+
+digestiveSplices :: Monad m => View Text -> [(Text, Splice m)]
+digestiveSplices view =
     [ ("dfLabel",         label view)
     , ("dfInputText",     inputText view)
     , ("dfInputTextArea", inputTextArea view)
