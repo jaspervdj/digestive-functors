@@ -24,15 +24,11 @@ import Text.Blaze.Internal as H
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-import Text.Digestive.Types
 import Text.Digestive.View
 
 (!?) :: H.Attributable h => h -> (Bool, H.Attribute) -> h
 (!?) h (False, _) = h
 (!?) h (True,  a) = h ! a
-
-absoluteRef :: Text -> View v -> Text
-absoluteRef ref view = fromPath $ absolutePath ref view
 
 label :: Text -> View v -> Html -> Html
 label ref view value = H.label

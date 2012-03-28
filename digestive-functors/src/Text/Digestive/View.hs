@@ -13,6 +13,7 @@ module Text.Digestive.View
       -- * Querying a view
       -- ** Low-level
     , absolutePath
+    , absoluteRef
 
       -- ** Form encoding
     , viewEncType
@@ -76,6 +77,11 @@ subView ref (View name ctx form input errs method) =
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path
 absolutePath ref view@(View name _ _ _ _ _) = name : viewPath ref view
+
+-- | Determine an absolute path and call 'fromPath' on it. Useful if you're
+-- writing a view library...
+absoluteRef :: Text -> View v -> Text
+absoluteRef ref view = fromPath $ absolutePath ref view
 
 -- | Internal version of 'absolutePath' which does not take the form name into
 -- account
