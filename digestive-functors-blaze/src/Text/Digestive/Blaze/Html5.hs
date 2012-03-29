@@ -30,13 +30,6 @@ import Text.Digestive.View
 (!?) h (False, _) = h
 (!?) h (True,  a) = h ! a
 
-label :: Text -> View v -> Html -> Html
-label ref view value = H.label
-    ! A.for (H.toValue ref')
-    $ value
-  where
-    ref' = absoluteRef ref view
-
 inputText :: Text -> View v -> Html
 inputText ref view = H.input
     ! A.type_ "text"
@@ -132,6 +125,13 @@ inputSubmit :: Text -> Html
 inputSubmit value = H.input
     ! A.type_ "submit"
     ! A.value (H.toValue value)
+
+label :: Text -> View v -> Html -> Html
+label ref view value = H.label
+    ! A.for (H.toValue ref')
+    $ value
+  where
+    ref' = absoluteRef ref view
 
 form :: View Html -> Text -> Html -> Html
 form view action = H.form

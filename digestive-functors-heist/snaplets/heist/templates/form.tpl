@@ -1,4 +1,6 @@
 <form action="/" method="POST">
+    <dfChildErrorList ref="" />
+
     <dfLabel ref="name">Name: </dfLabel>
     <dfInputText ref="name" />
     <br>

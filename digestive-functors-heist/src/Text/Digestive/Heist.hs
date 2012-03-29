@@ -31,13 +31,6 @@ getRefAttributes = do
             in (ref, filter ((/= "ref") . fst) as)
         _                -> (error "Wrong type of node!", [])
 
-label :: Monad m => View v -> Splice m
-label view = do
-    (ref, attrs) <- getRefAttributes
-    content      <- liftM X.childNodes getParamNode
-    let ref' = absoluteRef ref view
-    return $ makeElement "label" content $ ("for", ref') : attrs
-
 inputText :: Monad m => View v -> Splice m
 inputText view = do
     (ref, attrs) <- getRefAttributes
@@ -119,18 +112,43 @@ inputSubmit _ = do
     (_, attrs) <- getRefAttributes
     return $ makeElement "input" [] $ ("type", "submit") : attrs
 
+label :: Monad m => View v -> Splice m
+label view = do
+    (ref, attrs) <- getRefAttributes
+    content      <- liftM X.childNodes getParamNode
+    let ref' = absoluteRef ref view
+    return $ makeElement "label" content $ ("for", ref') : attrs
+
+errorList' :: [Text] -> [(Text, Text)] -> [X.Node]
+errorList' []   _     = []
+errorList' errs attrs = [X.Element "ul" attrs $ map makeError errs]
+  where
+    makeError e = X.Element "li" [] [X.TextNode e]
+
+errorList :: Monad m => View Text -> Splice m
+errorList view = do
+    (ref, attrs) <- getRefAttributes
+    return $ errorList' (errors ref view) attrs
+
+childErrorList :: Monad m => View Text -> Splice m
+childErrorList view = do
+    (ref, attrs) <- getRefAttributes
+    return $ errorList' (childErrors ref view) attrs
+
 bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
 bindDigestiveSplices = bindSplices . digestiveSplices
 
 digestiveSplices :: Monad m => View Text -> [(Text, Splice m)]
 digestiveSplices view =
-    [ ("dfLabel",         label view)
-    , ("dfInputText",     inputText view)
-    , ("dfInputTextArea", inputTextArea view)
-    , ("dfInputPassword", inputPassword view)
-    , ("dfInputHidden",   inputHidden view)
-    , ("dfInputSelect",   inputSelect view)
-    , ("dfInputRadio",    inputRadio view)
-    , ("dfInputCheckbox", inputCheckbox view)
-    , ("dfInputSubmit",   inputSubmit view)
+    [ ("dfInputText",      inputText view)
+    , ("dfInputTextArea",  inputTextArea view)
+    , ("dfInputPassword",  inputPassword view)
+    , ("dfInputHidden",    inputHidden view)
+    , ("dfInputSelect",    inputSelect view)
+    , ("dfInputRadio",     inputRadio view)
+    , ("dfInputCheckbox",  inputCheckbox view)
+    , ("dfInputSubmit",    inputSubmit view)
+    , ("dfLabel",          label view)
+    , ("dfErrorList",      errorList view)
+    , ("dfChildErrorList", childErrorList view)
     ]
