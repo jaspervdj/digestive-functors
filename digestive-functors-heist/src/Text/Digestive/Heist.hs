@@ -119,6 +119,15 @@ label view = do
     let ref' = absoluteRef ref view
     return $ makeElement "label" content $ ("for", ref') : attrs
 
+form :: Monad m => View v -> Splice m
+form view = do
+    (_, attrs) <- getRefAttributes
+    content    <- liftM X.childNodes getParamNode
+    return $ makeElement "form" content $
+        ("method", "POST") :
+        ("enctype", T.pack (show $ viewEncType view)) :
+        attrs
+
 errorList' :: [Text] -> [(Text, Text)] -> [X.Node]
 errorList' []   _     = []
 errorList' errs attrs = [X.Element "ul" attrs $ map makeError errs]
@@ -149,6 +158,7 @@ digestiveSplices view =
     , ("dfInputCheckbox",  inputCheckbox view)
     , ("dfInputSubmit",    inputSubmit view)
     , ("dfLabel",          label view)
+    , ("dfForm",           form view)
     , ("dfErrorList",      errorList view)
     , ("dfChildErrorList", childErrorList view)
     ]

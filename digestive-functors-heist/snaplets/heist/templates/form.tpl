@@ -1,4 +1,4 @@
-<form action="/" method="POST">
+<dfForm action="/">
     <dfChildErrorList ref="" />
 
     <dfLabel ref="name">Name: </dfLabel>
@@ -26,4 +26,4 @@
     <br>
 
     <dfInputSubmit value="Enter" />
-</form>
+</dfForm>
