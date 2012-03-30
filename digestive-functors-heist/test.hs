@@ -32,32 +32,40 @@ data Employment = Employed | Unemployed | Student
 employments :: [(Employment, Text)]
 employments = [(e, T.pack (show e)) | e <- [minBound .. maxBound]]
 
+data Date = Date
+    { dateDay   :: Int
+    , dateMonth :: Int
+    , dateYear  :: Int
+    } deriving (Show)
+
+dateForm :: Monad m => Form Text m Date
+dateForm = check "Not a valid date" validDate $ Date
+    <$> "day"   .: stringRead "Not a number" (Just 16)
+    <*> "month" .: stringRead "Not a number" (Just 6)
+    <*> "year"  .: stringRead "Not a number" (Just 1990)
+  where
+    validDate (Date day month _) =
+        day   >= 1 && day <= 31 &&
+        month >= 1 && month <= 12
+
 data User = User
-    { userName       :: Text
-    , userPassword   :: Text
-    , userAge        :: Int
-    , userAbout      :: Text
-    , userForgery    :: Text
-    , userEmployment :: Employment
-    , userMarried    :: Bool
+    { userName      :: Text
+    , userPassword  :: Text
+    , userBirthdate :: Date
     } deriving (Show)
 
 userForm :: Monad m => Form Text m User
 userForm = User
-    <$> "name"       .: text (Just "Jasper")
-    <*> "password"   .: text Nothing
-    <*> "age"        .: stringRead "Can't parse age" (Just 21)
-    <*> "about"      .: text (Just "About me")
-    <*> "forgery"    .: text (Just "forgery!")
-    <*> "employment" .: choice employments Nothing
-    <*> "married"    .: bool False
+    <$> "name"      .: text (Just "Jasper")
+    <*> "password"  .: text Nothing
+    <*> "birthdate" .: dateForm
 
 form :: Handler App App ()
 form = do
     (view, result) <- runForm "form" userForm
     case result of
         Just x  -> heistLocal (bindUser x) $ render "user"
-        Nothing -> heistLocal (bindDigestiveSplices view) $ render "form"
+        Nothing -> heistLocal (bindDigestiveSplices view) $ render "user-form"
   where
     bindUser = bindString "user" . T.pack . show
 

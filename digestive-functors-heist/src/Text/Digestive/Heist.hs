@@ -31,6 +31,9 @@ getRefAttributes = do
             in (ref, filter ((/= "ref") . fst) as)
         _                -> (error "Wrong type of node!", [])
 
+getContent :: Monad m => HeistT m [X.Node]
+getContent = liftM X.childNodes getParamNode
+
 inputText :: Monad m => View v -> Splice m
 inputText view = do
     (ref, attrs) <- getRefAttributes
@@ -115,14 +118,14 @@ inputSubmit _ = do
 label :: Monad m => View v -> Splice m
 label view = do
     (ref, attrs) <- getRefAttributes
-    content      <- liftM X.childNodes getParamNode
+    content      <- getContent
     let ref' = absoluteRef ref view
     return $ makeElement "label" content $ ("for", ref') : attrs
 
 form :: Monad m => View v -> Splice m
 form view = do
     (_, attrs) <- getRefAttributes
-    content    <- liftM X.childNodes getParamNode
+    content    <- getContent
     return $ makeElement "form" content $
         ("method", "POST") :
         ("enctype", T.pack (show $ viewEncType view)) :
@@ -144,6 +147,15 @@ childErrorList view = do
     (ref, attrs) <- getRefAttributes
     return $ errorList' (childErrors ref view) attrs
 
+subView' :: Monad m => View Text -> Splice m
+subView' view = do
+    (ref, _) <- getRefAttributes
+    content  <- getContent
+    let view' = subView ref view
+    nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
+    stopRecursion
+    return nodes
+
 bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
 bindDigestiveSplices = bindSplices . digestiveSplices
 
@@ -161,4 +173,5 @@ digestiveSplices view =
     , ("dfForm",           form view)
     , ("dfErrorList",      errorList view)
     , ("dfChildErrorList", childErrorList view)
+    , ("dfSubView",        subView' view)
     ]
