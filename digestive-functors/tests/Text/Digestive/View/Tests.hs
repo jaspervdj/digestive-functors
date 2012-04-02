@@ -3,7 +3,7 @@ module Text.Digestive.View.Tests
     ( tests
     ) where
 
-import Control.Exception (SomeException, try)
+import Control.Exception (SomeException, handle)
 
 import Data.Text (Text)
 import Test.Framework (Test, testGroup)
@@ -15,12 +15,8 @@ import Text.Digestive.Types
 import Text.Digestive.View
 
 assertError :: Show a => a -> Assertion
-assertError x = do
-    r <- try $ return x
-    case r of
-        Left (_ :: SomeException) -> assert True
-        Right y                   -> assertFailure $
-            "Should throw an error but gave: " ++ show y
+assertError x = handle (\(_ :: SomeException) -> assert True) $
+    x `seq` assertFailure $ "Should throw an error but gave: " ++ show x
 
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"

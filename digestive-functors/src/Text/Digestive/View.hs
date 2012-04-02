@@ -34,6 +34,7 @@ import Data.List (findIndex, isPrefixOf)
 import Data.Maybe (fromMaybe)
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Text.Digestive.Field
 import Text.Digestive.Form.Encoding
@@ -104,7 +105,8 @@ fieldInputText ref view@(View _ _ form input _ method) =
     eval' :: Field v b -> Text
     eval' field = case field of
         Text t -> evalField method givenInput (Text t)
-        _      -> ""  -- TODO: perhaps throw error?
+        f      -> error $ T.unpack ref ++ ": expected (Text _), " ++
+            "but got: (" ++ show f ++ ")"
 
 fieldInputChoice :: forall v. Text -> View v -> ([v], Int)
 fieldInputChoice ref view@(View _ _ form input _ method) =
@@ -119,7 +121,8 @@ fieldInputChoice ref view@(View _ _ form input _ method) =
             let x   = evalField method givenInput (Choice xs i)
                 idx = fromMaybe 0 $ findIndex (== x) (map fst xs)
             in (map snd xs, idx)
-        _           -> ([], 0)  -- TODO: perhaps throw error?
+        f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
+            "but got: (" ++ show f ++ ")"
 
 fieldInputBool :: forall v. Text -> View v -> Bool
 fieldInputBool ref view@(View _ _ form input _ method) =
@@ -131,7 +134,8 @@ fieldInputBool ref view@(View _ _ form input _ method) =
     eval' :: Field v b -> Bool
     eval' field = case field of
         Bool x -> evalField method givenInput (Bool x)
-        _      -> False  -- TODO: perhaps throw error?
+        f      -> error $ T.unpack ref ++ ": expected (Bool _), " ++
+            "but got: (" ++ show f ++ ")"
 
 fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
 fieldInputFile ref view@(View _ _ form input _ method) =
@@ -143,7 +147,8 @@ fieldInputFile ref view@(View _ _ form input _ method) =
     eval' :: Field v b -> Maybe FilePath
     eval' field = case field of
         File -> evalField method givenInput File
-        _    -> Nothing  -- TODO: perhaps throw error?
+        f    -> error $ T.unpack ref ++ ": expected (File), " ++
+            "but got: (" ++ show f ++ ")"
 
 errors :: Text -> View v -> [v]
 errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
