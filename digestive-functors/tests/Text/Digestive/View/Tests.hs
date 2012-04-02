@@ -1,16 +1,26 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Text.Digestive.View.Tests
     ( tests
     ) where
 
+import Control.Exception (SomeException, try)
+
 import Data.Text (Text)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
-import Test.HUnit ((@=?))
+import Test.HUnit (Assertion, assert, assertFailure, (@=?))
 
 import Text.Digestive.Tests.Fixtures
 import Text.Digestive.Types
 import Text.Digestive.View
+
+assertError :: Show a => a -> Assertion
+assertError x = do
+    r <- try $ return x
+    case r of
+        Left (_ :: SomeException) -> assert True
+        Right y                   -> assertFailure $
+            "Should throw an error but gave: " ++ show y
 
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
@@ -61,6 +71,15 @@ tests = testGroup "Text.Digestive.View.Tests"
                 [ ("f.pokemon.level", "hah.")
                 , ("f.pokemon.type",  "type.2")
                 ]
+
+    , testCase "Abusing Choice as Text" $ assertError $
+        fieldInputText "type" $ getForm "f" pokemonForm
+
+    , testCase "Abusing Bool as Choice" $ assertError $
+        fieldInputChoice "rare" $ getForm "f" pokemonForm
+
+    , testCase "Abusing Text as Bool" $ assertError $
+        fieldInputBool "name" $ getForm "f" pokemonForm
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m
