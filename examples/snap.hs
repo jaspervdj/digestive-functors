@@ -4,13 +4,15 @@ import Control.Monad.Trans (liftIO)
 import Data.Monoid (mappend)
 import System.Directory (copyFile)
 
-import Happstack.Server
+import Snap.Blaze (blaze)
+import Snap.Core (Snap)
+import Snap.Http.Server (defaultConfig, httpServe)
 import Text.Blaze (Html, toHtml)
 import qualified Text.Blaze.Html5 as H
 
 import Text.Digestive.Blaze.Html5
 import Text.Digestive.Form
-import Text.Digestive.Happstack
+import Text.Digestive.Snap
 import Text.Digestive.View
 
 data Upload = Upload (Maybe FilePath) String
@@ -35,19 +37,16 @@ uploadView view = form view "/" $ do
 
     inputSubmit "Upload"
 
-upload :: ServerPart Response
+upload :: Snap ()
 upload = do
-    decodeBody $ defaultBodyPolicy "/tmp/" 32000 1000 1000
     r <- runForm "upload" uploadForm
     case r of
-        (view, Nothing) -> ok $ toResponse $ uploadView view
         (_, Just (Upload (Just fileName) destination)) -> do
             liftIO $ copyFile fileName destination
-            ok $ toResponse $ do
+            blaze $ do
                 H.h1 "File uploaded"
                 H.p $ "Location: " `mappend` toHtml destination
-        (_, Just (Upload Nothing _)) ->
-            ok $ toResponse $ H.h1 "No file given"
+        (view, _) -> blaze $ uploadView view
 
 main :: IO ()
-main = simpleHTTP nullConf upload
+main = httpServe defaultConfig upload

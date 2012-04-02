@@ -1,0 +1,4 @@
+:set -i../digestive-functors/src
+:set -i../digestive-functors-blaze/src
+:set -i../digestive-functors-snap/src
+:set -i../digestive-functors-happstack/src
