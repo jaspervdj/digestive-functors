@@ -209,8 +209,10 @@ dfLabel view = do
     let ref' = absoluteRef ref view
     return $ makeElement "label" content $ ("for", ref') : attrs
 
--- | Generate a form tag with the @method@ attribute set to @POST@ and the
--- @enctype@ set to the right value (depending on the form). Example:
+-- | Generate a form tag with the @method@ attribute set to @POST@ and
+-- the @enctype@ set to the right value (depending on the form).
+-- Custom @method@ or @enctype@ attributes would override this
+-- behavior. Example:
 --
 -- > <dfForm action="/users/new">
 -- >     <dfInputText ... />
@@ -222,9 +224,9 @@ dfForm view = do
     (_, attrs) <- getRefAttributes
     content    <- getContent
     return $ makeElement "form" content $
-        ("method", "POST") :
-        ("enctype", T.pack (show $ viewEncType view)) :
-        attrs
+        attrs ++ 
+        [ ("method", "POST")
+        , ("enctype", T.pack (show $ viewEncType view)) ]
 
 errorList :: [Text] -> [(Text, Text)] -> [X.Node]
 errorList []   _     = []
