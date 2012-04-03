@@ -42,7 +42,7 @@ defaultSnapFormConfig = SnapFormConfig
 
 snapEnv :: Snap.MonadSnap m => [(Text, FilePath)] -> Env m
 snapEnv allFiles path = do
-    inputs <- map (TextInput . T.decodeUtf8) . findParams <$> Snap.getPostParams
+    inputs <- map (TextInput . T.decodeUtf8) . findParams <$> Snap.getParams
     let files = map (FileInput . snd) $ filter ((== name) . fst) allFiles
     return $ inputs ++ files
   where
