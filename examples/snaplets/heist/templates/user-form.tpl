@@ -9,6 +9,10 @@
     <dfInputPassword ref="password" />
     <br>
 
+    <dfLabel ref="sex">Sex: </dfLabel>
+    <dfInputSelect ref="sex" />
+    <br>
+
     Birthday:
     <dfSubView ref="birthdate">
         <apply template="date-form" />

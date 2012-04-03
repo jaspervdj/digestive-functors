@@ -19,9 +19,15 @@ Directory layout
 This repository contains a number of packages:
 
 - `digestive-functors`: Main package
-- `digestive-functors-snap`: [Snap](http://snapframework.com) backend
-- `digestive-functors-happstack`: [Happstack](http://happstack.com) backend
-- `digestive-functors-blaze`: [BlazeHtml](http://jaspervdj.be/blaze) frontend
+- `digestive-functors-snap`: [Snap] backend
+- `digestive-functors-happstack`: [Happstack] backend
+- `digestive-functors-blaze`: [BlazeHtml] frontend
+- `digestive-functors-heist`: [Heist] frontend
+
+[Snap]: http://snapframework.com
+[Happstack]: http://happstack.com/
+[blaze-html]: http://jaspervdj.be/blaze
+[Heist]: http://snapframework.com/docs/tutorials/heist
 
 Credits
 -------
