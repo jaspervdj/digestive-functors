@@ -4,7 +4,7 @@ digestive-functors
 What
 ----
 
-Digestive functors is a library that provides an abstact way to consume input
+Digestive functors is a library that provides an abstract way to consume input
 using applicative functors. It is mostly geared towards HTML forms, altough it
 can also be used for other tasks.
 
@@ -26,7 +26,7 @@ This repository contains a number of packages:
 
 [Snap]: http://snapframework.com
 [Happstack]: http://happstack.com/
-[blaze-html]: http://jaspervdj.be/blaze
+[BlazeHtml]: http://jaspervdj.be/blaze
 [Heist]: http://snapframework.com/docs/tutorials/heist
 
 Credits
