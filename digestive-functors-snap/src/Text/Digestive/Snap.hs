@@ -4,7 +4,9 @@ module Text.Digestive.Snap
     , SnapFormConfig (..)
     , defaultSnapFormConfig
     , runForm
+    , runForm'
     , runFormWith
+    , runFormWith'
     ) where
 
 import Control.Applicative ((<$>))
@@ -42,7 +44,7 @@ defaultSnapFormConfig = SnapFormConfig
 
 snapEnv :: Snap.MonadSnap m => [(Text, FilePath)] -> Env m
 snapEnv allFiles path = do
-    inputs <- map (TextInput . T.decodeUtf8) . findParams <$> Snap.getPostParams
+    inputs <- map (TextInput . T.decodeUtf8) . findParams <$> Snap.getParams
     let files = map (FileInput . snd) $ filter ((== name) . fst) allFiles
     return $ inputs ++ files
   where
@@ -79,6 +81,21 @@ runForm :: Snap.MonadSnap m
         -> m (View v, Maybe a)  -- ^ Result
 runForm = runFormWith defaultSnapFormConfig
 
+
+-- | Runs a form with the HTTP input provided by Snap.
+--
+-- Unlike 'runForm' this will always foce a 'postForm' using the
+-- current environment. This is helpful when processing things like
+-- filter forms, where we may want to process the form even under
+-- 'GET'.
+runForm' 
+    :: Snap.MonadSnap m
+    => Text
+    -> Form v m a
+    -> m (View v, Maybe a)
+runForm' = runFormWith' defaultSnapFormConfig
+
+
 -- | Runs a form with a custom upload policy, and HTTP input from snap.
 --
 -- Automatically picks between 'getForm' and 'postForm' based on request
@@ -96,3 +113,23 @@ runFormWith config name form = Snap.getRequest >>= \rq ->
                 UrlEncoded -> return []
                 MultiPart  -> snapFiles config
             postForm name form (snapEnv files)
+
+
+
+-- | Runs a form with a custom upload policy, and HTTP input from snap.
+--
+-- Unlike 'runFormWith' this will always foce a 'postForm' using the
+-- current environment. This is helpful when processing things like
+-- filter forms, where we may want to process the form even under
+-- 'GET'.
+runFormWith' 
+    :: Snap.MonadSnap m
+    => SnapFormConfig       -- ^ Tempdir and upload policies
+    -> Text                 -- ^ Name for the form
+    -> Form v m a           -- ^ Form to run
+    -> m (View v, Maybe a)  -- ^ Result
+runFormWith' config name form = do
+  files <- case formEncType form of
+             UrlEncoded -> return []
+             MultiPart  -> snapFiles config
+  postForm name form (snapEnv files)
