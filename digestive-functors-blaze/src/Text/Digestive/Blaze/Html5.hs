@@ -154,7 +154,7 @@ childErrorList ref view = case childErrors ref view of
 
 scaffold :: View Html -> Html
 scaffold view = scaffoldView
-    (\ref -> label ref view (H.toHtml ref))
+    (\ref -> label ref view (H.toHtml ref `mappend` ": "))
     H.br
     (\ref -> inputText ref view)
     (\ref -> inputText ref view)

@@ -307,12 +307,13 @@ dfSubView view = do
 scaffold :: Monad m => View Text -> Splice m
 scaffold view = localTS (bindDigestiveSplices view) $ runNodeList scaffold'
   where
+    attrs ref = [("ref", ref)]
     scaffold' = scaffoldView
-        (\r -> [X.Element "dfLabel" [("ref", r)] [X.TextNode r]])
+        (\r -> [X.Element "dfLabel" (attrs r) [X.TextNode $ r `mappend` ": "]])
         [X.Element "br" [] []]
-        (\r -> [X.Element "dfInputText"     [("ref", r)] []])
-        (\r -> [X.Element "dfInputText"     [("ref", r)] []])
-        (\r -> [X.Element "dfInputSelect"   [("ref", r)] []])
-        (\r -> [X.Element "dfInputCheckbox" [("ref", r)] []])
-        (\r -> [X.Element "dfInputFile"     [("ref", r)] []])
+        (\r -> [X.Element "dfInputText"     (attrs r) []])
+        (\r -> [X.Element "dfInputText"     (attrs r) []])
+        (\r -> [X.Element "dfInputSelect"   (attrs r) []])
+        (\r -> [X.Element "dfInputCheckbox" (attrs r) []])
+        (\r -> [X.Element "dfInputFile"     (attrs r) []])
         view
