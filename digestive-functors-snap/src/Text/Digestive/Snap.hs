@@ -4,9 +4,7 @@ module Text.Digestive.Snap
     , SnapFormConfig (..)
     , defaultSnapFormConfig
     , runForm
-    , runForm'
     , runFormWith
-    , runFormWith'
     ) where
 
 import Control.Applicative ((<$>))
@@ -30,14 +28,18 @@ import Text.Digestive.View
 type SnapPartPolicy = Snap.PartInfo -> Snap.PartUploadPolicy
 
 data SnapFormConfig = SnapFormConfig
-    { temporaryDirectory :: Maybe FilePath
+    { -- | Can be used to override the method detected by Snap, in case you e.g.
+      -- want to perform a 'postForm' even in case of a GET request.
+      method             :: Maybe Method
+    , temporaryDirectory :: Maybe FilePath
     , uploadPolicy       :: Snap.UploadPolicy
     , partPolicy         :: SnapPartPolicy
     }
 
 defaultSnapFormConfig :: SnapFormConfig
 defaultSnapFormConfig = SnapFormConfig
-    { temporaryDirectory = Nothing
+    { method             = Nothing
+    , temporaryDirectory = Nothing
     , uploadPolicy       = Snap.defaultUploadPolicy
     , partPolicy         = const $ Snap.allowWithMaximumSize (128 * 1024)
     }
@@ -74,62 +76,32 @@ snapFiles config = do
 -- | Runs a form with the HTTP input provided by Snap.
 --
 -- Automatically picks between 'getForm' and 'postForm' based on the request
--- method.
+-- method. Set 'method' in the 'SnapFormConfig' to override this behaviour.
 runForm :: Snap.MonadSnap m
         => Text                 -- ^ Name for the form
         -> Form v m a           -- ^ Form to run
         -> m (View v, Maybe a)  -- ^ Result
 runForm = runFormWith defaultSnapFormConfig
 
-
--- | Runs a form with the HTTP input provided by Snap.
---
--- Unlike 'runForm' this will always foce a 'postForm' using the
--- current environment. This is helpful when processing things like
--- filter forms, where we may want to process the form even under
--- 'GET'.
-runForm' 
-    :: Snap.MonadSnap m
-    => Text
-    -> Form v m a
-    -> m (View v, Maybe a)
-runForm' = runFormWith' defaultSnapFormConfig
-
-
 -- | Runs a form with a custom upload policy, and HTTP input from snap.
 --
 -- Automatically picks between 'getForm' and 'postForm' based on request
--- method.
+-- method. Set 'method' in the 'SnapFormConfig' to override this behaviour.
 runFormWith :: Snap.MonadSnap m
             => SnapFormConfig       -- ^ Tempdir and upload policies
             -> Text                 -- ^ Name for the form
             -> Form v m a           -- ^ Form to run
             -> m (View v, Maybe a)  -- ^ Result
-runFormWith config name form = Snap.getRequest >>= \rq ->
-    case Snap.rqMethod rq of
-        Snap.GET -> return (getForm name form, Nothing)
-        _        -> do
+runFormWith config name form = do
+    m <- maybe snapMethod return (method config)
+    case m of
+        Get  -> return (getForm name form, Nothing)
+        Post -> do
             files <- case formEncType form of
                 UrlEncoded -> return []
                 MultiPart  -> snapFiles config
             postForm name form (snapEnv files)
-
-
-
--- | Runs a form with a custom upload policy, and HTTP input from snap.
---
--- Unlike 'runFormWith' this will always foce a 'postForm' using the
--- current environment. This is helpful when processing things like
--- filter forms, where we may want to process the form even under
--- 'GET'.
-runFormWith' 
-    :: Snap.MonadSnap m
-    => SnapFormConfig       -- ^ Tempdir and upload policies
-    -> Text                 -- ^ Name for the form
-    -> Form v m a           -- ^ Form to run
-    -> m (View v, Maybe a)  -- ^ Result
-runFormWith' config name form = do
-  files <- case formEncType form of
-             UrlEncoded -> return []
-             MultiPart  -> snapFiles config
-  postForm name form (snapEnv files)
+  where
+    snapMethod        = toMethod . Snap.rqMethod <$> Snap.getRequest
+    toMethod Snap.GET = Get
+    toMethod _        = Post
