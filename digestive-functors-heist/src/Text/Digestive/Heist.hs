@@ -41,6 +41,9 @@ module Text.Digestive.Heist
     , dfErrorList
     , dfChildErrorList
     , dfSubView
+
+      -- * Scaffolding
+    , scaffold
     ) where
 
 import Control.Monad (liftM)
@@ -300,3 +303,16 @@ dfSubView view = do
     nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
     stopRecursion
     return nodes
+
+scaffold :: Monad m => View Text -> Splice m
+scaffold view = localTS (bindDigestiveSplices view) $ runNodeList scaffold'
+  where
+    scaffold' = scaffoldView
+        (\r -> [X.Element "dfLabel" [("ref", r)] [X.TextNode r]])
+        [X.Element "br" [] []]
+        (\r -> [X.Element "dfInputText"     [("ref", r)] []])
+        (\r -> [X.Element "dfInputText"     [("ref", r)] []])
+        (\r -> [X.Element "dfInputSelect"   [("ref", r)] []])
+        (\r -> [X.Element "dfInputCheckbox" [("ref", r)] []])
+        (\r -> [X.Element "dfInputFile"     [("ref", r)] []])
+        view

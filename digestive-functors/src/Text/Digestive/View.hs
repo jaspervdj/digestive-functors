@@ -29,7 +29,7 @@ module Text.Digestive.View
     , childErrors
 
       -- ** Scaffolding
-    , scaffold
+    , scaffoldView
     ) where
 
 import Control.Arrow (second)
@@ -162,21 +162,25 @@ childErrors :: Text -> View v -> [v]
 childErrors ref view = map snd $
     filter ((viewPath ref view `isPrefixOf`) . fst) $ viewErrors view
 
-scaffold :: Monoid a
-         => (Path -> a)  -- ^ Label
-         -> a            -- ^ Break after input field
-         -> (Path -> a)  -- ^ Singleton fields
-         -> (Path -> a)  -- ^ Text fields
-         -> (Path -> a)  -- ^ Choice fields
-         -> (Path -> a)  -- ^ Bool fields
-         -> (Path -> a)  -- ^ File fields
-         -> View v       -- ^ View to fold over
-         -> a            -- ^ Result
-scaffold label br singleton text choice bool file (View _ _ form _ _ _) =
+scaffoldView :: Monoid a
+             => (Text -> a)  -- ^ Label
+             -> a            -- ^ Break after input field
+             -> (Text -> a)  -- ^ Singleton fields
+             -> (Text -> a)  -- ^ Text fields
+             -> (Text -> a)  -- ^ Choice fields
+             -> (Text -> a)  -- ^ Bool fields
+             -> (Text -> a)  -- ^ File fields
+             -> View v       -- ^ View to fold over
+             -> a            -- ^ Result
+scaffoldView label br singleton text choice bool file (View _ _ form _ _ _) =
     foldForm
-        (\p -> label p `mappend` singleton p `mappend` br)
-        (\p -> label p `mappend` text p      `mappend` br)
-        (\p -> label p `mappend` choice p    `mappend` br)
-        (\p -> label p `mappend` bool p      `mappend` br)
-        (\p -> label p `mappend` file p      `mappend` br)
+        (fieldWith singleton)
+        (fieldWith text)
+        (fieldWith choice)
+        (fieldWith bool)
+        (fieldWith file)
         form
+  where
+    fieldWith f path =
+        let ref = fromPath path
+        in label ref `mappend` f ref `mappend` br
