@@ -13,6 +13,7 @@ module Text.Digestive.Blaze.Html5
     , form
     , errorList
     , childErrorList
+    , scaffold
     ) where
 
 import Data.Maybe (fromMaybe)
@@ -150,3 +151,14 @@ childErrorList ref view = case childErrors ref view of
     []   -> mempty
     errs -> H.ul ! A.class_ "digestive-functors-error-list" $ forM_ errs $ \e ->
         H.li ! A.class_ "digestive-functors-error" $ e
+
+scaffold :: View Html -> Html
+scaffold view = scaffoldView
+    (\ref -> label ref view (H.toHtml ref))
+    H.br
+    (\ref -> inputText ref view)
+    (\ref -> inputText ref view)
+    (\ref -> inputSelect ref view)
+    (\ref -> inputCheckbox ref view)
+    (\ref -> inputFile ref view)
+    view
