@@ -65,6 +65,7 @@ digestiveSplices view =
     , ("dfInputSelect",    dfInputSelect view)
     , ("dfInputRadio",     dfInputRadio view)
     , ("dfInputCheckbox",  dfInputCheckbox view)
+    , ("dfInputFile",      dfInputFile view)
     , ("dfInputSubmit",    dfInputSubmit view)
     , ("dfLabel",          dfLabel view)
     , ("dfForm",           dfForm view)
@@ -189,6 +190,18 @@ dfInputCheckbox view = do
         value = fieldInputBool ref view
     return $ makeElement "input" [] $ attr value ("checked", "checked") $
         ("type", "checkbox") : ("id", ref') : ("name", ref') : attrs
+
+-- | Generate a file upload element. Example:
+--
+-- > <dfInputFile ref="user.avatar" />
+dfInputFile :: Monad m => View Text -> Splice m
+dfInputFile view = do
+    (ref, attrs) <- getRefAttributes
+    let ref'  = absoluteRef ref view
+        value = maybe "" T.pack $ fieldInputFile ref view
+    return $ makeElement "input" [] $
+        ("type", "file") : ("id", ref') :
+        ("name", ref') : ("value", value) : attrs
 
 -- | Generate a submit button. Example:
 --
