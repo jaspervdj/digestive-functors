@@ -27,11 +27,15 @@ module Text.Digestive.View
       -- ** Errors
     , errors
     , childErrors
+
+      -- ** Scaffolding
+    , scaffold
     ) where
 
 import Control.Arrow (second)
 import Data.List (findIndex, isPrefixOf)
 import Data.Maybe (fromMaybe)
+import Data.Monoid (Monoid, mappend)
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -157,3 +161,22 @@ errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
 childErrors :: Text -> View v -> [v]
 childErrors ref view = map snd $
     filter ((viewPath ref view `isPrefixOf`) . fst) $ viewErrors view
+
+scaffold :: Monoid a
+         => (Path -> a)  -- ^ Label
+         -> a            -- ^ Break after input field
+         -> (Path -> a)  -- ^ Singleton fields
+         -> (Path -> a)  -- ^ Text fields
+         -> (Path -> a)  -- ^ Choice fields
+         -> (Path -> a)  -- ^ Bool fields
+         -> (Path -> a)  -- ^ File fields
+         -> View v       -- ^ View to fold over
+         -> a            -- ^ Result
+scaffold label br singleton text choice bool file (View _ _ form _ _ _) =
+    foldForm
+        (\p -> label p `mappend` singleton p `mappend` br)
+        (\p -> label p `mappend` text p      `mappend` br)
+        (\p -> label p `mappend` choice p    `mappend` br)
+        (\p -> label p `mappend` bool p      `mappend` br)
+        (\p -> label p `mappend` file p      `mappend` br)
+        form

@@ -12,12 +12,13 @@ module Text.Digestive.Form.Internal
     , queryField
     , eval
     , formMapView
+    , foldForm
     ) where
 
 import Control.Applicative (Applicative (..))
 import Control.Monad ((>=>))
 import Data.Maybe (maybeToList)
-import Data.Monoid (Monoid)
+import Data.Monoid (Monoid, mappend)
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -166,6 +167,39 @@ formMapView :: Monad m => (v -> w) -> Form v m a -> Form w m a
 formMapView f (Pure r x)  = Pure r (fieldMapView f x)
 formMapView f (App r x y) = App r (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
+
+foldForm :: Monoid a
+         => (Path -> a)  -- ^ Singleton fields
+         -> (Path -> a)  -- ^ Text fields
+         -> (Path -> a)  -- ^ Choice fields
+         -> (Path -> a)  -- ^ Bool fields
+         -> (Path -> a)  -- ^ File fields
+         -> Form v m b   -- ^ Form to fold over
+         -> a            -- ^ Result
+foldForm = fold []
+  where
+    fold :: Monoid a
+         => Path
+         -> (Path -> a)
+         -> (Path -> a)
+         -> (Path -> a)
+         -> (Path -> a)
+         -> (Path -> a)
+         -> Form v m b
+         -> a
+    fold ctx singleton text choice bool file form = case form of
+        Pure _ (Singleton _) -> singleton ctx'
+        Pure _ (Text _)      -> text ctx'
+        Pure _ (Choice _ _)  -> choice ctx'
+        Pure _ (Bool _)      -> bool ctx'
+        Pure _ File          -> file ctx'
+        App _ x y            ->
+            fold ctx' singleton text choice bool file x `mappend`
+            fold ctx' singleton text choice bool file y
+        -- Use ctx instead of ctx' for Map constructor!
+        Map _ x              -> fold ctx singleton text choice bool file x
+      where
+        ctx' = ctx ++ maybeToList (getRef form)
 
 -- | Utility: bind for 'Result' inside another monad
 bindResult :: Monad m
