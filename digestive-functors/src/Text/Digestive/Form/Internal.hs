@@ -141,6 +141,8 @@ eval' :: Monad m => Path -> Method -> Env m -> Form v m a
 
 eval' context method env form = case form of
 
+    Pure Nothing (Singleton x) -> return (pure x, [])
+
     Pure Nothing _ ->
         error "No ref specified for field"
 
