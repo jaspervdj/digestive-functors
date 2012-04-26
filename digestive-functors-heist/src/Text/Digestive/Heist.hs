@@ -298,5 +298,4 @@ dfSubView view = do
     content  <- getContent
     let view' = subView ref view
     nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
-    stopRecursion
     return nodes
