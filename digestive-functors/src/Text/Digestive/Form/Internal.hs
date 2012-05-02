@@ -143,8 +143,8 @@ eval' context method env form = case form of
 
     Pure Nothing (Singleton x) -> return (pure x, [])
 
-    Pure Nothing _ ->
-        error "No ref specified for field"
+    Pure Nothing f ->
+        error $ "No ref specified for field " ++ show f
 
     Pure (Just _) field -> do
         val <- env path
