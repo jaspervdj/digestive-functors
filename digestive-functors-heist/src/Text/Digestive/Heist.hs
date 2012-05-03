@@ -27,7 +27,7 @@ module Text.Digestive.Heist
       digestiveSplices
     , bindDigestiveSplices
 
-      -- * Splices
+      -- * Main splices
     , dfInputText
     , dfInputTextArea
     , dfInputPassword
@@ -41,6 +41,9 @@ module Text.Digestive.Heist
     , dfErrorList
     , dfChildErrorList
     , dfSubView
+
+      -- * Utility splices
+    , dfIfChildErrors
     ) where
 
 import Control.Monad (liftM, mplus)
@@ -72,6 +75,7 @@ digestiveSplices view =
     , ("dfErrorList",      dfErrorList view)
     , ("dfChildErrorList", dfChildErrorList view)
     , ("dfSubView",        dfSubView view)
+    , ("dfIfChildErrors",  dfIfChildErrors view)
     ]
 
 attr :: Bool -> (Text, Text) -> [(Text, Text)] -> [(Text, Text)]
@@ -305,3 +309,19 @@ dfSubView view = do
     let view' = subView ref view
     nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
     return nodes
+
+-- | Render some content only if there are any errors. This is useful for markup
+-- purposes.
+--
+-- > <dfIfChildErrors ref="user">
+-- >     Content to be rendered if there are any errors...
+-- > </dfIfChildErrors>
+--
+-- The @ref@ attribute can be omitted if you want to check the entire form.
+dfIfChildErrors :: Monad m => View v -> Splice m
+dfIfChildErrors view = do
+    (ref, _) <- getRefAttributes $ Just ""
+    content  <- getContent
+    if null (childErrors ref view)
+        then return []
+        else runNodeList content
