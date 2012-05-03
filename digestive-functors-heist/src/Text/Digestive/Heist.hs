@@ -43,7 +43,7 @@ module Text.Digestive.Heist
     , dfSubView
     ) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, mplus)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mappend)
 
@@ -81,13 +81,15 @@ attr True  a = (a :)
 makeElement :: Text -> [X.Node] -> [(Text, Text)] -> [X.Node]
 makeElement name nodes = return . flip (X.Element name) nodes
 
-getRefAttributes :: Monad m => HeistT m (Text, [(Text, Text)])
-getRefAttributes = do
+getRefAttributes :: Monad m
+                 => Maybe Text                       -- ^ Optional default ref
+                 -> HeistT m (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
+getRefAttributes defaultRef = do
     node <- getParamNode
     return $ case node of
         X.Element _ as _ ->
             let ref = fromMaybe (error $ show node ++ ": missing ref") $
-                        lookup "ref" as
+                        lookup "ref" as `mplus` defaultRef
             in (ref, filter ((/= "ref") . fst) as)
         _                -> (error "Wrong type of node!", [])
 
@@ -99,7 +101,7 @@ getContent = liftM X.childNodes getParamNode
 -- > <dfInputText ref="user.name" />
 dfInputText :: Monad m => View v -> Splice m
 dfInputText view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
     return $ makeElement "input" [] $
@@ -111,7 +113,7 @@ dfInputText view = do
 -- > <dfInputTextArea ref="user.about" />
 dfInputTextArea :: Monad m => View v -> Splice m
 dfInputTextArea view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
     return $ makeElement "textarea" [X.TextNode value] $
@@ -122,7 +124,7 @@ dfInputTextArea view = do
 -- > <dfInputPassword ref="user.password" />
 dfInputPassword :: Monad m => View v -> Splice m
 dfInputPassword view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
     return $ makeElement "input" [] $
@@ -134,7 +136,7 @@ dfInputPassword view = do
 -- > <dfInputHidden ref="user.forgery" />
 dfInputHidden :: Monad m => View v -> Splice m
 dfInputHidden view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
     return $ makeElement "input" [] $
@@ -146,7 +148,7 @@ dfInputHidden view = do
 -- > <dfInputSelect ref="user.sex" />
 dfInputSelect :: Monad m => View Text -> Splice m
 dfInputSelect view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'           = absoluteRef ref view
         (choices, idx) = fieldInputChoice ref view
         children       = zipWith makeOption choices [0 ..]
@@ -162,7 +164,7 @@ dfInputSelect view = do
 -- > <dfInputRadio ref="user.sex" />
 dfInputRadio :: Monad m => View Text -> Splice m
 dfInputRadio view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
 
     let ref'           = absoluteRef ref view
         (choices, idx) = fieldInputChoice ref view
@@ -185,7 +187,7 @@ dfInputRadio view = do
 -- > <dfInputCheckbox ref="user.married" />
 dfInputCheckbox :: Monad m => View Text -> Splice m
 dfInputCheckbox view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputBool ref view
     return $ makeElement "input" [] $ attr value ("checked", "checked") $
@@ -196,7 +198,7 @@ dfInputCheckbox view = do
 -- > <dfInputFile ref="user.avatar" />
 dfInputFile :: Monad m => View Text -> Splice m
 dfInputFile view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = maybe "" T.pack $ fieldInputFile ref view
     return $ makeElement "input" [] $
@@ -208,7 +210,7 @@ dfInputFile view = do
 -- > <dfInputSubmit />
 dfInputSubmit :: Monad m => View v -> Splice m
 dfInputSubmit _ = do
-    (_, attrs) <- getRefAttributes
+    (_, attrs) <- getRefAttributes Nothing
     return $ makeElement "input" [] $ ("type", "submit") : attrs
 
 -- | Generate a label for a field. Example:
@@ -217,7 +219,7 @@ dfInputSubmit _ = do
 -- > <dfInputCheckbox ref="user.married" />
 dfLabel :: Monad m => View v -> Splice m
 dfLabel view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     content      <- getContent
     let ref' = absoluteRef ref view
     return $ makeElement "label" content $ ("for", ref') : attrs
@@ -234,7 +236,7 @@ dfLabel view = do
 -- > </dfForm>
 dfForm :: Monad m => View v -> Splice m
 dfForm view = do
-    (_, attrs) <- getRefAttributes
+    (_, attrs) <- getRefAttributes Nothing
     content    <- getContent
     return $ makeElement "form" content $
         attrs ++ 
@@ -253,7 +255,7 @@ errorList errs attrs = [X.Element "ul" attrs $ map makeError errs]
 -- > <dfInputText ref="user.name" />
 dfErrorList :: Monad m => View Text -> Splice m
 dfErrorList view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes Nothing
     return $ errorList (errors ref view) attrs
 
 -- | Display the list of errors for a certain form and all forms below it. E.g.,
@@ -264,9 +266,13 @@ dfErrorList view = do
 -- Or display /all/ errors for the form:
 --
 -- > <dfChildErrorList ref="" />
+--
+-- Which is more conveniently written as:
+--
+-- > <dfChildErrorList />
 dfChildErrorList :: Monad m => View Text -> Splice m
 dfChildErrorList view = do
-    (ref, attrs) <- getRefAttributes
+    (ref, attrs) <- getRefAttributes $ Just ""
     return $ errorList (childErrors ref view) attrs
 
 -- | This splice allows reuse of templates by selecting some child of a form
@@ -294,7 +300,7 @@ dfChildErrorList view = do
 -- > <dfInputTextArea ref="comment.body" />
 dfSubView :: Monad m => View Text -> Splice m
 dfSubView view = do
-    (ref, _) <- getRefAttributes
+    (ref, _) <- getRefAttributes Nothing
     content  <- getContent
     let view' = subView ref view
     nodes <- localTS (bindDigestiveSplices view') $ runNodeList content

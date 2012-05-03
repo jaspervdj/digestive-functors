@@ -1,5 +1,5 @@
 <dfForm action="/">
-    <dfChildErrorList ref="" />
+    <dfChildErrorList />
 
     <dfLabel ref="name">Name: </dfLabel>
     <dfInputText ref="name" />
