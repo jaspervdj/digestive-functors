@@ -47,6 +47,8 @@ module Text.Digestive.Heist
     ) where
 
 import Control.Monad (liftM, mplus)
+import Data.Function (on)
+import Data.List (unionBy)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mappend)
 
@@ -100,6 +102,12 @@ getRefAttributes defaultRef = do
 getContent :: Monad m => HeistT m [X.Node]
 getContent = liftM X.childNodes getParamNode
 
+-- | Does not override existing attributes
+addAttrs :: [(Text, Text)]  -- ^ Original attributes
+         -> [(Text, Text)]  -- ^ Attributes to add
+         -> [(Text, Text)]  -- ^ Resulting attributes
+addAttrs = unionBy (on (==) fst)
+
 -- | Generate a text input field. Example:
 --
 -- > <dfInputText ref="user.name" />
@@ -108,9 +116,8 @@ dfInputText view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $
-        ("type", "text") : ("id", ref') :
-        ("name", ref') : ("value", value) : attrs
+    return $ makeElement "input" [] $ addAttrs attrs
+        [("type", "text"), ("id", ref'), ("name", ref'), ("value", value)]
 
 -- | Generate a text area. Example:
 --
@@ -120,8 +127,8 @@ dfInputTextArea view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "textarea" [X.TextNode value] $
-        ("id", ref') : ("name", ref') : attrs
+    return $ makeElement "textarea" [X.TextNode value] $ addAttrs attrs
+        [("id", ref'), ("name", ref')]
 
 -- | Generate a password field. Example:
 --
@@ -131,9 +138,8 @@ dfInputPassword view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $
-        ("type", "password") : ("id", ref') :
-        ("name", ref') : ("value", value) : attrs
+    return $ makeElement "input" [] $ addAttrs attrs
+        [("type", "password"), ("id", ref'), ("name", ref'), ("value", value)]
 
 -- | Generate a hidden input field. Example:
 --
@@ -143,9 +149,8 @@ dfInputHidden view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $
-        ("type", "hidden") : ("id", ref') :
-        ("name", ref') : ("value", value) : attrs
+    return $ makeElement "input" [] $ addAttrs attrs
+        [("type", "hidden"), ("id", ref'), ("name", ref'), ("value", value)]
 
 -- | Generate a select button (also known as a combo box). Example:
 --
@@ -160,8 +165,8 @@ dfInputSelect view = do
         makeOption c i = X.Element "option"
             (attr (idx == i) ("selected", "selected") [("value", value i)])
             [X.TextNode c]
-    return $ makeElement "select" children $
-        ("id", ref') : ("name", ref') : attrs
+    return $ makeElement "select" children $ addAttrs attrs
+        [("id", ref'), ("name", ref')]
 
 -- | Generate a number of radio buttons. Example:
 --
@@ -177,10 +182,10 @@ dfInputRadio view = do
         value i        = ref' `mappend` "." `mappend` T.pack (show i)
         makeOption c i =
             [ X.Element "input"
-                (attr (idx == i) ("checked", "checked") $
-                    ("type", "radio") : ("value", value i) :
-                    ("id",    value i) : ("name", ref') :
-                    attrs ) []
+                (attr (idx == i) ("checked", "checked") $ addAttrs attrs
+                    [ ("type", "radio"), ("value", value i)
+                    , ("id", value i), ("name", ref')
+                    ]) []
             , X.Element "label" [("for", value i)] [X.TextNode c]
             ]
 
@@ -194,8 +199,9 @@ dfInputCheckbox view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputBool ref view
-    return $ makeElement "input" [] $ attr value ("checked", "checked") $
-        ("type", "checkbox") : ("id", ref') : ("name", ref') : attrs
+    return $ makeElement "input" [] $ addAttrs attrs $
+        attr value ("checked", "checked") $
+        [("type", "checkbox"), ("id", ref'), ("name", ref')]
 
 -- | Generate a file upload element. Example:
 --
@@ -205,9 +211,8 @@ dfInputFile view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = maybe "" T.pack $ fieldInputFile ref view
-    return $ makeElement "input" [] $
-        ("type", "file") : ("id", ref') :
-        ("name", ref') : ("value", value) : attrs
+    return $ makeElement "input" [] $ addAttrs attrs
+        [("type", "file"), ("id", ref'), ("name", ref'), ("value", value)]
 
 -- | Generate a submit button. Example:
 --
@@ -215,7 +220,7 @@ dfInputFile view = do
 dfInputSubmit :: Monad m => View v -> Splice m
 dfInputSubmit _ = do
     (_, attrs) <- getRefAttributes Nothing
-    return $ makeElement "input" [] $ ("type", "submit") : attrs
+    return $ makeElement "input" [] $ addAttrs attrs [("type", "submit")]
 
 -- | Generate a label for a field. Example:
 --
@@ -226,7 +231,7 @@ dfLabel view = do
     (ref, attrs) <- getRefAttributes Nothing
     content      <- getContent
     let ref' = absoluteRef ref view
-    return $ makeElement "label" content $ ("for", ref') : attrs
+    return $ makeElement "label" content $ addAttrs attrs [("for", ref')]
 
 -- | Generate a form tag with the @method@ attribute set to @POST@ and
 -- the @enctype@ set to the right value (depending on the form).
@@ -242,10 +247,10 @@ dfForm :: Monad m => View v -> Splice m
 dfForm view = do
     (_, attrs) <- getRefAttributes Nothing
     content    <- getContent
-    return $ makeElement "form" content $
-        attrs ++ 
+    return $ makeElement "form" content $ addAttrs attrs
         [ ("method", "POST")
-        , ("enctype", T.pack (show $ viewEncType view)) ]
+        , ("enctype", T.pack (show $ viewEncType view))
+        ]
 
 errorList :: [Text] -> [(Text, Text)] -> [X.Node]
 errorList []   _     = []
