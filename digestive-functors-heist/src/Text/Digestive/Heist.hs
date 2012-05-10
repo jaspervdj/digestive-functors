@@ -28,6 +28,7 @@ module Text.Digestive.Heist
     , bindDigestiveSplices
 
       -- * Main splices
+    , dfInput
     , dfInputText
     , dfInputTextArea
     , dfInputPassword
@@ -63,7 +64,8 @@ bindDigestiveSplices = bindSplices . digestiveSplices
 
 digestiveSplices :: Monad m => View Text -> [(Text, Splice m)]
 digestiveSplices view =
-    [ ("dfInputText",      dfInputText view)
+    [ ("dfInput",          dfInput view)
+    , ("dfInputText",      dfInputText view)
     , ("dfInputTextArea",  dfInputTextArea view)
     , ("dfInputPassword",  dfInputPassword view)
     , ("dfInputHidden",    dfInputHidden view)
@@ -107,6 +109,17 @@ addAttrs :: [(Text, Text)]  -- ^ Original attributes
          -> [(Text, Text)]  -- ^ Attributes to add
          -> [(Text, Text)]  -- ^ Resulting attributes
 addAttrs = unionBy (on (==) fst)
+
+-- | Generate an input field with a supplied type. Example:
+--
+-- > <dfInput type="date" ref="date" />
+dfInput :: Monad m => View v -> Splice m
+dfInput view = do
+    (ref, attrs) <- getRefAttributes Nothing
+    let ref'  = absoluteRef ref view
+        value = fieldInputText ref view
+    return $ makeElement "input" [] $ addAttrs attrs
+        [("id", ref'), ("name", ref'), ("value", value)]
 
 -- | Generate a text input field. Example:
 --
