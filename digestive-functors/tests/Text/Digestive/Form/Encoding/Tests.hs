@@ -17,11 +17,11 @@ import Text.Digestive.Form.Encoding
 tests :: Test
 tests = testGroup "Text.Digestive.Field.Tests"
     [ testCase "formEncType url-encoded" $
-        UrlEncoded @=? formEncType' ((,) <$> text Nothing <*> bool True)
+        UrlEncoded @=? formEncType' ((,) <$> text Nothing <*> bool Nothing)
     , testCase "formEncType multipart" $
         MultiPart @=? formEncType' ((,) <$> text Nothing <*> file)
     , testCase "formEncType multipart" $
-        MultiPart @=? formEncType' ((,) <$> file <*> bool True)
+        MultiPart @=? formEncType' ((,) <$> file <*> bool Nothing)
     ]
 
   where

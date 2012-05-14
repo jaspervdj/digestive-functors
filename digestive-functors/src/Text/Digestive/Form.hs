@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings, Rank2Types #-}
 module Text.Digestive.Form
-    ( Form
+    ( Formlet
+    , Form
     , SomeForm (..)
     , (.:)
 
@@ -30,24 +31,25 @@ import Text.Digestive.Form.Internal
 import Text.Digestive.Types
 import Text.Digestive.Util
 
-text :: Maybe Text -> Form v m Text
+type Formlet m v a = Maybe a -> Form m v a
+
+text :: Formlet v m Text
 text def = Pure Nothing $ Text $ fromMaybe "" def
 
-string :: Monad m => Maybe String -> Form v m String
+string :: Monad m => Formlet v m String
 string = fmap T.unpack . text . fmap T.pack
 
-stringRead :: (Monad m, Read a, Show a) => v -> Maybe a -> Form v m a
+stringRead :: (Monad m, Read a, Show a) => v -> Formlet v m a
 stringRead err = transform readTransform . string . fmap show
   where
     readTransform = return . maybe (Error err) return . readMaybe
 
-choice :: Eq a => [(a, v)] -> Maybe a -> Form v m a
+choice :: Eq a => [(a, v)] -> Formlet v m a
 choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
 
-bool :: Bool           -- ^ Default value
-     -> Form v m Bool  -- ^ Resulting form
-bool = Pure Nothing . Bool
+bool :: Formlet v m Bool
+bool = Pure Nothing . Bool . fromMaybe False
 
 file :: Form v m (Maybe FilePath)
 file = Pure Nothing File

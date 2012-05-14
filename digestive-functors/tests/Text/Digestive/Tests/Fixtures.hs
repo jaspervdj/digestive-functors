@@ -55,7 +55,7 @@ pokemonForm = Pokemon
     <$> "name"  .: validate isPokemon (text Nothing)
     <*> "level" .: levelForm
     <*> "type"  .: typeForm
-    <*> "rare"  .: bool False
+    <*> "rare"  .: bool Nothing
   where
     definitelyNoPokemon = ["dog", "cat"]
     isPokemon name
