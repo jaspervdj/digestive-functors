@@ -69,13 +69,13 @@ tests = testGroup "Text.Digestive.View.Tests"
                 ]
 
     , testCase "Abusing Choice as Text" $ assertError $
-        fieldInputText "type" $ getForm "f" pokemonForm
+        fieldInputText "type" $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "Abusing Bool as Choice" $ assertError $
-        fieldInputChoice "rare" $ getForm "f" pokemonForm
+        fieldInputChoice "rare" $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "Abusing Text as Bool" $ assertError $
-        fieldInputBool "name" $ getForm "f" pokemonForm
+        fieldInputBool "name" $ runTrainerM $ getForm "f" pokemonForm
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m

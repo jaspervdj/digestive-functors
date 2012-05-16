@@ -4,6 +4,7 @@ module Text.Digestive.Form.Encoding
     , formEncType
     ) where
 
+import Control.Monad.Identity (Identity)
 import Data.Maybe (mapMaybe)
 import Data.Monoid (Monoid (..), mconcat)
 
@@ -30,12 +31,12 @@ fieldEncType :: Field v a -> FormEncType
 fieldEncType File = MultiPart
 fieldEncType _    = UrlEncoded
 
-formEncType :: Form v m a -> FormEncType
+formEncType :: FormTree Identity v m a -> FormEncType
 formEncType = mconcat . map fieldEncType' . fieldList
   where
     fieldEncType' (SomeField f) = fieldEncType f
 
-fieldList :: Form v m a -> [SomeField v]
+fieldList :: FormTree Identity v m a -> [SomeField v]
 fieldList = mapMaybe toField' . fieldList' . SomeForm
   where
     fieldList' (SomeForm f) = SomeForm f : concatMap fieldList' (children f)

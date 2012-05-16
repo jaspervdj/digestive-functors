@@ -18,6 +18,9 @@ module Text.Digestive.Form
     , checkM
     , validate
     , validateM
+
+      -- * Lifting forms
+    , monadic
     ) where
 
 import Data.List (findIndex)
