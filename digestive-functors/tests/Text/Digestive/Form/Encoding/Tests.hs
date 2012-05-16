@@ -4,7 +4,7 @@ module Text.Digestive.Form.Encoding.Tests
     ) where
 
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad.Identity (Identity)
+import Control.Monad.Identity (Identity (..))
 
 import Data.Text (Text)
 import Test.Framework (Test, testGroup)
@@ -26,4 +26,4 @@ tests = testGroup "Text.Digestive.Field.Tests"
 
   where
     formEncType' :: Form Text Identity a -> FormEncType
-    formEncType' = formEncType
+    formEncType' = runIdentity . formEncType

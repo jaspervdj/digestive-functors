@@ -95,7 +95,7 @@ viewPath :: Text -> View v -> Path
 viewPath ref (View _ ctx _ _ _ _) = ctx ++ toPath ref
 
 viewEncType :: View v -> FormEncType
-viewEncType (View _ _ form _ _ _) = formEncType form
+viewEncType (View _ _ form _ _ _) = formTreeEncType form
 
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
