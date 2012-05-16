@@ -95,9 +95,12 @@ runFormWith :: Snap.MonadSnap m
 runFormWith config name form = do
     m <- maybe snapMethod return (method config)
     case m of
-        Get  -> return (getForm name form, Nothing)
+        Get  -> do
+            view <- getForm name form
+            return (view, Nothing)
         Post -> do
-            files <- case formEncType form of
+            encType <- formEncType form
+            files   <- case encType of
                 UrlEncoded -> return []
                 MultiPart  -> snapFiles config
             postForm name form (snapEnv files)
