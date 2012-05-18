@@ -21,10 +21,17 @@ assertError x = handle (\(_ :: SomeException) -> assert True) $
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
-        (Just (Pokemon "charmander" 5 Fire False)) $
+        (Just (Pokemon "charmander" (Just 5) Fire False)) $
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
             [ ("f.name",  "charmander")
             , ("f.level", "5")
+            , ("f.type",  "type.1")
+            ]
+
+    , testCase "optional unspecified" $ (@=?)
+        (Just (Pokemon "magmar" Nothing Fire False)) $
+        snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
+            [ ("f.name",  "magmar")
             , ("f.type",  "type.1")
             ]
 
@@ -47,7 +54,7 @@ tests = testGroup "Text.Digestive.View.Tests"
             postForm "f" pokemonForm $ testEnv [("f.type",  "type.2")]
 
     , testCase "Nested postForm" $ (@=?)
-        (Just (Catch (Pokemon "charmander" 5 Fire False) Ultra)) $
+        (Just (Catch (Pokemon "charmander" (Just 5) Fire False) Ultra)) $
         snd $ runTrainerM $ postForm "f" catchForm $ testEnv
             [ ("f.pokemon.name",  "charmander")
             , ("f.pokemon.level", "5")
