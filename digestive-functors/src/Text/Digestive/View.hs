@@ -9,6 +9,7 @@ module Text.Digestive.View
 
       -- * Operations on views
     , subView
+    , subViews
 
       -- * Querying a view
       -- ** Low-level
@@ -79,6 +80,15 @@ subView ref (View name ctx form input errs method) =
     View name (ctx ++ path) form input errs method
   where
     path = toPath ref
+
+-- | Returns all immediate subviews of a view
+subViews :: View v -> [View v]
+subViews view@(View _ _ form _ _ _) =
+    [subView r view | r <- go (SomeForm form)]
+  where
+    go (SomeForm f) = case getRef f of
+        Nothing -> [r | c <- children f, r <- go c]
+        Just r  -> [r]
 
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path

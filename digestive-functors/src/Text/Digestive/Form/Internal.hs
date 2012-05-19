@@ -12,6 +12,7 @@ module Text.Digestive.Form.Internal
     , toFormTree
     , children
     , (.:)
+    , getRef
     , lookupForm
     , toField
     , queryField
