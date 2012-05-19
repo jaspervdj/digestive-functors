@@ -21,9 +21,10 @@ import Data.Monoid (mappend, mempty)
 import Control.Monad (forM_, when)
 
 import Data.Text (Text)
-import Text.Blaze.Internal as H
+import Text.Blaze.Html (Html, (!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Blaze.Internal as H
 
 import Text.Digestive.View
 

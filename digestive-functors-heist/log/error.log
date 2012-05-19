@@ -1,0 +1,116 @@
+[28/Mar/2012:13:05:11 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:05:16 +0200] During processing of request from 127.0.0.1:46115
+request:
+"Request <\n    server-name: localhost\n    remote: 127.0.0.1:46115\n    local: 127.0.0.1:8000\n    Headers:\n      ========================================\n          User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:11.0) Gecko/20100101 Firefox/11.0\n Accept-Language: en-us,en;q=0.5\n Cookie: __utma=111872281.1141326834.1332147140.1332147140.1332171781.2; __utmz=111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\n Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n Host: localhost:8000\n Connection: keep-alive\n Accept-Encoding: gzip, deflate\n      ========================================\n    content-length: Nothing\n    method: GET\n    version: (1,1)\n    cookies:\n      ========================================\n      Cookie {cookieName = \"__utma\", cookieValue = \"111872281.1141326834.1332147140.1332147140.1332171781.2\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n Cookie {cookieName = \"__utmz\", cookieValue = \"111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n      ========================================\n    pathinfo: \n    contextpath: /\n    URI: /\n    params:\n      ========================================\n      \n      ========================================\n>"
+A web handler threw an exception. Details:
+Element {elementTag = "label", elementAttrs = [("for","form.name")], elementChildren = [TextNode "Name: "]}: missing ref attribute
+[28/Mar/2012:13:05:16 +0200] During processing of request from 127.0.0.1:46115
+request:
+"Request <\n    server-name: localhost\n    remote: 127.0.0.1:46115\n    local: 127.0.0.1:8000\n    Headers:\n      ========================================\n          User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:11.0) Gecko/20100101 Firefox/11.0\n Accept-Language: en-us,en;q=0.5\n Cookie: __utma=111872281.1141326834.1332147140.1332147140.1332171781.2; __utmz=111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\n Accept: image/png,image/*;q=0.8,*/*;q=0.5\n Host: localhost:8000\n Connection: keep-alive\n Accept-Encoding: gzip, deflate\n      ========================================\n    content-length: Nothing\n    method: GET\n    version: (1,1)\n    cookies:\n      ========================================\n      Cookie {cookieName = \"__utma\", cookieValue = \"111872281.1141326834.1332147140.1332147140.1332171781.2\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n Cookie {cookieName = \"__utmz\", cookieValue = \"111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n      ========================================\n    pathinfo: favicon.ico\n    contextpath: /\n    URI: /favicon.ico\n    params:\n      ========================================\n      \n      ========================================\n>"
+A web handler threw an exception. Details:
+Element {elementTag = "label", elementAttrs = [("for","form.name")], elementChildren = [TextNode "Name: "]}: missing ref attribute
+[28/Mar/2012:13:05:16 +0200] During processing of request from 127.0.0.1:46115
+request:
+"Request <\n    server-name: localhost\n    remote: 127.0.0.1:46115\n    local: 127.0.0.1:8000\n    Headers:\n      ========================================\n          User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:11.0) Gecko/20100101 Firefox/11.0\n Accept-Language: en-us,en;q=0.5\n Cookie: __utma=111872281.1141326834.1332147140.1332147140.1332171781.2; __utmz=111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\n Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n Host: localhost:8000\n Connection: keep-alive\n Accept-Encoding: gzip, deflate\n      ========================================\n    content-length: Nothing\n    method: GET\n    version: (1,1)\n    cookies:\n      ========================================\n      Cookie {cookieName = \"__utma\", cookieValue = \"111872281.1141326834.1332147140.1332147140.1332171781.2\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n Cookie {cookieName = \"__utmz\", cookieValue = \"111872281.1332147140.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n      ========================================\n    pathinfo: favicon.ico\n    contextpath: /\n    URI: /favicon.ico\n    params:\n      ========================================\n      \n      ========================================\n>"
+A web handler threw an exception. Details:
+Element {elementTag = "label", elementAttrs = [("for","form.name")], elementChildren = [TextNode "Name: "]}: missing ref attribute
+[28/Mar/2012:13:05:28 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:05:28 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:07:38 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:08:01 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:08:01 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:12:47 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:13:00 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:13:00 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:23:33 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:24:34 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:24:34 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:27:21 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:27:26 +0200] During processing of request from 127.0.0.1:46128
+request:
+"Request <\n    server-name: 0.0.0.0\n    remote: 127.0.0.1:46128\n    local: 127.0.0.1:8000\n    Headers:\n      ========================================\n          User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:11.0) Gecko/20100101 Firefox/11.0\n Accept-Language: en-us,en;q=0.5\n Cookie: __utma=162457789.597173188.1324912904.1332336775.1332609517.16; __utmz=162457789.1324912904.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\n Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n Host: 0.0.0.0:8000\n Connection: keep-alive\n Accept-Encoding: gzip, deflate\n      ========================================\n    content-length: Nothing\n    method: GET\n    version: (1,1)\n    cookies:\n      ========================================\n      Cookie {cookieName = \"__utma\", cookieValue = \"162457789.597173188.1324912904.1332336775.1332609517.16\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n Cookie {cookieName = \"__utmz\", cookieValue = \"162457789.1324912904.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\", cookieExpires = Nothing, cookieDomain = Nothing, cookiePath = Nothing, cookieSecure = False, cookieHttpOnly = False}\n      ========================================\n    pathinfo: \n    contextpath: /\n    URI: /\n    params:\n      ========================================\n      \n      ========================================\n>"
+A web handler threw an exception. Details:
+form.name does not exist
+[28/Mar/2012:13:27:49 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:27:49 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:30:12 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:30:30 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:30:30 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:31:16 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:31:23 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:31:23 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:34:27 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:34:31 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:34:31 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:13:34:45 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:13:34:59 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:13:34:59 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:15:43:12 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:15:43:22 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:15:43:22 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:15:43:36 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:15:43:40 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:15:43:40 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:15:49:29 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:15:49:37 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:15:49:37 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:15:50:01 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:15:50:28 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:15:50:28 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:15:53:29 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:15:53:37 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:15:53:37 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:41:23 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:41:24 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:41:24 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:46:07 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:46:32 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:46:32 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:46:42 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:46:57 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:46:57 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:47:16 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:47:19 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:47:19 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:47:29 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:47:37 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:47:37 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:47:53 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:48:53 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:48:53 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:54:30 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:54:39 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:54:39 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:54:56 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:55:13 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:55:13 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:57:28 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:57:38 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:57:38 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:16:57:57 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:16:58:09 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:16:58:09 +0200] Server.httpServe: BACKEND STOPPED
+[28/Mar/2012:17:07:28 +0200] Server.httpServe: START (EventLoopSimple)
+[28/Mar/2012:17:07:33 +0200] Server.httpServe: SHUTDOWN
+[28/Mar/2012:17:07:33 +0200] Server.httpServe: BACKEND STOPPED
+[29/Mar/2012:16:50:26 +0200] Server.httpServe: START (EventLoopSimple)
+[29/Mar/2012:16:52:06 +0200] Server.httpServe: SHUTDOWN
+[29/Mar/2012:16:52:06 +0200] Server.httpServe: BACKEND STOPPED
+[29/Mar/2012:16:55:47 +0200] Server.httpServe: START (EventLoopSimple)
+[29/Mar/2012:16:56:48 +0200] Server.httpServe: SHUTDOWN
+[29/Mar/2012:16:56:48 +0200] Server.httpServe: BACKEND STOPPED
+[30/Mar/2012:23:03:40 +0200] Server.httpServe: START (EventLoopSimple)
+[30/Mar/2012:23:05:36 +0200] Server.httpServe: SHUTDOWN
+[30/Mar/2012:23:05:36 +0200] Server.httpServe: BACKEND STOPPED
+[30/Mar/2012:23:08:04 +0200] Server.httpServe: START (EventLoopSimple)
+[30/Mar/2012:23:08:20 +0200] Server.httpServe: SHUTDOWN
+[30/Mar/2012:23:08:20 +0200] Server.httpServe: BACKEND STOPPED
+[30/Mar/2012:23:09:53 +0200] Server.httpServe: START (EventLoopSimple)
+[30/Mar/2012:23:10:09 +0200] Server.httpServe: SHUTDOWN
+[30/Mar/2012:23:10:09 +0200] Server.httpServe: BACKEND STOPPED
+[30/Mar/2012:23:10:42 +0200] Server.httpServe: START (EventLoopSimple)
+[30/Mar/2012:23:10:49 +0200] Server.httpServe: SHUTDOWN
+[30/Mar/2012:23:10:49 +0200] Server.httpServe: BACKEND STOPPED
+[01/Apr/2012:18:03:34 +0200] Server.httpServe: START (EventLoopSimple)
+[01/Apr/2012:18:03:56 +0200] Server.httpServe: SHUTDOWN
+[01/Apr/2012:18:03:56 +0200] Server.httpServe: BACKEND STOPPED

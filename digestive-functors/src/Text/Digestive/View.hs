@@ -33,6 +33,7 @@ module Text.Digestive.View
     ) where
 
 import Control.Arrow (second)
+import Control.Monad.Identity (Identity)
 import Data.List (findIndex, isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid, mappend)
@@ -48,7 +49,7 @@ import Text.Digestive.Types
 data View v = forall a m. Monad m => View
     { viewName    :: Text
     , viewContext :: Path
-    , viewForm    :: Form v m a
+    , viewForm    :: FormTree Identity v m a
     , viewInput   :: [(Path, FormInput)]
     , viewErrors  :: [(Path, v)]
     , viewMethod  :: Method
@@ -63,13 +64,17 @@ instance Show v => Show (View v) where
         "View " ++ show name ++ " " ++ show ctx ++ " " ++ show form ++ " " ++
         show input ++ " " ++ show errs ++ " " ++ show method
 
-getForm :: Monad m => Text -> Form v m a -> View v
-getForm name form = View name [] form [] [] Get
+getForm :: Monad m => Text -> Form v m a -> m (View v)
+getForm name form = do
+    form' <- toFormTree form
+    return $ View name [] form' [] [] Get
 
 postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
-postForm name form env = eval Post env' form >>= \(r, inp) -> return $ case r of
-    Error errs -> (View name [] form inp errs Post, Nothing)
-    Success x  -> (View name [] form inp [] Post, Just x)
+postForm name form env = do
+    form' <- toFormTree form
+    eval Post env' form' >>= \(r, inp) -> return $ case r of
+        Error errs -> (View name [] form' inp errs Post, Nothing)
+        Success x  -> (View name [] form' inp [] Post, Just x)
   where
     env' = env . (name :)
 
@@ -94,7 +99,7 @@ viewPath :: Text -> View v -> Path
 viewPath ref (View _ ctx _ _ _ _) = ctx ++ toPath ref
 
 viewEncType :: View v -> FormEncType
-viewEncType (View _ _ form _ _ _) = formEncType form
+viewEncType (View _ _ form _ _ _) = formTreeEncType form
 
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)

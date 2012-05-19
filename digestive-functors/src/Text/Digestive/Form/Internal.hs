@@ -1,10 +1,15 @@
 -- | This module mostly meant for internal usage, and might change between minor
 -- releases.
-{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings, Rank2Types #-}
+{-# LANGUAGE ExistentialQuantification, FlexibleInstances,
+        GADTs, OverloadedStrings, Rank2Types #-}
 module Text.Digestive.Form.Internal
-    ( Form (..)
+    ( Form
+    , FormTree (..)
     , SomeForm (..)
+    , Ref
     , transform
+    , monadic
+    , toFormTree
     , children
     , (.:)
     , lookupForm
@@ -16,7 +21,8 @@ module Text.Digestive.Form.Internal
     ) where
 
 import Control.Applicative (Applicative (..))
-import Control.Monad ((>=>))
+import Control.Monad (liftM, liftM2, (>=>))
+import Control.Monad.Identity (Identity (..))
 import Data.Maybe (maybeToList)
 import Data.Monoid (Monoid, mappend)
 
@@ -25,8 +31,6 @@ import qualified Data.Text as T
 
 import Text.Digestive.Types
 import Text.Digestive.Field
-
-type Ref = Maybe Text
 
 -- | Base type for a form.
 --
@@ -42,28 +46,37 @@ type Ref = Maybe Text
 -- * @a@: the type of the value returned by the form, used for its Applicative
 --   instance.
 --
-data Form v m a where
-    Pure :: Ref -> Field v a -> Form v m a
-    App  :: Ref -> Form v m (b -> a) -> Form v m b -> Form v m a
+type Form v m a = FormTree m v m a
 
-    Map  :: (b -> m (Result v a)) -> Form v m b -> Form v m a
+data FormTree t v m a where
+    Pure    :: Ref -> Field v a -> FormTree t v m a
+    App     :: Ref
+            -> FormTree t v m (b -> a)
+            -> FormTree t v m b
+            -> FormTree t v m a
 
-instance Monad m => Functor (Form v m) where
+    Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
+
+    Monadic :: t (FormTree t v m a) -> FormTree t v m a
+
+instance Monad m => Functor (FormTree t v m) where
     fmap = transform . (return .) . (return .)
 
-instance (Monad m, Monoid v) => Applicative (Form v m) where
+instance (Monad m, Monoid v) => Applicative (FormTree t v m) where
     pure x  = Pure Nothing (Singleton x)
     x <*> y = App Nothing x y
 
-instance Show (Form v m a) where
+instance Show (FormTree Identity v m a) where
     show = unlines . showForm
 
-data SomeForm v m = forall a. SomeForm (Form v m a)
+data SomeForm v m = forall a. SomeForm (FormTree Identity v m a)
 
 instance Show (SomeForm v m) where
     show (SomeForm f) = show f
 
-showForm :: Form v m a -> [String]
+type Ref = Maybe Text
+
+showForm :: FormTree Identity v m a -> [String]
 showForm form = case form of
     (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
     (App r x y) -> concat
@@ -72,34 +85,48 @@ showForm form = case form of
         , map indent (showForm y)
         ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
+    (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
   where
     indent = ("  " ++)
 
-transform :: Monad m => (a -> m (Result v b)) -> Form v m a -> Form v m b
+transform :: Monad m
+          => (a -> m (Result v b)) -> FormTree t v m a -> FormTree t v m b
 transform f (Map g x) = flip Map x $ \y -> bindResult (g y) f
 transform f x         = Map f x
 
-children :: Form v m a -> [SomeForm v m]
-children (Pure _ _)  = []
-children (App _ x y) = [SomeForm x, SomeForm y]
-children (Map _ x)   = children x
+monadic :: m (Form v m a) -> Form v m a
+monadic = Monadic
 
-setRef :: Ref -> Form v m a -> Form v m a
+toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
+toFormTree (Pure r x)  = return $ Pure r x
+toFormTree (App r x y) = liftM2 (App r) (toFormTree x) (toFormTree y)
+toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
+toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
+
+children :: FormTree Identity v m a -> [SomeForm v m]
+children (Pure _ _)    = []
+children (App _ x y)   = [SomeForm x, SomeForm y]
+children (Map _ x)     = children x
+children (Monadic x)   = children $ runIdentity x
+
+setRef :: Monad t => Ref -> FormTree t v m a -> FormTree t v m a
 setRef r (Pure _ x)  = Pure r x
 setRef r (App _ x y) = App r x y
 setRef r (Map f x)   = Map f (setRef r x)
+setRef r (Monadic x) = Monadic $ liftM (setRef r) x
 
 -- | Operator to set a name for a subform.
-(.:) :: Text -> Form v m a -> Form v m a
+(.:) :: Monad m => Text -> Form v m a -> Form v m a
 (.:) = setRef . Just
 infixr 5 .:
 
-getRef :: Form v m a -> Ref
+getRef :: FormTree Identity v m a -> Ref
 getRef (Pure r _)  = r
 getRef (App r _ _) = r
 getRef (Map _ x)   = getRef x
+getRef (Monadic x) = getRef $ runIdentity x
 
-lookupForm :: Path -> Form v m a -> [SomeForm v m]
+lookupForm :: Path -> FormTree Identity v m a -> [SomeForm v m]
 lookupForm path = go path . SomeForm
   where
     go []       form            = [form]
@@ -112,13 +139,13 @@ lookupForm path = go path . SomeForm
             | otherwise          -> []
         Nothing                  -> children form >>= go (r : rs)
 
-toField :: Form v m a -> Maybe (SomeField v)
+toField :: FormTree Identity v m a -> Maybe (SomeField v)
 toField (Pure _ x) = Just (SomeField x)
 toField (Map _ x)  = toField x
 toField _          = Nothing
 
 queryField :: Path
-           -> Form v m a
+           -> FormTree Identity v m a
            -> (forall b. Field v b -> c)
            -> c
 queryField path form f = case lookupForm path form of
@@ -133,17 +160,19 @@ ann :: Path -> Result v a -> Result [(Path, v)] a
 ann _    (Success x) = Success x
 ann path (Error x)   = Error [(path, x)]
 
-eval :: Monad m => Method -> Env m -> Form v m a
+eval :: Monad m => Method -> Env m -> FormTree Identity v m a
      -> m (Result [(Path, v)] a, [(Path, FormInput)])
 eval = eval' []
 
-eval' :: Monad m => Path -> Method -> Env m -> Form v m a
+eval' :: Monad m => Path -> Method -> Env m -> FormTree Identity v m a
       -> m (Result [(Path, v)] a, [(Path, FormInput)])
 
 eval' context method env form = case form of
 
-    Pure Nothing _ ->
-        error "No ref specified for field"
+    Pure Nothing (Singleton x) -> return (pure x, [])
+
+    Pure Nothing f ->
+        error $ "No ref specified for field " ++ show f
 
     Pure (Just _) field -> do
         val <- env path
@@ -160,22 +189,26 @@ eval' context method env form = case form of
         x''       <- bindResult (return x') (f >=> return . ann path)
         return (x'', inp)
 
+    Monadic x -> eval' path method env $ runIdentity x
+
   where
     path = context ++ maybeToList (getRef form)
 
-formMapView :: Monad m => (v -> w) -> Form v m a -> Form w m a
-formMapView f (Pure r x)  = Pure r (fieldMapView f x)
+formMapView :: Monad m
+            => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
+formMapView f (Pure r x)  = Pure r $ (fieldMapView f) x
 formMapView f (App r x y) = App r (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
+formMapView f (Monadic x) = formMapView f $ runIdentity x
 
 foldForm :: Monoid a
-         => (Path -> a)  -- ^ Singleton fields
-         -> (Path -> a)  -- ^ Text fields
-         -> (Path -> a)  -- ^ Choice fields
-         -> (Path -> a)  -- ^ Bool fields
-         -> (Path -> a)  -- ^ File fields
-         -> Form v m b   -- ^ Form to fold over
-         -> a            -- ^ Result
+         => (Path -> a)              -- ^ Singleton fields
+         -> (Path -> a)              -- ^ Text fields
+         -> (Path -> a)              -- ^ Choice fields
+         -> (Path -> a)              -- ^ Bool fields
+         -> (Path -> a)              -- ^ File fields
+         -> FormTree Identity v m b  -- ^ Form to fold over
+         -> a                        -- ^ Result
 foldForm = fold []
   where
     fold :: Monoid a
@@ -185,7 +218,7 @@ foldForm = fold []
          -> (Path -> a)
          -> (Path -> a)
          -> (Path -> a)
-         -> Form v m b
+         -> FormTree Identity v m b
          -> a
     fold ctx singleton text choice bool file form = case form of
         Pure _ (Singleton _) -> singleton ctx'
@@ -196,8 +229,9 @@ foldForm = fold []
         App _ x y            ->
             fold ctx' singleton text choice bool file x `mappend`
             fold ctx' singleton text choice bool file y
-        -- Use ctx instead of ctx' for Map constructor!
+        -- Use ctx instead of ctx' for Map and Monadic constructor!
         Map _ x              -> fold ctx singleton text choice bool file x
+        Monadic (Identity x) -> fold ctx singleton text choice bool file x
       where
         ctx' = ctx ++ maybeToList (getRef form)
 

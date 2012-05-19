@@ -35,18 +35,19 @@ typeForm = choice [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf")] Nothing
 
 data Pokemon = Pokemon
     { pokemonName  :: Text
-    , pokemonLevel :: Int
+    , pokemonLevel :: Maybe Int
     , pokemonType  :: Type
     , pokemonRare  :: Bool
     } deriving (Eq, Show)
 
-levelForm :: Form Text TrainerM Int
+levelForm :: Form Text TrainerM (Maybe Int)
 levelForm =
-    checkM "This pokemon will not obey you!" checkMaxLevel $
-    check  "Level should be at least 1"      (> 1)         $
-    stringRead "Cannot parse level" (Just 5)
+    checkM "This pokemon will not obey you!" checkMaxLevel      $
+    check  "Level should be at least 1"      (maybe True (> 1)) $
+    optionalStringRead "Cannot parse level" Nothing
   where
-    checkMaxLevel l = do
+    checkMaxLevel Nothing  = return True
+    checkMaxLevel (Just l) = do
         maxLevel <- ask
         return $ l <= maxLevel
 
@@ -55,7 +56,7 @@ pokemonForm = Pokemon
     <$> "name"  .: validate isPokemon (text Nothing)
     <*> "level" .: levelForm
     <*> "type"  .: typeForm
-    <*> "rare"  .: bool False
+    <*> "rare"  .: bool Nothing
   where
     definitelyNoPokemon = ["dog", "cat"]
     isPokemon name

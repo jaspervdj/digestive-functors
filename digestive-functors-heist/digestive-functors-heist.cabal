@@ -1,5 +1,5 @@
 Name:          digestive-functors-heist
-Version:       0.3.0.0
+Version:       0.4.0.0
 Synopsis:      Heist frontend for the digestive-functors library
 Description:   Heist frontend for the digestive-functors library
 Homepage:      http://github.com/jaspervdj/digestive-functors
@@ -17,8 +17,8 @@ Library
   Exposed-modules: Text.Digestive.Heist
 
   Build-depends:
-    base               >= 4       && < 5,
-    digestive-functors >= 0.3.0.1 && < 0.4,
-    heist              >= 0.8     && < 0.9,
-    text               >= 0.11    && < 0.12,
-    xmlhtml            >= 0.1     && < 0.2
+    base               >= 4    && < 5,
+    digestive-functors >= 0.4  && < 0.5,
+    heist              >= 0.8  && < 0.9,
+    text               >= 0.11 && < 0.12,
+    xmlhtml            >= 0.1  && < 0.3

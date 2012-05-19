@@ -1,1 +1,1 @@
-:set -isrc
+:set -isrc -i../digestive-functors/src
