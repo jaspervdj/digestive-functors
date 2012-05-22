@@ -9,6 +9,7 @@ module Text.Digestive.Tests.Fixtures
     , ballForm
     , Catch (..)
     , catchForm
+    , floatForm
     ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -87,3 +88,6 @@ canCatch (Catch (Pokemon _ _ _ False) _)      = True
 canCatch (Catch (Pokemon _ _ _ True)  Ultra)  = True
 canCatch (Catch (Pokemon _ _ _ True)  Master) = True
 canCatch _                                    = False
+
+floatForm :: Monad m => Form Text m Float
+floatForm = "f" .: stringRead "Can't parse float" Nothing

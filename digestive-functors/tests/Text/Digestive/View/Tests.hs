@@ -3,6 +3,7 @@ module Text.Digestive.View.Tests
     ( tests
     ) where
 
+import Control.Monad.Identity (runIdentity)
 import Control.Exception (SomeException, handle)
 
 import Data.Text (Text)
@@ -34,6 +35,11 @@ tests = testGroup "Text.Digestive.View.Tests"
             [ ("f.name",  "magmar")
             , ("f.type",  "type.1")
             ]
+
+    , testCase "stringRead float" $ (@=?)
+        (Just 4.323 :: Maybe Float) $
+        snd $ runIdentity $ postForm "f" floatForm $ testEnv
+            [("f.f", "4.323")]
 
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
