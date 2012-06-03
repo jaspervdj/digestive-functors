@@ -32,8 +32,7 @@ module Text.Digestive.View
 
 import Control.Arrow (second)
 import Control.Monad.Identity (Identity)
-import Data.List (findIndex, isPrefixOf)
-import Data.Maybe (fromMaybe)
+import Data.List (isPrefixOf)
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -133,8 +132,7 @@ fieldInputChoice ref view@(View _ _ form input _ method) =
     eval' :: Field v b -> ([v], Int)
     eval' field = case field of
         Choice xs i ->
-            let x   = evalField method givenInput (Choice xs i)
-                idx = fromMaybe 0 $ findIndex (== x) (map fst xs)
+            let idx = snd $ evalField method givenInput (Choice xs i)
             in (map snd xs, idx)
         f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
             "but got: (" ++ show f ++ ")"

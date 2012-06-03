@@ -10,6 +10,7 @@ module Text.Digestive.Form
     , string
     , stringRead
     , choice
+    , choice'
     , bool
     , file
 
@@ -51,9 +52,14 @@ string = fmap T.unpack . text . fmap T.pack
 stringRead :: (Monad m, Read a, Show a) => v -> Formlet v m a
 stringRead err = transform (readTransform err) . string . fmap show
 
-choice :: Eq a => [(a, v)] -> Formlet v m a
-choice items def = Pure Nothing $ Choice items $ fromMaybe 0 $
+choice :: (Eq a, Monad m) => [(a, v)] -> Formlet v m a
+choice items def = choice' items $
     maybe Nothing (\d -> findIndex ((== d) . fst) items) def
+
+-- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
+-- can use this function, which takes an index in the list as default.
+choice' :: Monad m => [(a, v)] -> Maybe Int -> Form v m a
+choice' items def = fmap fst $ Pure Nothing $ Choice items $ fromMaybe 0 def
 
 bool :: Formlet v m Bool
 bool = Pure Nothing . Bool . fromMaybe False

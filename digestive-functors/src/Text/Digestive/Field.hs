@@ -19,7 +19,7 @@ import Text.Digestive.Util
 data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text
-    Choice    :: Eq a => [(a, v)] -> Int -> Field v a
+    Choice    :: [(a, v)] -> Int -> Field v (a, Int)
     Bool      :: Bool -> Field v Bool
     File      :: Field v (Maybe FilePath)
 
@@ -39,12 +39,13 @@ evalField :: Method       -- ^ Get/Post
 evalField _    _                 (Singleton x) = x
 evalField _    (TextInput x : _) (Text _)      = x
 evalField _    _                 (Text x)      = x
-evalField _    (TextInput x : _) (Choice ls y) = fromMaybe (fst $ ls !! y) $ do
-    -- Expects input in the form of @foo.bar.2@
-    t <- listToMaybe $ reverse $ toPath x
-    i <- readMaybe $ T.unpack t
-    return $ fst $ ls !! i
-evalField _    _                 (Choice ls x) = fst $ ls !! x
+evalField _    (TextInput x : _) (Choice ls y) =
+    fromMaybe (fst (ls !! y), y) $ do
+        -- Expects input in the form of @foo.bar.2@
+        t <- listToMaybe $ reverse $ toPath x
+        i <- readMaybe $ T.unpack t
+        return $ (fst (ls !! i), i)
+evalField _    _                 (Choice ls x) = (fst (ls !! x), x)
 evalField Get  _                 (Bool x)      = x
 evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
