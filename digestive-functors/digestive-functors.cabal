@@ -46,23 +46,24 @@ Library
   Ghc-options:    -Wall -fwarn-tabs
 
   Exposed-modules:     
-    Text.Digestive,
-    Text.Digestive.Form,
-    Text.Digestive.Form.Encoding,
-    Text.Digestive.Types,
-    Text.Digestive.View,
+    Text.Digestive
+    Text.Digestive.Form
+    Text.Digestive.Form.Encoding
+    Text.Digestive.Ref
+    Text.Digestive.Types
     Text.Digestive.Util
+    Text.Digestive.View
 
   Other-modules:
-    Text.Digestive.Field,
+    Text.Digestive.Field
     Text.Digestive.Form.Internal
 
   Build-depends:
     base       >= 4       && < 5,
-    bytestring >= 0.9,
-    containers >= 0.3,
+    bytestring >= 0.9     && < 0.10,
+    containers >= 0.3     && < 0.6,
     mtl        >= 1.1.0.0 && < 3,
-    text       >= 0.10
+    text       >= 0.10    && < 0.12
 
 Test-suite digestive-functors-tests
   Type:           exitcode-stdio-1.0
@@ -76,10 +77,10 @@ Test-suite digestive-functors-tests
     test-framework-hunit >= 0.2 && < 0.3,
     -- Copied from regular dependencies:
     base       >= 4       && < 5,
-    bytestring >= 0.9,
-    containers >= 0.3,
+    bytestring >= 0.9     && < 0.10,
+    containers >= 0.3     && < 0.6,
     mtl        >= 1.1.0.0 && < 3,
-    text       >= 0.10
+    text       >= 0.10    && < 0.12
 
 Source-repository head
   Type:     git
