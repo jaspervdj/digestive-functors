@@ -57,8 +57,8 @@ evalField _    (TextInput x : _) (Text _)      = x
 evalField _    _                 (Text x)      = x
 evalField _    (TextInput x : _) (Choice ls y) =
     fromMaybe (fst (snd (ls !! y)), y) $ do
-        -- Expects input in the form of @foo.bar.2@
-        -- TODO: Do we really need that?
+        -- Expects input in the form of "foo.bar.2". This is not needed for
+        -- <select> fields, but we need it for labels for radio buttons.
         t      <- listToMaybe $ reverse $ toPath x
         (c, i) <- lookupIdx t ls
         return (fst c, i)
