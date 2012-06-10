@@ -1,9 +1,10 @@
 > {-# LANGUAGE OverloadedStrings #-}
+> {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 > import Control.Applicative ((<$>), (<*>))
 > import Data.Maybe (isJust)
 
 > import Data.Text (Text)
-> import Text.Blaze (Html, (!))
+> import Text.Blaze ((!))
 > import qualified Data.Text as T
 > import qualified Happstack.Server as Happstack
 > import qualified Text.Blaze.Html5 as H
@@ -135,7 +136,7 @@ Let's write a view for the `User` form. As you can see, we here refer to the
 different fields in the `userForm`. The `errorList` will generate a list of
 errors for the `"mail"` field.
 
-> userView :: View Html -> Html
+> userView :: View H.Html -> H.Html
 > userView view = do
 >     label     "name" view "Name: "
 >     inputText "name" view
@@ -157,7 +158,7 @@ child of the specified form. In this case, this means a list of errors from
 `"package.name"` and `"package.version"`. Note how we use `foo.bar` to refer to
 nested forms.
 
-> releaseView :: View Html -> Html
+> releaseView :: View H.Html -> H.Html
 > releaseView view = do
 >     H.h2 "Author"
 >     userView $ subView "author" view
@@ -183,7 +184,7 @@ it is the `String`-like type used for e.g. error messages.
 But wait! We have
 
     releaseForm :: Monad m => Form Text m Release
-    releaseView :: View Html -> Html
+    releaseView :: View H.Html -> H.Html
 
 ... doesn't this mean that we need a `View Text` rather than a `View Html`?  The
 answer is yes -- but having `View Html` allows us to write these views more
@@ -226,14 +227,14 @@ an HTTP server for that, and we use [Happstack] for this tutorial. The
 Utilities
 ---------
 
-> template :: Html -> Html
+> template :: H.Html -> H.Html
 > template body = H.docTypeHtml $ do
 >     H.head $ do
 >         H.title "digestive-functors tutorial"
 >         css
 >     H.body body
 
-> css :: Html
+> css :: H.Html
 > css = H.style ! A.type_ "text/css" $ do
 >     "label {width: 130px; float: left; clear: both}"
 >     "ul.digestive-functors-error-list {"

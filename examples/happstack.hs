@@ -5,7 +5,6 @@ import Data.Monoid (mappend)
 import System.Directory (copyFile)
 
 import Happstack.Server
-import Text.Blaze (Html, toHtml)
 import qualified Text.Blaze.Html5 as H
 
 import Text.Digestive.Blaze.Html5
@@ -16,12 +15,12 @@ import Text.Digestive.View
 data Upload = Upload (Maybe FilePath) String
     deriving (Show)
 
-uploadForm :: Monad m => Form Html m Upload
+uploadForm :: Monad m => Form H.Html m Upload
 uploadForm = Upload
     <$> "file" .: file
     <*> "name" .: check "Name can't be empty" (not . null) (string Nothing)
 
-uploadView :: View Html -> Html
+uploadView :: View H.Html -> H.Html
 uploadView view = form view "/" $ do
     childErrorList "" view
 
@@ -45,7 +44,7 @@ upload = do
             liftIO $ copyFile fileName destination
             ok $ toResponse $ do
                 H.h1 "File uploaded"
-                H.p $ "Location: " `mappend` toHtml destination
+                H.p $ "Location: " `mappend` H.toHtml destination
         (_, Just (Upload Nothing _)) ->
             ok $ toResponse $ H.h1 "No file given"
 

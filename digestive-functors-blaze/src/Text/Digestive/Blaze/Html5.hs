@@ -1,4 +1,6 @@
-{-# LANGUAGE GADTs, OverloadedStrings #-}
+--------------------------------------------------------------------------------
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Blaze.Html5
     ( inputText
     , inputTextArea
@@ -15,22 +17,29 @@ module Text.Digestive.Blaze.Html5
     , childErrorList
     ) where
 
-import Data.Maybe (fromMaybe)
-import Data.Monoid (mappend, mempty)
-import Control.Monad (forM_, when)
 
-import Data.Text (Text)
-import Text.Blaze.Html (Html, (!))
-import qualified Text.Blaze.Html5 as H
+--------------------------------------------------------------------------------
+import           Control.Monad               (forM_, when)
+import           Data.Maybe                  (fromMaybe)
+import           Data.Monoid                 (mappend, mempty)
+import           Data.Text                   (Text)
+import           Text.Blaze.Html             (Html, (!))
+import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
-import qualified Text.Blaze.Internal as H
+import qualified Text.Blaze.Internal         as H
 
-import Text.Digestive.View
 
+--------------------------------------------------------------------------------
+import           Text.Digestive.View
+
+
+--------------------------------------------------------------------------------
 (!?) :: H.Attributable h => h -> (Bool, H.Attribute) -> h
 (!?) h (False, _) = h
 (!?) h (True,  a) = h ! a
 
+
+--------------------------------------------------------------------------------
 inputText :: Text -> View v -> Html
 inputText ref view = H.input
     ! A.type_ "text"
@@ -40,6 +49,8 @@ inputText ref view = H.input
   where
     ref' = absoluteRef ref view
 
+
+--------------------------------------------------------------------------------
 inputTextArea :: Maybe Int  -- ^ Rows
               -> Maybe Int  -- ^ Columns
               -> Text       -- ^ Form path
@@ -56,6 +67,8 @@ inputTextArea r c ref view = rows r $ cols c $ H.textarea
     cols (Just x) = (! A.cols (H.toValue x))
     cols _        = id
 
+
+--------------------------------------------------------------------------------
 inputPassword :: Text -> View v -> Html
 inputPassword ref view = H.input
     ! A.type_ "password"
@@ -65,6 +78,8 @@ inputPassword ref view = H.input
   where
     ref' = absoluteRef ref view
 
+
+--------------------------------------------------------------------------------
 inputHidden :: Text -> View v -> Html
 inputHidden ref view = H.input
     ! A.type_ "hidden"
@@ -74,34 +89,40 @@ inputHidden ref view = H.input
   where
     ref' = absoluteRef ref view
 
+
+--------------------------------------------------------------------------------
 inputSelect :: Text -> View Html -> Html
 inputSelect ref view = H.select
     ! A.id    (H.toValue ref')
     ! A.name  (H.toValue ref')
-    $ forM_ (zip choices [0 ..]) $ \(c, i) -> H.option
+    $ forM_ choices $ \(i, c, sel) -> H.option
         !  A.value (value i)
-        !? (i == idx, A.selected "selected")
+        !? (sel, A.selected "selected")
         $ c
   where
-    ref'           = absoluteRef ref view
-    value i        = H.toValue ref' `mappend` "." `mappend` H.toValue i
-    (choices, idx) = fieldInputChoice ref view
+    ref'    = absoluteRef ref view
+    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
+    choices = fieldInputChoice ref view
 
+
+--------------------------------------------------------------------------------
 inputRadio :: Bool       -- ^ Add @br@ tags?
            -> Text       -- ^ Form path
            -> View Html  -- ^ View
            -> Html       -- ^ Resulting HTML
-inputRadio brs ref view = forM_ (zip choices [0 ..]) $ \(c, i) -> do
+inputRadio brs ref view = forM_ choices $ \(i, c, sel) -> do
     let val = value i
     H.input ! A.type_ "radio" ! A.value val ! A.id val ! A.name (H.toValue ref')
-        !? (i == idx, A.checked "checked")
+        !? (sel, A.checked "checked")
     H.label ! A.for val $ c
     when brs H.br
   where
-    ref'           = absoluteRef ref view
-    value i        = H.toValue ref' `mappend` "." `mappend` H.toValue i
-    (choices, idx) = fieldInputChoice ref view
+    ref'    = absoluteRef ref view
+    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
+    choices = fieldInputChoice ref view
 
+
+--------------------------------------------------------------------------------
 inputCheckbox :: Text -> View Html -> Html
 inputCheckbox ref view = H.input
     !  A.type_ "checkbox"
@@ -112,6 +133,8 @@ inputCheckbox ref view = H.input
     ref'     = absoluteRef ref view
     selected = fieldInputBool ref view
 
+
+--------------------------------------------------------------------------------
 inputFile :: Text -> View Html -> Html
 inputFile ref view = H.input
     ! A.type_ "file"
@@ -122,11 +145,15 @@ inputFile ref view = H.input
     ref'  = absoluteRef ref view
     value = fromMaybe "" $ fieldInputFile ref view
 
+
+--------------------------------------------------------------------------------
 inputSubmit :: Text -> Html
 inputSubmit value = H.input
     ! A.type_ "submit"
     ! A.value (H.toValue value)
 
+
+--------------------------------------------------------------------------------
 label :: Text -> View v -> Html -> Html
 label ref view value = H.label
     ! A.for (H.toValue ref')
@@ -134,18 +161,24 @@ label ref view value = H.label
   where
     ref' = absoluteRef ref view
 
+
+--------------------------------------------------------------------------------
 form :: View Html -> Text -> Html -> Html
 form view action = H.form
     ! A.method  "POST"
     ! A.enctype (H.toValue $ show $ viewEncType view)
     ! A.action  (H.toValue action)
 
+
+--------------------------------------------------------------------------------
 errorList :: Text -> View Html -> Html
 errorList ref view = case errors ref view of
     []   -> mempty
     errs -> H.ul ! A.class_ "digestive-functors-error-list" $ forM_ errs $ \e ->
         H.li ! A.class_ "digestive-functors-error" $ e
 
+
+--------------------------------------------------------------------------------
 childErrorList :: Text -> View Html -> Html
 childErrorList ref view = case childErrors ref view of
     []   -> mempty

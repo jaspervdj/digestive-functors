@@ -55,8 +55,8 @@ tests = testGroup "Text.Digestive.View.Tests"
             [("f.name", "dog")]
 
     , testCase "Simple fieldInputChoice" $ (@=?)
-        2 $
-        snd $ fieldInputChoice "type" $ fst $ runTrainerM $
+        "Leaf" $
+        snd $ selection $ fieldInputChoice "type" $ fst $ runTrainerM $
             postForm "f" pokemonForm $ testEnv [("f.type",  "type.2")]
 
     , testCase "Nested postForm" $ (@=?)
@@ -74,8 +74,8 @@ tests = testGroup "Text.Digestive.View.Tests"
             postForm "f" catchForm $ testEnv [("f.pokemon.level", "hah.")]
 
     , testCase "subView input" $ (@=?)
-        2 $
-        snd $ fieldInputChoice "type" $ subView "pokemon" $ fst $
+        "Leaf" $
+        snd $ selection $ fieldInputChoice "type" $ subView "pokemon" $ fst $
             runTrainerM $ postForm "f" catchForm $ testEnv
                 [ ("f.pokemon.level", "hah.")
                 , ("f.pokemon.type",  "type.2")
@@ -98,3 +98,6 @@ tests = testGroup "Text.Digestive.View.Tests"
 testEnv :: Monad m => [(Text, Text)] -> Env m
 testEnv input key = return $ map (TextInput . snd) $
     filter ((== fromPath key) . fst) input
+
+selection :: [(Text, v, Bool)] -> (Text, v)
+selection fic = head [(t, v) | (t, v, s) <- fic, s]

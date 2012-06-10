@@ -156,18 +156,19 @@ fieldInputText ref view@(View _ _ form input _ method) =
 
 
 --------------------------------------------------------------------------------
-fieldInputChoice :: forall v. Text -> View v -> ([(Text, v)], Int)
+-- | Returns a list of (identifier, view, selected?)
+fieldInputChoice :: forall v. Text -> View v -> [(Text, v, Bool)]
 fieldInputChoice ref view@(View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = viewPath ref view
     givenInput = lookupInput path input
 
-    eval' :: Field v b -> ([(Text, v)], Int)
+    eval' :: Field v b -> [(Text, v, Bool)]
     eval' field = case field of
-        Choice xs i ->
-            let idx = snd $ evalField method givenInput (Choice xs i)
-            in (map (\(k, (_, v)) -> (k, v)) xs, idx)
+        Choice xs didx ->
+            let idx = snd $ evalField method givenInput (Choice xs didx)
+            in map (\(i, (k, (_, v))) -> (k, v, i == idx)) $ zip [0 ..] xs
         f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
             "but got: (" ++ show f ++ ")"
 

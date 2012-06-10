@@ -1,3 +1,4 @@
+--------------------------------------------------------------------------------
 -- | This module provides a Heist frontend for the digestive-functors library.
 --
 -- Disclaimer: this documentation requires very basic familiarity with
@@ -47,21 +48,29 @@ module Text.Digestive.Heist
     , dfIfChildErrors
     ) where
 
-import Control.Monad (liftM, mplus)
-import Data.Function (on)
-import Data.List (unionBy)
-import Data.Maybe (fromMaybe)
-import Data.Monoid (mappend)
 
-import Data.Text (Text)
-import Text.Digestive.View
-import Text.Templating.Heist
-import qualified Data.Text as T
-import qualified Text.XmlHtml as X
+--------------------------------------------------------------------------------
+import           Control.Monad         (liftM, mplus)
+import           Data.Function         (on)
+import           Data.List             (unionBy)
+import           Data.Maybe            (fromMaybe)
+import           Data.Monoid           (mappend)
+import           Data.Text             (Text)
+import qualified Data.Text             as T
+import           Text.Templating.Heist
+import qualified Text.XmlHtml          as X
 
+
+--------------------------------------------------------------------------------
+import           Text.Digestive.View
+
+
+--------------------------------------------------------------------------------
 bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
 bindDigestiveSplices = bindSplices . digestiveSplices
 
+
+--------------------------------------------------------------------------------
 digestiveSplices :: Monad m => View Text -> [(Text, Splice m)]
 digestiveSplices view =
     [ ("dfInput",          dfInput view)
@@ -82,13 +91,19 @@ digestiveSplices view =
     , ("dfIfChildErrors",  dfIfChildErrors view)
     ]
 
+
+--------------------------------------------------------------------------------
 attr :: Bool -> (Text, Text) -> [(Text, Text)] -> [(Text, Text)]
 attr False _ = id
 attr True  a = (a :)
 
+
+--------------------------------------------------------------------------------
 makeElement :: Text -> [X.Node] -> [(Text, Text)] -> [X.Node]
 makeElement name nodes = return . flip (X.Element name) nodes
 
+
+--------------------------------------------------------------------------------
 getRefAttributes :: Monad m
                  => Maybe Text                       -- ^ Optional default ref
                  -> HeistT m (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
@@ -101,15 +116,21 @@ getRefAttributes defaultRef = do
             in (ref, filter ((/= "ref") . fst) as)
         _                -> (error "Wrong type of node!", [])
 
+
+--------------------------------------------------------------------------------
 getContent :: Monad m => HeistT m [X.Node]
 getContent = liftM X.childNodes getParamNode
 
+
+--------------------------------------------------------------------------------
 -- | Does not override existing attributes
 addAttrs :: [(Text, Text)]  -- ^ Original attributes
          -> [(Text, Text)]  -- ^ Attributes to add
          -> [(Text, Text)]  -- ^ Resulting attributes
 addAttrs = unionBy (on (==) fst)
 
+
+--------------------------------------------------------------------------------
 -- | Generate an input field with a supplied type. Example:
 --
 -- > <dfInput type="date" ref="date" />
@@ -121,6 +142,8 @@ dfInput view = do
     return $ makeElement "input" [] $ addAttrs attrs
         [("id", ref'), ("name", ref'), ("value", value)]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a text input field. Example:
 --
 -- > <dfInputText ref="user.name" />
@@ -132,6 +155,8 @@ dfInputText view = do
     return $ makeElement "input" [] $ addAttrs attrs
         [("type", "text"), ("id", ref'), ("name", ref'), ("value", value)]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a text area. Example:
 --
 -- > <dfInputTextArea ref="user.about" />
@@ -143,6 +168,8 @@ dfInputTextArea view = do
     return $ makeElement "textarea" [X.TextNode value] $ addAttrs attrs
         [("id", ref'), ("name", ref')]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a password field. Example:
 --
 -- > <dfInputPassword ref="user.password" />
@@ -154,6 +181,8 @@ dfInputPassword view = do
     return $ makeElement "input" [] $ addAttrs attrs
         [("type", "password"), ("id", ref'), ("name", ref'), ("value", value)]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a hidden input field. Example:
 --
 -- > <dfInputHidden ref="user.forgery" />
@@ -165,22 +194,28 @@ dfInputHidden view = do
     return $ makeElement "input" [] $ addAttrs attrs
         [("type", "hidden"), ("id", ref'), ("name", ref'), ("value", value)]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a select button (also known as a combo box). Example:
 --
 -- > <dfInputSelect ref="user.sex" />
 dfInputSelect :: Monad m => View Text -> Splice m
 dfInputSelect view = do
     (ref, attrs) <- getRefAttributes Nothing
-    let ref'           = absoluteRef ref view
-        (choices, idx) = fieldInputChoice ref view
-        children       = zipWith makeOption choices [0 ..]
-        value i        = ref' `mappend` "." `mappend` T.pack (show i)
-        makeOption c i = X.Element "option"
-            (attr (idx == i) ("selected", "selected") [("value", value i)])
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoice ref view
+        children = map makeOption choices
+        value i  = ref' `mappend` "." `mappend` i
+
+        makeOption (i, c, sel) = X.Element "option"
+            (attr sel ("selected", "selected") [("value", value i)])
             [X.TextNode c]
+
     return $ makeElement "select" children $ addAttrs attrs
         [("id", ref'), ("name", ref')]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a number of radio buttons. Example:
 --
 -- > <dfInputRadio ref="user.sex" />
@@ -188,14 +223,14 @@ dfInputRadio :: Monad m => View Text -> Splice m
 dfInputRadio view = do
     (ref, attrs) <- getRefAttributes Nothing
 
-    let ref'           = absoluteRef ref view
-        (choices, idx) = fieldInputChoice ref view
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoice ref view
+        children = concatMap makeOption choices
+        value i  = ref' `mappend` "." `mappend` i
 
-        children       = concat $ zipWith makeOption choices [0 ..]
-        value i        = ref' `mappend` "." `mappend` T.pack (show i)
-        makeOption c i =
+        makeOption (i, c, sel) =
             [ X.Element "input"
-                (attr (idx == i) ("checked", "checked") $ addAttrs attrs
+                (attr sel ("checked", "checked") $ addAttrs attrs
                     [ ("type", "radio"), ("value", value i)
                     , ("id", value i), ("name", ref')
                     ]) []
@@ -204,6 +239,8 @@ dfInputRadio view = do
 
     return children
 
+
+--------------------------------------------------------------------------------
 -- | Generate a checkbox. Example:
 --
 -- > <dfInputCheckbox ref="user.married" />
@@ -216,6 +253,8 @@ dfInputCheckbox view = do
         attr value ("checked", "checked") $
         [("type", "checkbox"), ("id", ref'), ("name", ref')]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a file upload element. Example:
 --
 -- > <dfInputFile ref="user.avatar" />
@@ -227,6 +266,8 @@ dfInputFile view = do
     return $ makeElement "input" [] $ addAttrs attrs
         [("type", "file"), ("id", ref'), ("name", ref'), ("value", value)]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a submit button. Example:
 --
 -- > <dfInputSubmit />
@@ -235,6 +276,8 @@ dfInputSubmit _ = do
     (_, attrs) <- getRefAttributes Nothing
     return $ makeElement "input" [] $ addAttrs attrs [("type", "submit")]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a label for a field. Example:
 --
 -- > <dfLabel ref="user.married">Married: </dfLabel>
@@ -246,6 +289,8 @@ dfLabel view = do
     let ref' = absoluteRef ref view
     return $ makeElement "label" content $ addAttrs attrs [("for", ref')]
 
+
+--------------------------------------------------------------------------------
 -- | Generate a form tag with the @method@ attribute set to @POST@ and
 -- the @enctype@ set to the right value (depending on the form).
 -- Custom @method@ or @enctype@ attributes would override this
@@ -265,12 +310,16 @@ dfForm view = do
         , ("enctype", T.pack (show $ viewEncType view))
         ]
 
+
+--------------------------------------------------------------------------------
 errorList :: [Text] -> [(Text, Text)] -> [X.Node]
 errorList []   _     = []
 errorList errs attrs = [X.Element "ul" attrs $ map makeError errs]
   where
     makeError e = X.Element "li" [] [X.TextNode e]
 
+
+--------------------------------------------------------------------------------
 -- | Display the list of errors for a certain field. Example:
 --
 -- > <dfErrorList ref="user.name" />
@@ -280,6 +329,8 @@ dfErrorList view = do
     (ref, attrs) <- getRefAttributes Nothing
     return $ errorList (errors ref view) attrs
 
+
+--------------------------------------------------------------------------------
 -- | Display the list of errors for a certain form and all forms below it. E.g.,
 -- if there is a subform called @\"user\"@:
 --
@@ -297,6 +348,8 @@ dfChildErrorList view = do
     (ref, attrs) <- getRefAttributes $ Just ""
     return $ errorList (childErrors ref view) attrs
 
+
+--------------------------------------------------------------------------------
 -- | This splice allows reuse of templates by selecting some child of a form
 -- tree. While this may sound complicated, it's pretty straightforward and
 -- practical. Suppose we have:
@@ -309,7 +362,7 @@ dfChildErrorList view = do
 -- You may want to abstract the @\"user\"@ parts in some other template so you
 -- Don't Repeat Yourself (TM). If you create a template called @\"user-form\"@
 -- with the following contents:
--- 
+--
 -- > <dfInputText ref="name" />
 -- > <dfInputText ref="password" />
 --
@@ -328,6 +381,8 @@ dfSubView view = do
     nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
     return nodes
 
+
+--------------------------------------------------------------------------------
 -- | Render some content only if there are any errors. This is useful for markup
 -- purposes.
 --
