@@ -28,4 +28,4 @@ makeRef =
 --------------------------------------------------------------------------------
 -- | Create an infinite list of refs.
 makeRefs :: [Text]
-makeRefs = ["df-" `T.append` T.pack (show i) | i <- [0 :: Int ..]]
+makeRefs = map (T.pack . show) [0 :: Int ..]

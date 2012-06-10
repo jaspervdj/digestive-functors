@@ -1,5 +1,8 @@
-{-# LANGUAGE ExistentialQuantification, GADTs, OverloadedStrings,
-        ScopedTypeVariables #-}
+--------------------------------------------------------------------------------
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 module Text.Digestive.View
     ( View (..)
 
@@ -30,18 +33,23 @@ module Text.Digestive.View
     , childErrors
     ) where
 
-import Control.Arrow (second)
-import Control.Monad.Identity (Identity)
-import Data.List (isPrefixOf)
 
-import Data.Text (Text)
-import qualified Data.Text as T
+--------------------------------------------------------------------------------
+import           Control.Arrow                (second)
+import           Control.Monad.Identity       (Identity)
+import           Data.List                    (isPrefixOf)
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 
-import Text.Digestive.Field
-import Text.Digestive.Form.Encoding
-import Text.Digestive.Form.Internal
-import Text.Digestive.Types
 
+--------------------------------------------------------------------------------
+import           Text.Digestive.Field
+import           Text.Digestive.Form.Encoding
+import           Text.Digestive.Form.Internal
+import           Text.Digestive.Types
+
+
+--------------------------------------------------------------------------------
 data View v = forall a m. Monad m => View
     { viewName    :: Text
     , viewContext :: Path
@@ -51,20 +59,28 @@ data View v = forall a m. Monad m => View
     , viewMethod  :: Method
     }
 
+
+--------------------------------------------------------------------------------
 instance Functor View where
     fmap f (View name ctx form input errs method) = View
         name ctx (formMapView f form) input (map (second f) errs) method
 
+
+--------------------------------------------------------------------------------
 instance Show v => Show (View v) where
     show (View name ctx form input errs method) =
         "View " ++ show name ++ " " ++ show ctx ++ " " ++ show form ++ " " ++
         show input ++ " " ++ show errs ++ " " ++ show method
 
+
+--------------------------------------------------------------------------------
 getForm :: Monad m => Text -> Form v m a -> m (View v)
 getForm name form = do
     form' <- toFormTree form
     return $ View name [] form' [] [] Get
 
+
+--------------------------------------------------------------------------------
 postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
 postForm name form env = do
     form' <- toFormTree form
@@ -74,12 +90,16 @@ postForm name form env = do
   where
     env' = env . (name :)
 
+
+--------------------------------------------------------------------------------
 subView :: Text -> View v -> View v
 subView ref (View name ctx form input errs method) =
     View name (ctx ++ path) form input errs method
   where
     path = toPath ref
 
+
+--------------------------------------------------------------------------------
 -- | Returns all immediate subviews of a view
 subViews :: View v -> [View v]
 subViews view@(View _ _ form _ _ _) =
@@ -89,26 +109,38 @@ subViews view@(View _ _ form _ _ _) =
         Nothing -> [r | c <- children f, r <- go c]
         Just r  -> [r]
 
+
+--------------------------------------------------------------------------------
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path
 absolutePath ref view@(View name _ _ _ _ _) = name : viewPath ref view
 
+
+--------------------------------------------------------------------------------
 -- | Determine an absolute path and call 'fromPath' on it. Useful if you're
 -- writing a view library...
 absoluteRef :: Text -> View v -> Text
 absoluteRef ref view = fromPath $ absolutePath ref view
 
+
+--------------------------------------------------------------------------------
 -- | Internal version of 'absolutePath' which does not take the form name into
 -- account
 viewPath :: Text -> View v -> Path
 viewPath ref (View _ ctx _ _ _ _) = ctx ++ toPath ref
 
+
+--------------------------------------------------------------------------------
 viewEncType :: View v -> FormEncType
 viewEncType (View _ _ form _ _ _) = formTreeEncType form
 
+
+--------------------------------------------------------------------------------
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
+
+--------------------------------------------------------------------------------
 fieldInputText :: forall v. Text -> View v -> Text
 fieldInputText ref view@(View _ _ form input _ method) =
     queryField path form eval'
@@ -122,21 +154,25 @@ fieldInputText ref view@(View _ _ form input _ method) =
         f      -> error $ T.unpack ref ++ ": expected (Text _), " ++
             "but got: (" ++ show f ++ ")"
 
-fieldInputChoice :: forall v. Text -> View v -> ([v], Int)
+
+--------------------------------------------------------------------------------
+fieldInputChoice :: forall v. Text -> View v -> ([(Text, v)], Int)
 fieldInputChoice ref view@(View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = viewPath ref view
     givenInput = lookupInput path input
 
-    eval' :: Field v b -> ([v], Int)
+    eval' :: Field v b -> ([(Text, v)], Int)
     eval' field = case field of
         Choice xs i ->
             let idx = snd $ evalField method givenInput (Choice xs i)
-            in (map snd xs, idx)
+            in (map (\(k, (_, v)) -> (k, v)) xs, idx)
         f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
             "but got: (" ++ show f ++ ")"
 
+
+--------------------------------------------------------------------------------
 fieldInputBool :: forall v. Text -> View v -> Bool
 fieldInputBool ref view@(View _ _ form input _ method) =
     queryField path form eval'
@@ -150,6 +186,8 @@ fieldInputBool ref view@(View _ _ form input _ method) =
         f      -> error $ T.unpack ref ++ ": expected (Bool _), " ++
             "but got: (" ++ show f ++ ")"
 
+
+--------------------------------------------------------------------------------
 fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
 fieldInputFile ref view@(View _ _ form input _ method) =
     queryField path form eval'
@@ -163,10 +201,14 @@ fieldInputFile ref view@(View _ _ form input _ method) =
         f    -> error $ T.unpack ref ++ ": expected (File), " ++
             "but got: (" ++ show f ++ ")"
 
+
+--------------------------------------------------------------------------------
 errors :: Text -> View v -> [v]
 errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
     viewErrors view
 
+
+--------------------------------------------------------------------------------
 childErrors :: Text -> View v -> [v]
 childErrors ref view = map snd $
     filter ((viewPath ref view `isPrefixOf`) . fst) $ viewErrors view
