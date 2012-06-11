@@ -1,25 +1,35 @@
+--------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Text.Digestive.View.Tests
     ( tests
     ) where
 
+
+--------------------------------------------------------------------------------
 import Control.Monad.Identity (runIdentity)
 import Control.Exception (SomeException, handle)
 
+
+--------------------------------------------------------------------------------
 import Data.Text (Text)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit (Assertion, assert, assertFailure, (@=?))
 
+
+--------------------------------------------------------------------------------
 import Text.Digestive.Tests.Fixtures
 import Text.Digestive.Types
 import Text.Digestive.View
-import Text.Digestive.Form.Internal
 
+
+--------------------------------------------------------------------------------
 assertError :: Show a => a -> Assertion
 assertError x = handle (\(_ :: SomeException) -> assert True) $
     x `seq` assertFailure $ "Should throw an error but gave: " ++ show x
 
+
+--------------------------------------------------------------------------------
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
@@ -95,7 +105,7 @@ tests = testGroup "Text.Digestive.View.Tests"
     , testCase "Abusing Text as Bool" $ assertError $
         fieldInputBool "name" $ runTrainerM $ getForm "f" pokemonForm
 
-    , testCase "cURL submit" $ (@=?)
+    , testCase "monadic/choiceWith" $ (@=?)
         (Just (Order (Product "cm_gs" "Comet Grease Shark") 2)) $
         snd $ runDatabase $ postForm "f" orderForm $ testEnv
             -- We actually need f.product.cm_gs for the choice input, but this
@@ -105,9 +115,13 @@ tests = testGroup "Text.Digestive.View.Tests"
             ]
     ]
 
+
+--------------------------------------------------------------------------------
 testEnv :: Monad m => [(Text, Text)] -> Env m
 testEnv input key = return $ map (TextInput . snd) $
     filter ((== fromPath key) . fst) input
 
+
+--------------------------------------------------------------------------------
 selection :: [(Text, v, Bool)] -> (Text, v)
 selection fic = head [(t, v) | (t, v, s) <- fic, s]
