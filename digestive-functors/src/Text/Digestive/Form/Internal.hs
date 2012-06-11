@@ -189,7 +189,7 @@ eval' context method env form = case form of
         x''       <- bindResult (return x') (f >=> return . ann path)
         return (x'', inp)
 
-    Monadic x -> eval' path method env $ runIdentity x
+    Monadic x -> eval' context method env $ runIdentity x
 
   where
     path = context ++ maybeToList (getRef form)
