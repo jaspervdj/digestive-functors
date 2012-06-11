@@ -1,32 +1,31 @@
---------------------------------------------------------------------------------
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+-------------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Text.Digestive.View.Tests
     ( tests
     ) where
 
 
 --------------------------------------------------------------------------------
-import Control.Monad.Identity (runIdentity)
-import Control.Exception (SomeException, handle)
+import           Control.Exception              (SomeException, handle)
+import           Control.Monad.Identity         (runIdentity)
+import           Data.Text                      (Text)
+import           Test.Framework                 (Test, testGroup)
+import           Test.Framework.Providers.HUnit (testCase)
+import           Test.HUnit                     ((@=?))
+import qualified Test.HUnit                     as H
 
 
 --------------------------------------------------------------------------------
-import Data.Text (Text)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
-import Test.HUnit (Assertion, assert, assertFailure, (@=?))
+import           Text.Digestive.Tests.Fixtures
+import           Text.Digestive.Types
+import           Text.Digestive.View
 
 
 --------------------------------------------------------------------------------
-import Text.Digestive.Tests.Fixtures
-import Text.Digestive.Types
-import Text.Digestive.View
-
-
---------------------------------------------------------------------------------
-assertError :: Show a => a -> Assertion
-assertError x = handle (\(_ :: SomeException) -> assert True) $
-    x `seq` assertFailure $ "Should throw an error but gave: " ++ show x
+assertError :: Show a => a -> H.Assertion
+assertError x = handle (\(_ :: SomeException) -> H.assert True) $
+    x `seq` H.assertFailure $ "Should throw an error but gave: " ++ show x
 
 
 --------------------------------------------------------------------------------
