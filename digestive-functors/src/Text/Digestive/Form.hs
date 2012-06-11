@@ -15,6 +15,7 @@ module Text.Digestive.Form
     , stringRead
     , choice
     , choice'
+    , choiceWith
     , bool
     , file
 
@@ -79,10 +80,15 @@ choice items def = choice' items $
 -- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
 -- can use this function, which takes an index in the list as default.
 choice' :: Monad m => [(a, v)] -> Maybe Int -> Form v m a
-choice' items def = fmap fst $ Pure Nothing $ Choice items' def'
+choice' items def = choiceWith (zip makeRefs items) def
+
+
+--------------------------------------------------------------------------------
+-- | Experimental
+choiceWith :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
+choiceWith items def = fmap fst $ Pure Nothing $ Choice items def'
   where
-    items' = zip makeRefs items
-    def'   = fromMaybe 0 def
+    def' = fromMaybe 0 def
 
 
 --------------------------------------------------------------------------------

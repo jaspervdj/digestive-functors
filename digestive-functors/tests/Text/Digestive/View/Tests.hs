@@ -14,6 +14,7 @@ import Test.HUnit (Assertion, assert, assertFailure, (@=?))
 import Text.Digestive.Tests.Fixtures
 import Text.Digestive.Types
 import Text.Digestive.View
+import Text.Digestive.Form.Internal
 
 assertError :: Show a => a -> Assertion
 assertError x = handle (\(_ :: SomeException) -> assert True) $
@@ -93,6 +94,15 @@ tests = testGroup "Text.Digestive.View.Tests"
 
     , testCase "Abusing Text as Bool" $ assertError $
         fieldInputBool "name" $ runTrainerM $ getForm "f" pokemonForm
+
+    , testCase "cURL submit" $ (@=?)
+        (Just (Order (Product "cm_gs" "Comet Grease Shark") 2)) $
+        snd $ runDatabase $ postForm "f" orderForm $ testEnv
+            -- We actually need f.product.cm_gs for the choice input, but this
+            -- must work as well!
+            [ ("f.product",  "cm_gs")
+            , ("f.quantity", "2")
+            ]
     ]
 
 testEnv :: Monad m => [(Text, Text)] -> Env m
