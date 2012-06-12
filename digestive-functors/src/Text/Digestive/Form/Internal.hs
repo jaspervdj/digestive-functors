@@ -186,9 +186,10 @@ lookupForm path = go path . SomeForm
 
 --------------------------------------------------------------------------------
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
-toField (Pure _ x) = Just (SomeField x)
-toField (Map _ x)  = toField x
-toField _          = Nothing
+toField (Pure _ x)  = Just (SomeField x)
+toField (Map _ x)   = toField x
+toField (Monadic x) = toField (runIdentity x)
+toField _           = Nothing
 
 
 --------------------------------------------------------------------------------

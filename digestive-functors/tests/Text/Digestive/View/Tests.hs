@@ -104,7 +104,7 @@ tests = testGroup "Text.Digestive.View.Tests"
     , testCase "Abusing Text as Bool" $ assertError $
         fieldInputBool "name" $ runTrainerM $ getForm "f" pokemonForm
 
-    , testCase "monadic/choiceWith" $ (@=?)
+    , testCase "monadic choiceWith" $ (@=?)
         (Just (Order (Product "cm_gs" "Comet Grease Shark") 2)) $
         snd $ runDatabase $ postForm "f" orderForm $ testEnv
             -- We actually need f.product.cm_gs for the choice input, but this
@@ -112,6 +112,11 @@ tests = testGroup "Text.Digestive.View.Tests"
             [ ("f.product",  "cm_gs")
             , ("f.quantity", "2")
             ]
+
+    , testCase "monadic view query" $ (@=?)
+        "Earthwing Belly Racer" $
+        snd $ selection $ fieldInputChoice "product" $ runDatabase $
+                getForm "f" orderForm
     ]
 
 

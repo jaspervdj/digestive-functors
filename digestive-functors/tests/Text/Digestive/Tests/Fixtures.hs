@@ -153,7 +153,7 @@ data Product = Product
 productForm :: Form Text Database Product
 productForm = monadic $ do
     products <- ask
-    return $ choiceWith (map makeChoice products) Nothing
+    return $ choiceWith (map makeChoice products) (Just $ products !! 1)
   where
     makeChoice p = (productId p, (p, productName p))
 
