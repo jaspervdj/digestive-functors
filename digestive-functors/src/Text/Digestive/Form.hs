@@ -84,7 +84,10 @@ choice' items def = choiceWith' (zip makeRefs items) def
 
 
 --------------------------------------------------------------------------------
--- | Experimental
+-- | Allows you to assign your own values: these values will be used in the
+-- resulting HTML instead of the default @[0 ..]@. This fixes some race
+-- conditions that might otherwise appear, e.g. if new choice items are added to
+-- some database while a user views and submits the form...
 choiceWith :: (Eq a, Monad m) => [(Text, (a, v))] -> Formlet v m a
 choiceWith items def = choiceWith' items def'
   where
@@ -92,7 +95,7 @@ choiceWith items def = choiceWith' items def'
 
 
 --------------------------------------------------------------------------------
--- | Experimental
+-- | A version of 'choiceWith' for when you have no good 'Eq' instance.
 choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
 choiceWith' items def = fmap fst $ Pure Nothing $ Choice items def'
   where
