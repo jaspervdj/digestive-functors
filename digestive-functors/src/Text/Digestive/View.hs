@@ -102,8 +102,8 @@ subView ref (View name ctx form input errs method) =
 --------------------------------------------------------------------------------
 -- | Returns all immediate subviews of a view
 subViews :: View v -> [View v]
-subViews view@(View _ _ form _ _ _) =
-    [subView r view | r <- go (SomeForm form)]
+subViews view@(View _ ctx form _ _ _) =
+    [subView r view | f <- lookupForm ctx form, r <- go f]
   where
     go (SomeForm f) = case getRef f of
         Nothing -> [r | c <- children f, r <- go c]
