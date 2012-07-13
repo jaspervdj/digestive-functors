@@ -26,7 +26,7 @@ import           Text.Digestive.Types
 data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text
-    -- | A list of identifier, value, view. Then we have the default index in
+    -- A list of identifier, value, view. Then we have the default index in
     -- the list. The return value has the actual value as well as the index in
     -- the list.
     Choice    :: [(Text, (a, v))] -> Int -> Field v (a, Int)
