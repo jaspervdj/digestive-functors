@@ -209,12 +209,12 @@ an HTTP server for that, and we use [Happstack] for this tutorial. The
 >     case r of
 >         (view, Nothing) -> do
 >             let view' = fmap H.toHtml view
->             Happstack.ok $ Happstack.toResponse $ form view' "/" $
->                 template $ do
->                     css
->                     releaseView view'
->                     H.br
->                     inputSubmit "Submit"
+>             Happstack.ok $ Happstack.toResponse $
+>                 template $
+>                     form view' "/" $ do
+>                         releaseView view'
+>                         H.br
+>                         inputSubmit "Submit"
 >         (_, Just release) -> Happstack.ok $ Happstack.toResponse $
 >             template $ do
 >                 css
