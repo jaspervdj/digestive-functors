@@ -96,7 +96,7 @@ app = makeSnaplet "app" "digestive-functors example application" Nothing $ do
 
 main :: IO ()
 main = do
-    (msgs, site, cleanup) <- runSnaplet app
+    (msgs, site, cleanup) <- runSnaplet Nothing app
     hPutStrLn stderr $ T.unpack msgs
     _ <- try $ httpServe defaultConfig site :: IO (Either SomeException ())
     cleanup
