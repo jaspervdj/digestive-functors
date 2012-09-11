@@ -57,7 +57,8 @@ import           Data.Maybe            (fromMaybe)
 import           Data.Monoid           (mappend)
 import           Data.Text             (Text)
 import qualified Data.Text             as T
-import           Text.Templating.Heist
+import           Heist
+import           Heist.Interpreted
 import qualified Text.XmlHtml          as X
 
 
@@ -106,7 +107,7 @@ makeElement name nodes = return . flip (X.Element name) nodes
 --------------------------------------------------------------------------------
 getRefAttributes :: Monad m
                  => Maybe Text                       -- ^ Optional default ref
-                 -> HeistT m (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
+                 -> HeistT m m (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
 getRefAttributes defaultRef = do
     node <- getParamNode
     return $ case node of
@@ -118,7 +119,7 @@ getRefAttributes defaultRef = do
 
 
 --------------------------------------------------------------------------------
-getContent :: Monad m => HeistT m [X.Node]
+getContent :: Monad m => HeistT m m [X.Node]
 getContent = liftM X.childNodes getParamNode
 
 
@@ -378,7 +379,7 @@ dfSubView view = do
     (ref, _) <- getRefAttributes Nothing
     content  <- getContent
     let view' = subView ref view
-    nodes <- localTS (bindDigestiveSplices view') $ runNodeList content
+    nodes <- localHS (bindDigestiveSplices view') $ runNodeList content
     return nodes
 
 
