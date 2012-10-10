@@ -39,9 +39,9 @@ We create forms by using the `Applicative` interface. A few form types are
 provided in the `Text.Digestive.Form` module, such as `text`, `string`,
 `bool`...
 
-In the `digestive-functors` library, the developper is required to label each
+In the `digestive-functors` library, the developer is required to label each
 field using the `.:` operator. This might look like a bit of a burden, but it
-allows youto do some really useful stuff, like separating the `Form` from the
+allows you to do some really useful stuff, like separating the `Form` from the
 actual HTML layout.
 
 > userForm = User
