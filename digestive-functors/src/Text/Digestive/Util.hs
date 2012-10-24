@@ -5,8 +5,10 @@ module Text.Digestive.Util
 
 
 --------------------------------------------------------------------------------
+import           Data.Maybe (listToMaybe)
+
+
+--------------------------------------------------------------------------------
 -- | 'read' in the 'Maybe' monad.
 readMaybe :: Read a => String -> Maybe a
-readMaybe str = case readsPrec 1 str of
-    [(x, "")] -> Just x
-    _         -> Nothing
+readMaybe str = listToMaybe [x | (x, "") <- readsPrec 1 str]
