@@ -4,8 +4,9 @@ import Control.Applicative ((<$>), (<*>))
 
 import Control.Exception (SomeException, try)
 import Data.ByteString (ByteString)
-import Data.Lens.Template
+import Control.Lens.TH
 import Data.Text (Text)
+import qualified Heist.Interpreted as I
 import Snap.Http.Server (defaultConfig, httpServe)
 import Snap.Snaplet
 import Snap.Snaplet.Heist
@@ -13,7 +14,6 @@ import System.IO (hPutStrLn, stderr)
 import Text.Digestive
 import Text.Digestive.Heist
 import Text.Digestive.Snap
-import Text.Templating.Heist
 import qualified Data.Text as T
 
 --------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ data App = App
     { _heist :: Snaplet (Heist App)
     }
 
-makeLens ''App
+makeLenses ''App
 
 instance HasHeist App where
     heistLens = subSnaplet heist
@@ -79,7 +79,8 @@ form = do
         Just x  -> heistLocal (bindUser x) $ render "user"
         Nothing -> heistLocal (bindDigestiveSplices view) $ render "user-form"
   where
-    bindUser = bindString "user" . T.pack . show
+    bindUser user =
+        I.bindSplices [("user", I.textSplice (T.pack $ show user))]
 
 --------------------------------------------------------------------------------
 -- Main code: glue everything together                                        --
