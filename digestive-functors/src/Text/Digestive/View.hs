@@ -94,16 +94,24 @@ postForm name form env = do
 --------------------------------------------------------------------------------
 subView :: Text -> View v -> View v
 subView ref (View name ctx form input errs method) =
-    View name (ctx ++ path) form input errs method
+    case lookupForm path form of
+        []               -> error $ "Text.Digestive.View.subView: " ++
+            "No such subView: " ++ T.unpack ref
+        (SomeForm f : _) ->
+            View name (ctx ++ path) f (strip input) (strip errs) method
   where
-    path = toPath ref
+    path     = toPath ref
+    lpath    = length path
+
+    strip :: [(Path, a)] -> [(Path, a)]
+    strip xs = [(drop lpath p, x) | (p, x) <- xs, path `isPrefixOf` p]
 
 
 --------------------------------------------------------------------------------
 -- | Returns all immediate subviews of a view
 subViews :: View v -> [View v]
-subViews view@(View _ ctx form _ _ _) =
-    [subView r view | f <- lookupForm ctx form, r <- go f]
+subViews view@(View _ _ form _ _ _) =
+    [subView r view | r <- go (SomeForm form)]
   where
     go (SomeForm f) = case getRef f of
         Nothing -> [r | c <- children f, r <- go c]
@@ -113,7 +121,7 @@ subViews view@(View _ ctx form _ _ _) =
 --------------------------------------------------------------------------------
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path
-absolutePath ref view@(View name _ _ _ _ _) = name : viewPath ref view
+absolutePath ref (View name ctx _ _ _ _) = name : (ctx ++ toPath ref)
 
 
 --------------------------------------------------------------------------------
@@ -121,13 +129,6 @@ absolutePath ref view@(View name _ _ _ _ _) = name : viewPath ref view
 -- writing a view library...
 absoluteRef :: Text -> View v -> Text
 absoluteRef ref view = fromPath $ absolutePath ref view
-
-
---------------------------------------------------------------------------------
--- | Internal version of 'absolutePath' which does not take the form name into
--- account
-viewPath :: Text -> View v -> Path
-viewPath ref (View _ ctx _ _ _ _) = ctx ++ toPath ref
 
 
 --------------------------------------------------------------------------------
@@ -142,10 +143,10 @@ lookupInput path = map snd . filter ((== path) . fst)
 
 --------------------------------------------------------------------------------
 fieldInputText :: forall v. Text -> View v -> Text
-fieldInputText ref view@(View _ _ form input _ method) =
+fieldInputText ref (View _ _ form input _ method) =
     queryField path form eval'
   where
-    path       = viewPath ref view
+    path       = toPath ref
     givenInput = lookupInput path input
 
     eval' :: Field v b -> Text
@@ -158,10 +159,10 @@ fieldInputText ref view@(View _ _ form input _ method) =
 --------------------------------------------------------------------------------
 -- | Returns a list of (identifier, view, selected?)
 fieldInputChoice :: forall v. Text -> View v -> [(Text, v, Bool)]
-fieldInputChoice ref view@(View _ _ form input _ method) =
+fieldInputChoice ref (View _ _ form input _ method) =
     queryField path form eval'
   where
-    path       = viewPath ref view
+    path       = toPath ref
     givenInput = lookupInput path input
 
     eval' :: Field v b -> [(Text, v, Bool)]
@@ -175,10 +176,10 @@ fieldInputChoice ref view@(View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 fieldInputBool :: forall v. Text -> View v -> Bool
-fieldInputBool ref view@(View _ _ form input _ method) =
+fieldInputBool ref (View _ _ form input _ method) =
     queryField path form eval'
   where
-    path       = viewPath ref view
+    path       = toPath ref
     givenInput = lookupInput path input
 
     eval' :: Field v b -> Bool
@@ -190,10 +191,10 @@ fieldInputBool ref view@(View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
-fieldInputFile ref view@(View _ _ form input _ method) =
+fieldInputFile ref (View _ _ form input _ method) =
     queryField path form eval'
   where
-    path       = viewPath ref view
+    path       = toPath ref
     givenInput = lookupInput path input
 
     eval' :: Field v b -> Maybe FilePath
@@ -205,11 +206,10 @@ fieldInputFile ref view@(View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 errors :: Text -> View v -> [v]
-errors ref view = map snd $ filter ((== viewPath ref view) . fst) $
-    viewErrors view
+errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 
 
 --------------------------------------------------------------------------------
 childErrors :: Text -> View v -> [v]
-childErrors ref view = map snd $
-    filter ((viewPath ref view `isPrefixOf`) . fst) $ viewErrors view
+childErrors ref = map snd .
+    filter ((toPath ref `isPrefixOf`) . fst) . viewErrors

@@ -52,6 +52,7 @@ import qualified Data.Text                    as T
 --------------------------------------------------------------------------------
 import           Text.Digestive.Field
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.List
 import           Text.Digestive.Ref
 import           Text.Digestive.Types
 import           Text.Digestive.Util
@@ -202,4 +203,4 @@ listOf = List Nothing
 
 --------------------------------------------------------------------------------
 listIndices :: Monad m => Form v m [Text]
-listIndices = T.split (== ',') <$> text (Just "0")
+listIndices = parseIndices <$> text (Just $ unparseIndices ["0"])

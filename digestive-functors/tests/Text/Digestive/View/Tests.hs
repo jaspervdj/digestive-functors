@@ -83,6 +83,11 @@ tests = testGroup "Text.Digestive.View.Tests"
         errors "level" $ subView "pokemon" $ fst $ runTrainerM $
             postForm "f" catchForm $ testEnv [("f.pokemon.level", "hah.")]
 
+    , testCase "subView childErrors" $ (@=?)
+        ["Cannot parse level"] $
+        childErrors "" $ subView "pokemon" $ fst $ runTrainerM $
+            postForm "f" catchForm $ testEnv [("f.pokemon.level", "hah.")]
+
     , testCase "subView input" $ (@=?)
         "Leaf" $
         snd $ selection $ fieldInputChoice "type" $ subView "pokemon" $ fst $
