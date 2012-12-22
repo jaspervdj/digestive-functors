@@ -174,8 +174,10 @@ orderForm = Order
 
 
 --------------------------------------------------------------------------------
-ordersForm :: Form Text Database [Order]
-ordersForm = listOf orderForm
+ordersForm :: Form Text Database (Text, [Order])
+ordersForm = (,)
+    <$> "name"   .: text Nothing
+    <*> "orders" .: listOf orderForm
 
 
 --------------------------------------------------------------------------------

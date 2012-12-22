@@ -12,7 +12,7 @@ import           Control.Monad.Identity         (runIdentity)
 import           Data.Text                      (Text)
 import           Test.Framework                 (Test, testGroup)
 import           Test.Framework.Providers.HUnit (testCase)
-import           Test.HUnit                     ((@=?))
+import           Test.HUnit                     ((@=?), (@?=))
 import qualified Test.HUnit                     as H
 
 
@@ -129,19 +129,25 @@ tests = testGroup "Text.Digestive.View.Tests"
                 getForm "f" orderForm
 
     , -- Let me just order 3 awesome skateboards here
-      testCase "Simple listOf" $ (@=?)
-        ( Just
-            [ Order (Product "cm_gs" "Comet Grease Shark") 2
-            , Order (Product "s9_ao" "Sector 9 Agent Orange") 1
-            ]
-        ) $
-        snd $ runDatabase $ postForm "f" ordersForm $ testEnv
-            [ ("f.indices",     "0,10")
-            , ("f.0.product",   "cm_gs")
-            , ("f.0.quantity",  "2")
-            , ("f.10.product",  "s9_ao")
-            , ("f.10.quantity", "1")
-            ]
+      testCase "Simple listOf" $ do
+        let (view, result) = runDatabase $ postForm "f" ordersForm $ testEnv
+                [ ("f.name",               "Jasper")
+                , ("f.orders.indices",     "0,10")
+                , ("f.orders.0.product",   "cm_gs")
+                , ("f.orders.0.quantity",  "2")
+                , ("f.orders.10.product",  "s9_ao")
+                , ("f.orders.10.quantity", "1")
+                ]
+
+        result @?= Just
+            ( "Jasper"
+            , [ Order (Product "cm_gs" "Comet Grease Shark") 2
+              , Order (Product "s9_ao" "Sector 9 Agent Orange") 1
+              ]
+            )
+
+        let subViews' = listSubViews "orders" view
+        fieldInputText "quantity" (head subViews') @?= "2"
     ]
 
 

@@ -28,6 +28,9 @@ module Text.Digestive.View
     , fieldInputBool
     , fieldInputFile
 
+      -- ** List subview
+    , listSubViews
+
       -- ** Errors
     , errors
     , childErrors
@@ -46,6 +49,7 @@ import qualified Data.Text                    as T
 import           Text.Digestive.Field
 import           Text.Digestive.Form.Encoding
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.List
 import           Text.Digestive.Types
 
 
@@ -95,8 +99,8 @@ postForm name form env = do
 subView :: Text -> View v -> View v
 subView ref (View name ctx form input errs method) =
     case lookupForm path form of
-        []               -> error $ "Text.Digestive.View.subView: " ++
-            "No such subView: " ++ T.unpack ref
+        []               ->
+            View name (ctx ++ path) notFound (strip input) (strip errs) method
         (SomeForm f : _) ->
             View name (ctx ++ path) f (strip input) (strip errs) method
   where
@@ -105,6 +109,10 @@ subView ref (View name ctx form input errs method) =
 
     strip :: [(Path, a)] -> [(Path, a)]
     strip xs = [(drop lpath p, x) | (p, x) <- xs, path `isPrefixOf` p]
+
+    notFound :: FormTree Identity v Identity a
+    notFound = error $ "Text.Digestive.View.subView: " ++
+        "No such subView: " ++ T.unpack ref
 
 
 --------------------------------------------------------------------------------
@@ -202,6 +210,25 @@ fieldInputFile ref (View _ _ form input _ method) =
         File -> evalField method givenInput File
         f    -> error $ T.unpack ref ++ ": expected (File), " ++
             "but got: (" ++ show f ++ ")"
+
+
+--------------------------------------------------------------------------------
+listSubViews :: forall v. Text -> View v -> [View v]
+listSubViews ref view@(View _ _ form _ _ _) = map makeSubView indices
+  where
+    path        = toPath ref
+    indicesPath = path ++ toPath indicesRef
+    indices     = parseIndices $ fieldInputText (fromPath indicesPath) view
+
+    makeSubView :: Text -> View v
+    makeSubView i =
+        case subView (fromPath $ path ++ [i]) view of
+            View name ctx _ input errs method ->
+                case lookupForm path form of
+                    (SomeForm (List _ _ single) : _) ->
+                        View name ctx single input errs method
+                    _                                -> error $
+                        T.unpack ref ++ ": expected List, but got another form"
 
 
 --------------------------------------------------------------------------------
