@@ -33,10 +33,15 @@ module Text.Digestive.Form
 
       -- * Lifting forms
     , monadic
+
+      -- * Dynamic list forms
+    , listOf
+    , listIndices
     ) where
 
 
 --------------------------------------------------------------------------------
+import           Control.Applicative          ((<$>))
 import           Control.Monad                (liftM)
 import           Data.List                    (findIndex)
 import           Data.Maybe                   (fromMaybe)
@@ -185,3 +190,16 @@ optionalStringRead err = transform readTransform' . optionalString . fmap show
 --------------------------------------------------------------------------------
 readTransform :: (Monad m, Read a) => v -> String -> m (Result v a)
 readTransform err = return . maybe (Error err) return . readMaybe
+
+
+--------------------------------------------------------------------------------
+listOf :: Monad m
+       => Form v m [Text]
+       -> Form v m a
+       -> Form v m [a]
+listOf = List Nothing
+
+
+--------------------------------------------------------------------------------
+listIndices :: Monad m => Form v m [Text]
+listIndices = T.split (== ',') <$> text (Just "0")

@@ -19,6 +19,7 @@ module Text.Digestive.Tests.Fixtures
     , productForm
     , Order (..)
     , orderForm
+    , ordersForm
 
       -- * Various
     , floatForm
@@ -26,10 +27,10 @@ module Text.Digestive.Tests.Fixtures
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative  ((<$>), (<*>))
-import           Control.Monad.Reader (Reader, ask, runReader)
-import           Data.Text            (Text)
-import qualified Data.Text            as T
+import           Control.Applicative          ((<$>), (<*>))
+import           Control.Monad.Reader         (Reader, ask, runReader)
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 
 
 --------------------------------------------------------------------------------
@@ -170,6 +171,11 @@ orderForm :: Form Text Database Order
 orderForm = Order
     <$> "product"  .: productForm
     <*> "quantity" .: stringRead "Can't parse" Nothing
+
+
+--------------------------------------------------------------------------------
+ordersForm :: Form Text Database [Order]
+ordersForm = listOf ("indices" .: listIndices) orderForm
 
 
 --------------------------------------------------------------------------------

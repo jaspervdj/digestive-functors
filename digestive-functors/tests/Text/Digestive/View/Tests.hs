@@ -122,6 +122,21 @@ tests = testGroup "Text.Digestive.View.Tests"
         "Earthwing Belly Racer" $
         snd $ selection $ fieldInputChoice "product" $ runDatabase $
                 getForm "f" orderForm
+
+    , -- Let me just order 3 awesome skateboards here
+      testCase "Simple listOf" $ (@=?)
+        ( Just
+            [ Order (Product "cm_gs" "Comet Grease Shark") 2
+            , Order (Product "s9_ao" "Sector 9 Agent Orange") 1
+            ]
+        ) $
+        snd $ runDatabase $ postForm "f" ordersForm $ testEnv
+            [ ("f.indices",     "0,10")
+            , ("f.0.product",   "cm_gs")
+            , ("f.0.quantity",  "2")
+            , ("f.10.product",  "s9_ao")
+            , ("f.10.quantity", "1")
+            ]
     ]
 
 
