@@ -36,7 +36,6 @@ module Text.Digestive.Form
 
       -- * Dynamic list forms
     , listOf
-    , listIndices
     ) where
 
 
@@ -195,10 +194,9 @@ readTransform err = return . maybe (Error err) return . readMaybe
 
 --------------------------------------------------------------------------------
 listOf :: Monad m
-       => Form v m [Text]
-       -> Form v m a
+       => Form v m a
        -> Form v m [a]
-listOf = List Nothing
+listOf = List Nothing (indicesRef .: listIndices)
 
 
 --------------------------------------------------------------------------------

@@ -1,7 +1,8 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Form.List
-    ( parseIndices
+    ( indicesRef
+    , parseIndices
     , unparseIndices
     ) where
 
@@ -9,6 +10,11 @@ module Text.Digestive.Form.List
 --------------------------------------------------------------------------------
 import           Data.Text (Text)
 import qualified Data.Text as T
+
+
+--------------------------------------------------------------------------------
+indicesRef :: Text
+indicesRef = "indices"
 
 
 --------------------------------------------------------------------------------

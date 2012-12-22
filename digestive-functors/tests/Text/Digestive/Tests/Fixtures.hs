@@ -175,7 +175,7 @@ orderForm = Order
 
 --------------------------------------------------------------------------------
 ordersForm :: Form Text Database [Order]
-ordersForm = listOf ("indices" .: listIndices) orderForm
+ordersForm = listOf orderForm
 
 
 --------------------------------------------------------------------------------
