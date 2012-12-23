@@ -34,6 +34,9 @@ module Text.Digestive.View
       -- ** Errors
     , errors
     , childErrors
+
+      -- * Debugging
+    , debugViewPaths
     ) where
 
 
@@ -242,3 +245,8 @@ errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 childErrors :: Text -> View v -> [v]
 childErrors ref = map snd .
     filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
+
+
+--------------------------------------------------------------------------------
+debugViewPaths :: View v -> [Path]
+debugViewPaths (View _ _ form _ _ _) = debugFormPaths form
