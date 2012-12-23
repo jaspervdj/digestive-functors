@@ -22,6 +22,9 @@ module Text.Digestive.Form.Internal
     , queryField
     , eval
     , formMapView
+
+      -- * Debugging
+    , debugFormPaths
     ) where
 
 
@@ -270,3 +273,13 @@ bindResult mx f = do
     case x of
         Error errs  -> return $ Error errs
         Success x'  -> f x'
+
+
+--------------------------------------------------------------------------------
+-- | Debugging purposes
+debugFormPaths :: Monad m => FormTree Identity v m a -> [Path]
+debugFormPaths (Pure _)    = [[]]
+debugFormPaths (App x y)   = debugFormPaths x ++ debugFormPaths y
+debugFormPaths (Map _ x)   = debugFormPaths x
+debugFormPaths (Monadic x) = debugFormPaths $ runIdentity x
+debugFormPaths (Ref r x)   = map (r :) $ debugFormPaths x

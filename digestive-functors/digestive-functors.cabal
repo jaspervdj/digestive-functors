@@ -45,7 +45,7 @@ Library
   Hs-source-dirs: src
   Ghc-options:    -Wall -fwarn-tabs
 
-  Exposed-modules:     
+  Exposed-modules:
     Text.Digestive
     Text.Digestive.Form
     Text.Digestive.Form.Encoding
@@ -53,10 +53,11 @@ Library
     Text.Digestive.Types
     Text.Digestive.Util
     Text.Digestive.View
+    Text.Digestive.Form.Internal
 
   Other-modules:
+    -- TODO make this exposed in some way
     Text.Digestive.Field
-    Text.Digestive.Form.Internal
 
   Build-depends:
     base       >= 4       && < 5,
