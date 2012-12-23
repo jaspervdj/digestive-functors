@@ -227,9 +227,9 @@ listSubViews ref view@(View _ _ form _ _ _) = map makeSubView indices
     makeSubView i =
         case subView (fromPath $ path ++ [T.pack $ show i]) view of
             View name ctx _ input errs method ->
-                case lookupForm path form of
+                case lookupList path form of
                     -- TODO don't use head
-                    (SomeForm (List defs _) : _) ->
+                    (SomeForm (List defs _)) ->
                         View name ctx (defs `defaultListIndex` i)
                             input errs method
                     _                                -> error $

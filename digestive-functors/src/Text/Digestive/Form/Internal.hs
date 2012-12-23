@@ -18,6 +18,7 @@ module Text.Digestive.Form.Internal
     , (.:)
     , getRef
     , lookupForm
+    , lookupList
     , toField
     , queryField
     , eval
@@ -208,6 +209,29 @@ lookupForm path = go path . SomeForm
             | r == r'            -> children form >>= go rs
             | otherwise          -> []
         (Nothing, _)             -> children form >>= go (r : rs)
+
+
+--------------------------------------------------------------------------------
+-- | Always returns a List
+lookupList :: Path -> FormTree Identity v m a -> SomeForm v m
+lookupList path form = case candidates of
+    (SomeForm f : _) -> SomeForm f
+    []               -> error $ "Text.Digestive.Form.Internal: " ++
+        T.unpack (fromPath path) ++ ": expected List, but got another form"
+  where
+    candidates =
+        [ x
+        | SomeForm f <- lookupForm path form
+        , x          <- getList f
+        ]
+
+    getList :: forall a v m. FormTree Identity v m a -> [SomeForm v m]
+    getList (Ref _ _)   = []
+    getList (Pure _)    = []
+    getList (App _ _)   = []
+    getList (Map _ x)   = getList x
+    getList (Monadic x) = getList $ runIdentity x
+    getList (List d is) = [SomeForm (List d is)]
 
 
 --------------------------------------------------------------------------------

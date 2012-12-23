@@ -191,7 +191,8 @@ orderForm def = Order
 ordersForm :: Formlet Text Database (Text, [Order])
 ordersForm def = (,)
     <$> "name"   .: text             (fst <$> def)
-    <*> "orders" .: listOf orderForm (snd <$> def)
+    -- id is here because of a regression
+    <*> (id <$> "orders" .: listOf orderForm (snd <$> def))
 
 
 --------------------------------------------------------------------------------
