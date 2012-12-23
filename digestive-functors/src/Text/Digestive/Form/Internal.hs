@@ -26,10 +26,9 @@ module Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative    (Applicative(..))
+import           Control.Applicative    (Applicative (..))
 import           Control.Monad          (liftM, liftM2, (>=>))
-import           Control.Monad.Identity (Identity(..))
-import           Data.Maybe             (maybeToList)
+import           Control.Monad.Identity (Identity (..))
 import           Data.Monoid            (Monoid)
 
 
@@ -63,15 +62,18 @@ type Form v m a = FormTree m v m a
 
 --------------------------------------------------------------------------------
 data FormTree t v m a where
-    Pure    :: Ref -> Field v a -> FormTree t v m a
-    App     :: Ref
-            -> FormTree t v m (b -> a)
+    -- Applicative interface
+    Pure    :: Field v a -> FormTree t v m a
+    App     :: FormTree t v m (b -> a)
             -> FormTree t v m b
             -> FormTree t v m a
 
+    -- Modifications
     Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
-
     Monadic :: t (FormTree t v m a) -> FormTree t v m a
+
+    -- Setting refs
+    Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
 
 
 --------------------------------------------------------------------------------
@@ -81,8 +83,8 @@ instance Monad m => Functor (FormTree t v m) where
 
 --------------------------------------------------------------------------------
 instance (Monad m, Monoid v) => Applicative (FormTree t v m) where
-    pure x  = Pure Nothing (Singleton x)
-    x <*> y = App Nothing x y
+    pure x  = Pure (Singleton x)
+    x <*> y = App x y
 
 
 --------------------------------------------------------------------------------
@@ -100,20 +102,21 @@ instance Show (SomeForm v m) where
 
 
 --------------------------------------------------------------------------------
-type Ref = Maybe Text
+type Ref = Text
 
 
 --------------------------------------------------------------------------------
 showForm :: FormTree Identity v m a -> [String]
 showForm form = case form of
-    (Pure r x)  -> ["Pure (" ++ show r ++ ") (" ++ show x ++ ")"]
-    (App r x y) -> concat
-        [ ["App (" ++ show r ++ ")"]
+    (Pure x)  -> ["Pure (" ++ show x ++ ")"]
+    (App x y) -> concat
+        [ ["App"]
         , map indent (showForm x)
         , map indent (showForm y)
         ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
     (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
+    (Ref r x)   -> ("Ref " ++ show r) : map indent (showForm x)
   where
     indent = ("  " ++)
 
@@ -132,64 +135,70 @@ monadic = Monadic
 
 --------------------------------------------------------------------------------
 toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
-toFormTree (Pure r x)  = return $ Pure r x
-toFormTree (App r x y) = liftM2 (App r) (toFormTree x) (toFormTree y)
+toFormTree (Pure x)    = return $ Pure x
+toFormTree (App x y)   = liftM2 App (toFormTree x) (toFormTree y)
 toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
 toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
+toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
 
 
 --------------------------------------------------------------------------------
 children :: FormTree Identity v m a -> [SomeForm v m]
-children (Pure _ _)    = []
-children (App _ x y)   = [SomeForm x, SomeForm y]
-children (Map _ x)     = children x
-children (Monadic x)   = children $ runIdentity x
+children (Pure _)    = []
+children (App x y)   = [SomeForm x, SomeForm y]
+children (Map _ x)   = children x
+children (Monadic x) = children $ runIdentity x
+children (Ref _ x)   = children x
 
 
 --------------------------------------------------------------------------------
-setRef :: Monad t => Ref -> FormTree t v m a -> FormTree t v m a
-setRef r (Pure _ x)  = Pure r x
-setRef r (App _ x y) = App r x y
-setRef r (Map f x)   = Map f (setRef r x)
-setRef r (Monadic x) = Monadic $ liftM (setRef r) x
+pushRef :: Monad t => Ref -> FormTree t v m a -> FormTree t v m a
+pushRef = Ref
 
 
 --------------------------------------------------------------------------------
 -- | Operator to set a name for a subform.
 (.:) :: Monad m => Text -> Form v m a -> Form v m a
-(.:) = setRef . Just
+(.:) = pushRef
 infixr 5 .:
 
 
 --------------------------------------------------------------------------------
-getRef :: FormTree Identity v m a -> Ref
-getRef (Pure r _)  = r
-getRef (App r _ _) = r
-getRef (Map _ x)   = getRef x
-getRef (Monadic x) = getRef $ runIdentity x
+popRef :: FormTree Identity v m a -> (Maybe Ref, FormTree Identity v m a)
+popRef form = case form of
+    (Pure _)    -> (Nothing, form)
+    (App _ _)   -> (Nothing, form)
+    (Map f x)   -> let (r, form') = popRef x in (r, Map f form')
+    (Monadic x) -> popRef $ runIdentity x
+    (Ref r x)   -> (Just r, x)
+
+
+--------------------------------------------------------------------------------
+getRef :: FormTree Identity v m a -> Maybe Ref
+getRef = fst . popRef
 
 
 --------------------------------------------------------------------------------
 lookupForm :: Path -> FormTree Identity v m a -> [SomeForm v m]
 lookupForm path = go path . SomeForm
   where
+    -- Note how we use `popRef` to strip the ref away. This is really important.
     go []       form            = [form]
-    go (r : rs) (SomeForm form) = case getRef form of
-        Just r'
-            -- Note how we use `setRef Nothing` to strip the ref away. This is
-            -- really important.
-            | r == r' && null rs -> [SomeForm $ setRef Nothing form]
+    go (r : rs) (SomeForm form) = case popRef form of
+        (Just r', stripped)
+            | r == r' && null rs -> [SomeForm stripped]
             | r == r'            -> children form >>= go rs
             | otherwise          -> []
-        Nothing                  -> children form >>= go (r : rs)
+        (Nothing, _)             -> children form >>= go (r : rs)
 
 
 --------------------------------------------------------------------------------
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
-toField (Pure _ x)  = Just (SomeField x)
+toField (Pure x)    = Just (SomeField x)
+toField (App _ _)   = Nothing
 toField (Map _ x)   = toField x
 toField (Monadic x) = toField (runIdentity x)
-toField _           = Nothing
+toField (Ref _ x)   = toField x
 
 
 --------------------------------------------------------------------------------
@@ -220,41 +229,36 @@ eval = eval' []
 eval' :: Monad m => Path -> Method -> Env m -> FormTree Identity v m a
       -> m (Result [(Path, v)] a, [(Path, FormInput)])
 
-eval' context method env form = case form of
+eval' path method env form = case form of
 
-    Pure Nothing (Singleton x) -> return (pure x, [])
-
-    Pure Nothing f ->
-        error $ "No ref specified for field " ++ show f
-
-    Pure (Just _) field -> do
+    Pure field -> do
         val <- env path
         let x = evalField method val field
         return $ (pure x, [(path, v) | v <- val])
 
-    App _ x y -> do
+    App x y -> do
         (x', inp1) <- eval' path method env x
         (y', inp2) <- eval' path method env y
         return (x' <*> y', inp1 ++ inp2)
 
     Map f x -> do
-        (x', inp) <- eval' context method env x
+        (x', inp) <- eval' path method env x
         x''       <- bindResult (return x') (f >=> return . ann path)
         return (x'', inp)
 
-    Monadic x -> eval' context method env $ runIdentity x
+    Monadic x -> eval' path method env $ runIdentity x
 
-  where
-    path = context ++ maybeToList (getRef form)
+    Ref r x -> eval' (path ++ [r]) method env x
 
 
 --------------------------------------------------------------------------------
 formMapView :: Monad m
             => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
-formMapView f (Pure r x)  = Pure r $ (fieldMapView f) x
-formMapView f (App r x y) = App r (formMapView f x) (formMapView f y)
+formMapView f (Pure x)    = Pure $ fieldMapView f x
+formMapView f (App x y)   = App (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
 formMapView f (Monadic x) = formMapView f $ runIdentity x
+formMapView f (Ref r x)   = Ref r $ formMapView f x
 
 
 --------------------------------------------------------------------------------

@@ -58,7 +58,7 @@ type Formlet m v a = Maybe a -> Form m v a
 
 --------------------------------------------------------------------------------
 text :: Formlet v m Text
-text def = Pure Nothing $ Text $ fromMaybe "" def
+text def = Pure $ Text $ fromMaybe "" def
 
 
 --------------------------------------------------------------------------------
@@ -97,19 +97,19 @@ choiceWith items def = choiceWith' items def'
 --------------------------------------------------------------------------------
 -- | A version of 'choiceWith' for when you have no good 'Eq' instance.
 choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
-choiceWith' items def = fmap fst $ Pure Nothing $ Choice items def'
+choiceWith' items def = fmap fst $ Pure $ Choice items def'
   where
     def' = fromMaybe 0 def
 
 
 --------------------------------------------------------------------------------
 bool :: Formlet v m Bool
-bool = Pure Nothing . Bool . fromMaybe False
+bool = Pure . Bool . fromMaybe False
 
 
 --------------------------------------------------------------------------------
 file :: Form v m (Maybe FilePath)
-file = Pure Nothing File
+file = Pure File
 
 
 --------------------------------------------------------------------------------
