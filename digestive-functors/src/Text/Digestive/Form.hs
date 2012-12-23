@@ -40,7 +40,6 @@ module Text.Digestive.Form
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative          ((<$>))
 import           Control.Monad                (liftM)
 import           Data.List                    (findIndex)
 import           Data.Maybe                   (fromMaybe)
@@ -194,11 +193,16 @@ readTransform err = return . maybe (Error err) return . readMaybe
 
 --------------------------------------------------------------------------------
 listOf :: Monad m
-       => Form v m a
-       -> Form v m [a]
-listOf = List Nothing (indicesRef .: listIndices)
+       => Formlet v m a
+       -> Formlet v m [a]
+listOf single Nothing   =
+    List Nothing [single Nothing] (indicesRef .: listIndices [0])
+listOf single (Just ls) =
+    List Nothing (map (single . Just) ls) (indicesRef .: listIndices (ixs ls))
+  where
+    ixs xs = [0 .. length xs - 1]
 
 
 --------------------------------------------------------------------------------
-listIndices :: Monad m => Form v m [Text]
-listIndices = parseIndices <$> text (Just $ unparseIndices ["0"])
+listIndices :: Monad m => [Int] -> Form v m [Int]
+listIndices = fmap parseIndices . text . Just . unparseIndices

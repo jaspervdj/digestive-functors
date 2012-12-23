@@ -8,8 +8,13 @@ module Text.Digestive.Form.List
 
 
 --------------------------------------------------------------------------------
-import           Data.Text (Text)
-import qualified Data.Text as T
+import           Data.Maybe          (mapMaybe)
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+
+
+--------------------------------------------------------------------------------
+import           Text.Digestive.Util
 
 
 --------------------------------------------------------------------------------
@@ -18,10 +23,10 @@ indicesRef = "indices"
 
 
 --------------------------------------------------------------------------------
-parseIndices :: Text -> [Text]
-parseIndices = T.split (== ',')
+parseIndices :: Text -> [Int]
+parseIndices = mapMaybe (readMaybe . T.unpack) . T.split (== ',')
 
 
 --------------------------------------------------------------------------------
-unparseIndices :: [Text] -> Text
-unparseIndices = T.intercalate ","
+unparseIndices :: [Int] -> Text
+unparseIndices = T.intercalate "," . map (T.pack . show)

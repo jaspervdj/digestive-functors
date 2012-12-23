@@ -115,8 +115,8 @@ tests = testGroup "Text.Digestive.View.Tests"
         fieldInputBool "name" $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "monadic choiceWith" $ (@=?)
-        (Just (Order (Product "cm_gs" "Comet Grease Shark") 2)) $
-        snd $ runDatabase $ postForm "f" orderForm $ testEnv
+        (Just (Order comet 2)) $
+        snd $ runDatabase $ postForm "f" (orderForm Nothing) $ testEnv
             -- We actually need f.product.cm_gs for the choice input, but this
             -- must work as well!
             [ ("f.product",  "cm_gs")
@@ -126,18 +126,21 @@ tests = testGroup "Text.Digestive.View.Tests"
     , testCase "monadic view query" $ (@=?)
         "Earthwing Belly Racer" $
         snd $ selection $ fieldInputChoice "product" $ runDatabase $
-                getForm "f" orderForm
+                getForm "f"
+                -- With a default
+                (orderForm $ Just $ Order earthwing 10)
 
     , -- Let me just order 3 awesome skateboards here
       testCase "Simple listOf" $ do
-        let (view, result) = runDatabase $ postForm "f" ordersForm $ testEnv
-                [ ("f.name",               "Jasper")
-                , ("f.orders.indices",     "0,10")
-                , ("f.orders.0.product",   "cm_gs")
-                , ("f.orders.0.quantity",  "2")
-                , ("f.orders.10.product",  "s9_ao")
-                , ("f.orders.10.quantity", "1")
-                ]
+        let (view, result) = runDatabase $ postForm "f" (ordersForm Nothing) $
+                                testEnv
+                                    [ ("f.name",               "Jasper")
+              {-   \    /\    -}    , ("f.orders.indices",     "0,10")
+              {-    )  ( ')   -}    , ("f.orders.0.product",   "cm_gs")
+              {-   (  /  )    -}    , ("f.orders.0.quantity",  "2")
+              {-    \(__)|    -}    , ("f.orders.10.product",  "s9_ao")
+                                    , ("f.orders.10.quantity", "1")
+                                    ]
 
         result @?= Just
             ( "Jasper"
@@ -148,6 +151,18 @@ tests = testGroup "Text.Digestive.View.Tests"
 
         let subViews' = listSubViews "orders" view
         fieldInputText "quantity" (head subViews') @?= "2"
+
+    , testCase "listOf with defaults" $ do
+        let view = runDatabase $ getForm "f" $ ordersForm $ Just
+                        ( "Jasper"
+                        , [ Order comet 2
+                          , Order sector9 3
+                          ]
+                        )
+
+        let subViews' = listSubViews "orders" view
+        fst (selection (fieldInputChoice "product" (subViews' !! 1))) @=?
+            "s9_ao"
     ]
 
 

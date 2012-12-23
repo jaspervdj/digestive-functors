@@ -220,13 +220,14 @@ listSubViews ref view@(View _ _ form _ _ _) = map makeSubView indices
     indicesPath = path ++ toPath indicesRef
     indices     = parseIndices $ fieldInputText (fromPath indicesPath) view
 
-    makeSubView :: Text -> View v
+    makeSubView :: Int -> View v
     makeSubView i =
-        case subView (fromPath $ path ++ [i]) view of
+        case subView (fromPath $ path ++ [T.pack $ show i]) view of
             View name ctx _ input errs method ->
                 case lookupForm path form of
-                    (SomeForm (List _ _ single) : _) ->
-                        View name ctx single input errs method
+                    -- TODO don't use head
+                    (SomeForm (List _ defs _) : _) ->
+                        View name ctx (head defs) input errs method
                     _                                -> error $
                         T.unpack ref ++ ": expected List, but got another form"
 

@@ -29,6 +29,7 @@ module Text.Digestive.Form.Internal
 import           Control.Applicative    (Applicative (..))
 import           Control.Monad          (liftM, liftM2, mapAndUnzipM, (>=>))
 import           Control.Monad.Identity (Identity (..))
+import           Data.List              (intercalate)
 import           Data.Maybe             (maybeToList)
 import           Data.Monoid            (Monoid)
 import           Data.Traversable       (sequenceA)
@@ -75,8 +76,8 @@ data FormTree t v m a where
     Monadic :: t (FormTree t v m a) -> FormTree t v m a
 
     List    :: Ref
-            -> FormTree t v m [Text]
-            -> FormTree t v m a
+            -> [FormTree t v m a]  -- Not the optimal structure
+            -> FormTree t v m [Int]
             -> FormTree t v m [a]
 
 
@@ -120,10 +121,12 @@ showForm form = case form of
         ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
     (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
-    (List r is x) -> concat
+    (List r defs is) -> concat
         [ ["List (" ++ show r ++ ")"]
+        , [indent "["]
+        , map indent (intercalate [","] $ map showForm defs)
+        , [indent "]"]
         , map indent (showForm is)
-        , map indent (showForm x)
         ]
   where
     indent = ("  " ++)
@@ -147,7 +150,7 @@ toFormTree (Pure r x)    = return $ Pure r x
 toFormTree (App r x y)   = liftM2 (App r) (toFormTree x) (toFormTree y)
 toFormTree (Map f x)     = liftM (Map f) (toFormTree x)
 toFormTree (Monadic x)   = x >>= toFormTree >>= return . Monadic . Identity
-toFormTree (List r is y) = liftM2 (List r) (toFormTree is) (toFormTree y)
+toFormTree (List r d is) = liftM2 (List r) (mapM toFormTree d) (toFormTree is)
 
 
 --------------------------------------------------------------------------------
@@ -156,7 +159,7 @@ children (Pure _ _)    = []
 children (App _ x y)   = [SomeForm x, SomeForm y]
 children (Map _ x)     = children x
 children (Monadic x)   = children $ runIdentity x
-children (List _ is y) = [SomeForm is, SomeForm y]
+children (List _ _ is) = [SomeForm is]
 
 
 --------------------------------------------------------------------------------
@@ -259,13 +262,15 @@ eval' context method env form = case form of
 
     Monadic x -> eval' context method env $ runIdentity x
 
-    List _ fis x -> do
+    List _ defs fis -> do
         (ris, inp1) <- eval' path method env fis
         case ris of
             Error errs -> return (Error errs, inp1)
             Success is -> do
                 (results, inps) <- mapAndUnzipM
-                    (\i -> eval' (path ++ [i]) method env x) is
+                    -- TODO fix head defs
+                    (\i -> eval' (path ++ [T.pack $ show i])
+                        method env $ head defs) is
                 return (sequenceA results, inp1 ++ concat inps)
   where
     path = context ++ maybeToList (getRef form)
@@ -279,7 +284,7 @@ formMapView f (App r x y)   = App r (formMapView f x) (formMapView f y)
 formMapView f (Map g x)     =
     Map (g >=> return . resultMapError f) (formMapView f x)
 formMapView f (Monadic x)   = formMapView f $ runIdentity x
-formMapView f (List r is x) = List r (formMapView f is) (formMapView f x)
+formMapView f (List r d is) = List r (map (formMapView f) d) (formMapView f is)
 
 
 --------------------------------------------------------------------------------
