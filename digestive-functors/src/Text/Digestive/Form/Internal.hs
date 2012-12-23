@@ -26,22 +26,23 @@ module Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative    (Applicative (..))
-import           Control.Monad          (liftM, liftM2, mapAndUnzipM, (>=>))
-import           Control.Monad.Identity (Identity (..))
-import           Data.List              (intercalate)
-import           Data.Maybe             (maybeToList)
-import           Data.Monoid            (Monoid)
-import           Data.Traversable       (sequenceA)
+import           Control.Applicative      (Applicative (..))
+import           Control.Monad            (liftM, liftM2, mapAndUnzipM, (>=>))
+import           Control.Monad.Identity   (Identity (..))
+import           Data.Maybe               (maybeToList)
+import           Data.Monoid              (Monoid)
+import           Data.Traversable         (mapM, sequenceA)
+import           Prelude                  hiding (mapM)
 
 
 --------------------------------------------------------------------------------
-import           Data.Text              (Text)
-import qualified Data.Text              as T
+import           Data.Text                (Text)
+import qualified Data.Text                as T
 
 
 --------------------------------------------------------------------------------
 import           Text.Digestive.Field
+import           Text.Digestive.Form.List
 import           Text.Digestive.Types
 
 
@@ -76,7 +77,7 @@ data FormTree t v m a where
     Monadic :: t (FormTree t v m a) -> FormTree t v m a
 
     List    :: Ref
-            -> [FormTree t v m a]  -- Not the optimal structure
+            -> DefaultList (FormTree t v m a)  -- Not the optimal structure
             -> FormTree t v m [Int]
             -> FormTree t v m [a]
 
@@ -121,11 +122,8 @@ showForm form = case form of
         ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
     (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
-    (List r defs is) -> concat
-        [ ["List (" ++ show r ++ ")"]
-        , [indent "["]
-        , map indent (intercalate [","] $ map showForm defs)
-        , [indent "]"]
+    (List r _ is) -> concat
+        [ ["List (" ++ show r ++ ") <defaults>"]  -- TODO show defaults
         , map indent (showForm is)
         ]
   where
@@ -270,7 +268,7 @@ eval' context method env form = case form of
                 (results, inps) <- mapAndUnzipM
                     -- TODO fix head defs
                     (\i -> eval' (path ++ [T.pack $ show i])
-                        method env $ head defs) is
+                        method env $ defs `defaultListIndex` i) is
                 return (sequenceA results, inp1 ++ concat inps)
   where
     path = context ++ maybeToList (getRef form)
@@ -284,7 +282,7 @@ formMapView f (App r x y)   = App r (formMapView f x) (formMapView f y)
 formMapView f (Map g x)     =
     Map (g >=> return . resultMapError f) (formMapView f x)
 formMapView f (Monadic x)   = formMapView f $ runIdentity x
-formMapView f (List r d is) = List r (map (formMapView f) d) (formMapView f is)
+formMapView f (List r d is) = List r (fmap (formMapView f) d) (formMapView f is)
 
 
 --------------------------------------------------------------------------------

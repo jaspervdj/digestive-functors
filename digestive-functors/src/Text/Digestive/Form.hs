@@ -195,12 +195,14 @@ readTransform err = return . maybe (Error err) return . readMaybe
 listOf :: Monad m
        => Formlet v m a
        -> Formlet v m [a]
-listOf single Nothing   =
-    List Nothing [single Nothing] (indicesRef .: listIndices [0])
-listOf single (Just ls) =
-    List Nothing (map (single . Just) ls) (indicesRef .: listIndices (ixs ls))
+listOf single def =
+    List Nothing (fmap single defList) (indicesRef .: listIndices ixs)
   where
-    ixs xs = [0 .. length xs - 1]
+    ixs = case def of
+        Nothing -> [0]
+        Just xs -> [0 .. length xs - 1]
+
+    defList = DefaultList Nothing $ maybe [] (map Just) def
 
 
 --------------------------------------------------------------------------------
