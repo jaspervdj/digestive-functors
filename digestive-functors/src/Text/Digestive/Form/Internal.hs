@@ -228,7 +228,7 @@ lookupList path form = case candidates of
     getList :: forall a v m. FormTree Identity v m a -> [SomeForm v m]
     getList (Ref _ _)   = []
     getList (Pure _)    = []
-    getList (App _ _)   = []
+    getList (App x y)   = getList x ++ getList y
     getList (Map _ x)   = getList x
     getList (Monadic x) = getList $ runIdentity x
     getList (List d is) = [SomeForm (List d is)]
