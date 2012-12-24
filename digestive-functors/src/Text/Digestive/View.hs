@@ -30,6 +30,7 @@ module Text.Digestive.View
 
       -- ** List subview
     , listSubViews
+    , makeListSubView
 
       -- ** Errors
     , errors
@@ -217,23 +218,35 @@ fieldInputFile ref (View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 listSubViews :: forall v. Text -> View v -> [View v]
-listSubViews ref view@(View _ _ form _ _ _) = map makeSubView indices
+listSubViews ref view@(View _ _ form _ _ _) =
+    map (\i -> makeListSubView ref i view) indices
   where
     path        = toPath ref
     indicesPath = path ++ toPath indicesRef
     indices     = parseIndices $ fieldInputText (fromPath indicesPath) view
 
-    makeSubView :: Int -> View v
-    makeSubView i =
-        case subView (fromPath $ path ++ [T.pack $ show i]) view of
-            View name ctx _ input errs method ->
-                case lookupList path form of
-                    -- TODO don't use head
-                    (SomeForm (List defs _)) ->
-                        View name ctx (defs `defaultListIndex` i)
-                            input errs method
-                    _                                -> error $
-                        T.unpack ref ++ ": expected List, but got another form"
+
+--------------------------------------------------------------------------------
+-- | Creates a sub view
+makeListSubView :: Text
+                -- ^ ref
+                -> Int
+                -- ^ index to use for the subview
+                -> View v
+                -- ^ list view
+                -> View v
+makeListSubView ref ind view@(View _ _ form _ _ _) =
+    case subView (fromPath $ path ++ [T.pack $ show ind]) view of
+        View name ctx _ input errs method ->
+            case lookupList path form of
+                -- TODO don't use head
+                (SomeForm (List defs _)) ->
+                    View name ctx (defs `defaultListIndex` ind)
+                        input errs method
+                _                                -> error $
+                    T.unpack ref ++ ": expected List, but got another form"
+  where
+    path        = toPath ref
 
 
 --------------------------------------------------------------------------------
