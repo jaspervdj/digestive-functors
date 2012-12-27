@@ -426,18 +426,19 @@ dfInputList view = do
                                    , "'); return false;"] ) ]
         itemAttrs v _ = return
             [ ("id", T.concat [listRef, ".", last $ "0" : viewContext v])
-            , ("class", "inputListItem")
+            , ("class", T.append listRef ".inputListItem")
+            ]
+        templateAttrs v _ = return
+            [ ("id", T.concat [listRef, ".", last $ "-1" : viewContext v])
+            , ("class", T.append listRef ".inputListTemplate")
             ]
         items = listSubViews ref view
-        f v = localHS (bindAttributeSplices [("itemAttrs", itemAttrs v)] .
+        f attrs v = localHS (bindAttributeSplices [("itemAttrs", attrs v)] .
                        bindDigestiveSplices v) runChildren
         dfListItem = do
-            listItemTemplate <- f (makeListSubView ref (-1) view)
-            let template = X.Element "div"
-                  [ ("id", T.append listRef ".template")
-                  , ("class", "inputListTemplate") ] listItemTemplate
-            res <- mapSplices f items
-            return $ template : res
+            template <- f templateAttrs (makeListSubView ref (-1) view)
+            res <- mapSplices (f itemAttrs) items
+            return $ template ++ res
         attrSplices = [ ("addControl", addControl)
                       , ("removeControl", removeControl)
                       ]
