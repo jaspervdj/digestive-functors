@@ -36,6 +36,7 @@ module Text.Digestive.Heist
     , dfInputPassword
     , dfInputHidden
     , dfInputSelect
+    , dfInputSelectGroup
     , dfInputRadio
     , dfInputCheckbox
     , dfInputSubmit
@@ -65,7 +66,6 @@ import qualified Text.XmlHtml          as X
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Form.Internal
 import           Text.Digestive.Form.List
 import           Text.Digestive.View
 
@@ -78,23 +78,24 @@ bindDigestiveSplices = bindSplices . digestiveSplices
 --------------------------------------------------------------------------------
 digestiveSplices :: MonadIO m => View Text -> [(Text, Splice m)]
 digestiveSplices view =
-    [ ("dfInput",          dfInput view)
-    , ("dfInputList",      dfInputList view)
-    , ("dfInputText",      dfInputText view)
-    , ("dfInputTextArea",  dfInputTextArea view)
-    , ("dfInputPassword",  dfInputPassword view)
-    , ("dfInputHidden",    dfInputHidden view)
-    , ("dfInputSelect",    dfInputSelect view)
-    , ("dfInputRadio",     dfInputRadio view)
-    , ("dfInputCheckbox",  dfInputCheckbox view)
-    , ("dfInputFile",      dfInputFile view)
-    , ("dfInputSubmit",    dfInputSubmit view)
-    , ("dfLabel",          dfLabel view)
-    , ("dfForm",           dfForm view)
-    , ("dfErrorList",      dfErrorList view)
-    , ("dfChildErrorList", dfChildErrorList view)
-    , ("dfSubView",        dfSubView view)
-    , ("dfIfChildErrors",  dfIfChildErrors view)
+    [ ("dfInput",            dfInput view)
+    , ("dfInputList",        dfInputList view)
+    , ("dfInputText",        dfInputText view)
+    , ("dfInputTextArea",    dfInputTextArea view)
+    , ("dfInputPassword",    dfInputPassword view)
+    , ("dfInputHidden",      dfInputHidden view)
+    , ("dfInputSelect",      dfInputSelect view)
+    , ("dfInputSelectGroup", dfInputSelectGroup view)
+    , ("dfInputRadio",       dfInputRadio view)
+    , ("dfInputCheckbox",    dfInputCheckbox view)
+    , ("dfInputFile",        dfInputFile view)
+    , ("dfInputSubmit",      dfInputSubmit view)
+    , ("dfLabel",            dfLabel view)
+    , ("dfForm",             dfForm view)
+    , ("dfErrorList",        dfErrorList view)
+    , ("dfChildErrorList",   dfChildErrorList view)
+    , ("dfSubView",          dfSubView view)
+    , ("dfIfChildErrors",    dfIfChildErrors view)
     ]
 
 
@@ -210,14 +211,36 @@ dfInputSelect view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
-        children = map makeOption choices
+        kids     = map makeOption choices
         value i  = ref' `mappend` "." `mappend` i
 
         makeOption (i, c, sel) = X.Element "option"
             (attr sel ("selected", "selected") [("value", value i)])
             [X.TextNode c]
 
-    return $ makeElement "select" children $ addAttrs attrs
+    return $ makeElement "select" kids $ addAttrs attrs
+        [("id", ref'), ("name", ref')]
+
+
+--------------------------------------------------------------------------------
+-- | Generate a select button (also known as a combo box). Example:
+--
+-- > <dfInputSelectGroup ref="user.sex" />
+dfInputSelectGroup :: Monad m => View Text -> Splice m
+dfInputSelectGroup view = do
+    (ref, attrs) <- getRefAttributes Nothing
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoiceGroup ref view
+        kids     = map makeGroup choices
+        value i  = ref' `mappend` "." `mappend` i
+
+        makeGroup (name, options) = X.Element "optgroup"
+            [("label", name)] $ map makeOption options
+        makeOption (i, c, sel) = X.Element "option"
+            (attr sel ("selected", "selected") [("value", value i)])
+            [X.TextNode c]
+
+    return $ makeElement "select" kids $ addAttrs attrs
         [("id", ref'), ("name", ref')]
 
 
@@ -231,7 +254,7 @@ dfInputRadio view = do
 
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
-        children = concatMap makeOption choices
+        kids     = concatMap makeOption choices
         value i  = ref' `mappend` "." `mappend` i
 
         makeOption (i, c, sel) =
@@ -243,7 +266,7 @@ dfInputRadio view = do
             , X.Element "label" [("for", value i)] [X.TextNode c]
             ]
 
-    return children
+    return kids
 
 
 --------------------------------------------------------------------------------

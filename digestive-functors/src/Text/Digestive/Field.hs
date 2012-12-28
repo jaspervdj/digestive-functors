@@ -29,7 +29,7 @@ data Field v a where
     -- A list of identifier, value, view. Then we have the default index in
     -- the list. The return value has the actual value as well as the index in
     -- the list.
-    Choice    :: [(Text, (a, v))] -> Int -> Field v (a, Int)
+    Choice    :: [(Text, [(Text, (a, v))])] -> Int -> Field v (a, Int)
     Bool      :: Bool -> Field v Bool
     File      :: Field v (Maybe FilePath)
 
@@ -55,14 +55,17 @@ evalField :: Method       -- ^ Get/Post
 evalField _    _                 (Singleton x) = x
 evalField _    (TextInput x : _) (Text _)      = x
 evalField _    _                 (Text x)      = x
-evalField _    (TextInput x : _) (Choice ls y) =
+evalField _    (TextInput x : _) (Choice ls' y) =
+  let ls = concat (map snd ls') in
     fromMaybe (fst (snd (ls !! y)), y) $ do
         -- Expects input in the form of "foo.bar.2". This is not needed for
         -- <select> fields, but we need it for labels for radio buttons.
         t      <- listToMaybe $ reverse $ toPath x
         (c, i) <- lookupIdx t ls
         return (fst c, i)
-evalField _    _                 (Choice ls x) = (fst (snd (ls !! x)), x)
+evalField _    _                 (Choice ls' x) =
+  let ls = concat (map snd ls') in
+    (fst (snd (ls !! x)), x)
 evalField Get  _                 (Bool x)      = x
 evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
@@ -74,7 +77,8 @@ evalField _    _                 File          = Nothing
 fieldMapView :: (v -> w) -> Field v a -> Field w a
 fieldMapView _ (Singleton x)   = Singleton x
 fieldMapView _ (Text x)        = Text x
-fieldMapView f (Choice xs i)   = Choice (map (second (second f)) xs) i
+fieldMapView f (Choice xs i)   = Choice (map (second func) xs) i
+  where func = map (second (second f))
 fieldMapView _ (Bool x)        = Bool x
 fieldMapView _ File            = File
 
