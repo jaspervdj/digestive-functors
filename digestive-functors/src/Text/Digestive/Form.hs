@@ -33,6 +33,9 @@ module Text.Digestive.Form
 
       -- * Lifting forms
     , monadic
+
+      -- * Dynamic list forms
+    , listOf
     ) where
 
 
@@ -47,6 +50,7 @@ import qualified Data.Text                    as T
 --------------------------------------------------------------------------------
 import           Text.Digestive.Field
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.List
 import           Text.Digestive.Ref
 import           Text.Digestive.Types
 import           Text.Digestive.Util
@@ -185,3 +189,22 @@ optionalStringRead err = transform readTransform' . optionalString . fmap show
 --------------------------------------------------------------------------------
 readTransform :: (Monad m, Read a) => v -> String -> m (Result v a)
 readTransform err = return . maybe (Error err) return . readMaybe
+
+
+--------------------------------------------------------------------------------
+listOf :: Monad m
+       => Formlet v m a
+       -> Formlet v m [a]
+listOf single def =
+    List (fmap single defList) (indicesRef .: listIndices ixs)
+  where
+    ixs = case def of
+        Nothing -> [0]
+        Just xs -> [0 .. length xs - 1]
+
+    defList = DefaultList Nothing $ maybe [] (map Just) def
+
+
+--------------------------------------------------------------------------------
+listIndices :: Monad m => [Int] -> Form v m [Int]
+listIndices = fmap parseIndices . text . Just . unparseIndices

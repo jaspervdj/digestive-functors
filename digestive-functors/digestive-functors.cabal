@@ -49,6 +49,7 @@ Library
     Text.Digestive
     Text.Digestive.Form
     Text.Digestive.Form.Encoding
+    Text.Digestive.Form.List
     Text.Digestive.Ref
     Text.Digestive.Types
     Text.Digestive.Util

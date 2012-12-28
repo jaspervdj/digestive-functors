@@ -18,6 +18,7 @@ module Text.Digestive.Form.Internal
     , (.:)
     , getRef
     , lookupForm
+    , lookupList
     , toField
     , queryField
     , eval
@@ -29,19 +30,22 @@ module Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative    (Applicative (..))
-import           Control.Monad          (liftM, liftM2, (>=>))
-import           Control.Monad.Identity (Identity (..))
-import           Data.Monoid            (Monoid)
+import           Control.Applicative      (Applicative (..))
+import           Control.Monad            (liftM, liftM2, mapAndUnzipM, (>=>))
+import           Control.Monad.Identity   (Identity (..))
+import           Data.Monoid              (Monoid)
+import           Data.Traversable         (mapM, sequenceA)
+import           Prelude                  hiding (mapM)
 
 
 --------------------------------------------------------------------------------
-import           Data.Text              (Text)
-import qualified Data.Text              as T
+import           Data.Text                (Text)
+import qualified Data.Text                as T
 
 
 --------------------------------------------------------------------------------
 import           Text.Digestive.Field
+import           Text.Digestive.Form.List
 import           Text.Digestive.Types
 
 
@@ -65,6 +69,9 @@ type Form v m a = FormTree m v m a
 
 --------------------------------------------------------------------------------
 data FormTree t v m a where
+    -- Setting refs
+    Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
+
     -- Applicative interface
     Pure    :: Field v a -> FormTree t v m a
     App     :: FormTree t v m (b -> a)
@@ -75,8 +82,10 @@ data FormTree t v m a where
     Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
     Monadic :: t (FormTree t v m a) -> FormTree t v m a
 
-    -- Setting refs
-    Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
+    -- Dynamic lists
+    List    :: DefaultList (FormTree t v m a)  -- Not the optimal structure
+            -> FormTree t v m [Int]
+            -> FormTree t v m [a]
 
 
 --------------------------------------------------------------------------------
@@ -111,6 +120,7 @@ type Ref = Text
 --------------------------------------------------------------------------------
 showForm :: FormTree Identity v m a -> [String]
 showForm form = case form of
+    (Ref r x) -> ("Ref " ++ show r) : map indent (showForm x)
     (Pure x)  -> ["Pure (" ++ show x ++ ")"]
     (App x y) -> concat
         [ ["App"]
@@ -119,7 +129,10 @@ showForm form = case form of
         ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
     (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
-    (Ref r x)   -> ("Ref " ++ show r) : map indent (showForm x)
+    (List _ is) -> concat
+        [ ["List <defaults>"]  -- TODO show defaults
+        , map indent (showForm is)
+        ]
   where
     indent = ("  " ++)
 
@@ -138,20 +151,22 @@ monadic = Monadic
 
 --------------------------------------------------------------------------------
 toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
+toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
 toFormTree (Pure x)    = return $ Pure x
 toFormTree (App x y)   = liftM2 App (toFormTree x) (toFormTree y)
 toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
 toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
-toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
+toFormTree (List d is) = liftM2 List (mapM toFormTree d) (toFormTree is)
 
 
 --------------------------------------------------------------------------------
 children :: FormTree Identity v m a -> [SomeForm v m]
+children (Ref _ x )  = children x
 children (Pure _)    = []
 children (App x y)   = [SomeForm x, SomeForm y]
 children (Map _ x)   = children x
 children (Monadic x) = children $ runIdentity x
-children (Ref _ x)   = children x
+children (List _ is) = [SomeForm is]
 
 
 --------------------------------------------------------------------------------
@@ -169,11 +184,12 @@ infixr 5 .:
 --------------------------------------------------------------------------------
 popRef :: FormTree Identity v m a -> (Maybe Ref, FormTree Identity v m a)
 popRef form = case form of
+    (Ref r x)   -> (Just r, x)
     (Pure _)    -> (Nothing, form)
     (App _ _)   -> (Nothing, form)
     (Map f x)   -> let (r, form') = popRef x in (r, Map f form')
     (Monadic x) -> popRef $ runIdentity x
-    (Ref r x)   -> (Just r, x)
+    (List _ _)  -> (Nothing, form)
 
 
 --------------------------------------------------------------------------------
@@ -196,12 +212,36 @@ lookupForm path = go path . SomeForm
 
 
 --------------------------------------------------------------------------------
+-- | Always returns a List
+lookupList :: Path -> FormTree Identity v m a -> SomeForm v m
+lookupList path form = case candidates of
+    (SomeForm f : _) -> SomeForm f
+    []               -> error $ "Text.Digestive.Form.Internal: " ++
+        T.unpack (fromPath path) ++ ": expected List, but got another form"
+  where
+    candidates =
+        [ x
+        | SomeForm f <- lookupForm path form
+        , x          <- getList f
+        ]
+
+    getList :: forall a v m. FormTree Identity v m a -> [SomeForm v m]
+    getList (Ref _ _)   = []
+    getList (Pure _)    = []
+    getList (App x y)   = getList x ++ getList y
+    getList (Map _ x)   = getList x
+    getList (Monadic x) = getList $ runIdentity x
+    getList (List d is) = [SomeForm (List d is)]
+
+
+--------------------------------------------------------------------------------
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
+toField (Ref _ x)   = toField x
 toField (Pure x)    = Just (SomeField x)
 toField (App _ _)   = Nothing
 toField (Map _ x)   = toField x
 toField (Monadic x) = toField (runIdentity x)
-toField (Ref _ x)   = toField x
+toField (List _ _)  = Nothing
 
 
 --------------------------------------------------------------------------------
@@ -233,6 +273,7 @@ eval' :: Monad m => Path -> Method -> Env m -> FormTree Identity v m a
       -> m (Result [(Path, v)] a, [(Path, FormInput)])
 
 eval' path method env form = case form of
+    Ref r x -> eval' (path ++ [r]) method env x
 
     Pure field -> do
         val <- env path
@@ -251,17 +292,27 @@ eval' path method env form = case form of
 
     Monadic x -> eval' path method env $ runIdentity x
 
-    Ref r x -> eval' (path ++ [r]) method env x
+    List defs fis -> do
+        (ris, inp1) <- eval' path method env fis
+        case ris of
+            Error errs -> return (Error errs, inp1)
+            Success is -> do
+                (results, inps) <- mapAndUnzipM
+                    -- TODO fix head defs
+                    (\i -> eval' (path ++ [T.pack $ show i])
+                        method env $ defs `defaultListIndex` i) is
+                return (sequenceA results, inp1 ++ concat inps)
 
 
 --------------------------------------------------------------------------------
 formMapView :: Monad m
             => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
+formMapView f (Ref r x)   = Ref r $ formMapView f x
 formMapView f (Pure x)    = Pure $ fieldMapView f x
 formMapView f (App x y)   = App (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
 formMapView f (Monadic x) = formMapView f $ runIdentity x
-formMapView f (Ref r x)   = Ref r $ formMapView f x
+formMapView f (List d is) = List (fmap (formMapView f) d) (formMapView f is)
 
 
 --------------------------------------------------------------------------------
@@ -282,4 +333,7 @@ debugFormPaths (Pure _)    = [[]]
 debugFormPaths (App x y)   = debugFormPaths x ++ debugFormPaths y
 debugFormPaths (Map _ x)   = debugFormPaths x
 debugFormPaths (Monadic x) = debugFormPaths $ runIdentity x
+debugFormPaths (List d is) =
+    debugFormPaths is ++
+    (map ("0" :) $ debugFormPaths $ d `defaultListIndex` 0)
 debugFormPaths (Ref r x)   = map (r :) $ debugFormPaths x

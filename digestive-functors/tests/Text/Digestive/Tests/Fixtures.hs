@@ -15,10 +15,14 @@ module Text.Digestive.Tests.Fixtures
       -- * Store/product
     , Database
     , runDatabase
+    , sector9
+    , earthwing
+    , comet
     , Product (..)
     , productForm
     , Order (..)
     , orderForm
+    , ordersForm
 
       -- * Various
     , floatForm
@@ -26,10 +30,10 @@ module Text.Digestive.Tests.Fixtures
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative  ((<$>), (<*>))
-import           Control.Monad.Reader (Reader, ask, runReader)
-import           Data.Text            (Text)
-import qualified Data.Text            as T
+import           Control.Applicative          ((<$>), (<*>))
+import           Control.Monad.Reader         (Reader, ask, runReader)
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 
 
 --------------------------------------------------------------------------------
@@ -135,11 +139,22 @@ type Database = Reader [Product]
 
 --------------------------------------------------------------------------------
 runDatabase :: Database a -> a
-runDatabase = flip runReader
-    [ Product "s9_ao" "Sector 9 Agent Orange"
-    , Product "ew_br" "Earthwing Belly Racer"
-    , Product "cm_gs" "Comet Grease Shark"
-    ]
+runDatabase = flip runReader [sector9, earthwing, comet]
+
+
+--------------------------------------------------------------------------------
+sector9 :: Product
+sector9 = Product "s9_ao" "Sector 9 Agent Orange"
+
+
+--------------------------------------------------------------------------------
+earthwing :: Product
+earthwing = Product "ew_br" "Earthwing Belly Racer"
+
+
+--------------------------------------------------------------------------------
+comet :: Product
+comet = Product "cm_gs" "Comet Grease Shark"
 
 
 --------------------------------------------------------------------------------
@@ -150,10 +165,10 @@ data Product = Product
 
 
 --------------------------------------------------------------------------------
-productForm :: Form Text Database Product
-productForm = monadic $ do
+productForm :: Formlet Text Database Product
+productForm def = monadic $ do
     products <- ask
-    return $ choiceWith (map makeChoice products) (Just $ products !! 1)
+    return $ choiceWith (map makeChoice products) def
   where
     makeChoice p = (productId p, (p, productName p))
 
@@ -166,10 +181,18 @@ data Order = Order
 
 
 --------------------------------------------------------------------------------
-orderForm :: Form Text Database Order
-orderForm = Order
-    <$> "product"  .: productForm
-    <*> "quantity" .: stringRead "Can't parse" Nothing
+orderForm :: Formlet Text Database Order
+orderForm def = Order
+    <$> "product"  .: productForm              (orderProduct <$> def)
+    <*> "quantity" .: stringRead "Can't parse" (orderQuantity <$> def)
+
+
+--------------------------------------------------------------------------------
+ordersForm :: Formlet Text Database (Text, [Order])
+ordersForm def = (,)
+    <$> "name"   .: text             (fst <$> def)
+    -- id is here because of a regression
+    <*> (id <$> "orders" .: listOf orderForm (snd <$> def))
 
 
 --------------------------------------------------------------------------------

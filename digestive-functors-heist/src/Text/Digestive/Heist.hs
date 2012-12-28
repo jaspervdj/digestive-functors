@@ -30,6 +30,7 @@ module Text.Digestive.Heist
 
       -- * Main splices
     , dfInput
+    , dfInputList
     , dfInputText
     , dfInputTextArea
     , dfInputPassword
@@ -51,6 +52,7 @@ module Text.Digestive.Heist
 
 --------------------------------------------------------------------------------
 import           Control.Monad         (liftM, mplus)
+import           Control.Monad.Trans
 import           Data.Function         (on)
 import           Data.List             (unionBy)
 import           Data.Maybe            (fromMaybe)
@@ -63,18 +65,21 @@ import qualified Text.XmlHtml          as X
 
 
 --------------------------------------------------------------------------------
+import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.List
 import           Text.Digestive.View
 
 
 --------------------------------------------------------------------------------
-bindDigestiveSplices :: Monad m => View Text -> HeistState m -> HeistState m
+bindDigestiveSplices :: MonadIO m => View Text -> HeistState m -> HeistState m
 bindDigestiveSplices = bindSplices . digestiveSplices
 
 
 --------------------------------------------------------------------------------
-digestiveSplices :: Monad m => View Text -> [(Text, Splice m)]
+digestiveSplices :: MonadIO m => View Text -> [(Text, Splice m)]
 digestiveSplices view =
     [ ("dfInput",          dfInput view)
+    , ("dfInputList",      dfInputList view)
     , ("dfInputText",      dfInputText view)
     , ("dfInputTextArea",  dfInputTextArea view)
     , ("dfInputPassword",  dfInputPassword view)
@@ -374,13 +379,79 @@ dfChildErrorList view = do
 -- > </dfSubView>
 -- >
 -- > <dfInputTextArea ref="comment.body" />
-dfSubView :: Monad m => View Text -> Splice m
+dfSubView :: MonadIO m => View Text -> Splice m
 dfSubView view = do
     (ref, _) <- getRefAttributes Nothing
-    content  <- getContent
     let view' = subView ref view
-    nodes <- localHS (bindDigestiveSplices view') $ runNodeList content
+    nodes <- localHS (bindDigestiveSplices view') runChildren
     return nodes
+
+
+--------------------------------------------------------------------------------
+-- | This splice allows variable length lists.  It binds several attribute
+-- splices providing functionality for dynamically manipulating the list.  The
+-- following descriptions will use the example of a form named \"foo\" with a
+-- list subform named \"items\".
+--
+-- Splices:
+--   dfListItem - This tag must surround the markup for a single list item.
+--     It surrounds all of its children with a div with id \"foo.items\" and
+--     class \"inputList\".
+-- 
+-- Attribute Splices:
+--   itemAttrs - Attribute you should use on div, span, etc that surrounds all
+--     the markup for a single list item.  This splice expands to an id of
+--     \"foo.items.ix\" (where ix is the index of the current item) and a
+--     class of \"inputListItem\".
+--   addControl - Use this attribute on the tag you use to define a control
+--     for adding elements to the list (usually a button or anchor).  It adds
+--     an onclick attribute that calls a javascript function addInputListItem.
+--   removeControl - Use this attribute on the control for removing individual
+--     items.  It adds an onclick attribute that calls removeInputListItem.
+dfInputList :: MonadIO m => View Text -> Splice m
+dfInputList view = do
+    (ref, _) <- getRefAttributes Nothing
+    let listRef = absoluteRef ref view
+        listAttrs =
+            [ ("id", listRef)
+            , ("class", "inputList")
+            ]
+        addControl _ = return
+            [ ("onclick", T.concat [ "addInputListItem(this, '"
+                                   , listRef
+                                   , "'); return false;"] ) ]
+        removeControl _ = return
+            [ ("onclick", T.concat [ "removeInputListItem(this, '"
+                                   , listRef
+                                   , "'); return false;"] ) ]
+        itemAttrs v _ = return
+            [ ("id", T.concat [listRef, ".", last $ "0" : viewContext v])
+            , ("class", T.append listRef ".inputListItem")
+            ]
+        templateAttrs v _ = return
+            [ ("id", T.concat [listRef, ".", last $ "-1" : viewContext v])
+            , ("class", T.append listRef ".inputListTemplate")
+            ]
+        items = listSubViews ref view
+        f attrs v = localHS (bindAttributeSplices [("itemAttrs", attrs v)] .
+                       bindDigestiveSplices v) runChildren
+        dfListItem = do
+            template <- f templateAttrs (makeListSubView ref (-1) view)
+            res <- mapSplices (f itemAttrs) items
+            return $ template ++ res
+        attrSplices = [ ("addControl", addControl)
+                      , ("removeControl", removeControl)
+                      ]
+    nodes <- localHS (bindSplices [("dfListItem", dfListItem)] .
+                      bindAttributeSplices attrSplices) runChildren
+    let indices = [X.Element "input"
+                    [ ("type", "hidden")
+                    , ("name", T.intercalate "." [listRef, indicesRef])
+                    , ("value", T.intercalate "," $ map
+                        (last . ("0":) . viewContext) items)
+                    ] []
+                  ]
+    return [X.Element "div" listAttrs (indices ++ nodes)]
 
 
 --------------------------------------------------------------------------------
@@ -395,7 +466,6 @@ dfSubView view = do
 dfIfChildErrors :: Monad m => View v -> Splice m
 dfIfChildErrors view = do
     (ref, _) <- getRefAttributes $ Just ""
-    content  <- getContent
     if null (childErrors ref view)
         then return []
-        else runNodeList content
+        else runChildren
