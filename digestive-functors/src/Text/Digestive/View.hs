@@ -25,6 +25,7 @@ module Text.Digestive.View
       -- ** Input
     , fieldInputText
     , fieldInputChoice
+    , fieldInputChoiceGroup 
     , fieldInputBool
     , fieldInputFile
 
@@ -181,10 +182,40 @@ fieldInputChoice ref (View _ _ form input _ method) =
     eval' field = case field of
         Choice xs didx ->
             let idx = snd $ evalField method givenInput (Choice xs didx)
-            in map (\(i, (k, (_, v))) -> (k, v, i == idx)) $ zip [0 ..] xs
+            in map (\(i, (k, (_, v))) -> (k, v, i == idx)) $
+                 zip [0 ..] $ concat $ map snd xs
         f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
             "but got: (" ++ show f ++ ")"
 
+
+--------------------------------------------------------------------------------
+-- | Returns a list of (groupName, [(identifier, view, selected?)])
+fieldInputChoiceGroup :: forall v. Text
+                      -> View v
+                      -> [(Text, [(Text, v, Bool)])]
+fieldInputChoiceGroup ref (View _ _ form input _ method) =
+    queryField path form eval'
+  where
+    path       = toPath ref
+    givenInput = lookupInput path input
+
+    eval' :: Field v b -> [(Text, [(Text, v, Bool)])]
+    eval' field = case field of
+        Choice xs didx ->
+            let idx = snd $ evalField method givenInput (Choice xs didx)
+            in merge idx xs [0..]
+        f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
+            "but got: (" ++ show f ++ ")"
+
+merge :: Int
+      -> [(Text, [(Text, (a, v))])]
+      -> [Int]
+      -> [(Text, [(Text, v, Bool)])]
+merge _ [] _ = []
+merge idx (g:gs) is = cur : merge idx gs b
+  where
+    (a,b) = splitAt (length $ snd g) is
+    cur = (fst g, map (\(i, (k, (_, v))) -> (k, v, i == idx)) $ zip a (snd g))
 
 --------------------------------------------------------------------------------
 fieldInputBool :: forall v. Text -> View v -> Bool
@@ -218,7 +249,7 @@ fieldInputFile ref (View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 listSubViews :: forall v. Text -> View v -> [View v]
-listSubViews ref view@(View _ _ form _ _ _) =
+listSubViews ref view =
     map (\i -> makeListSubView ref i view) indices
   where
     path        = toPath ref

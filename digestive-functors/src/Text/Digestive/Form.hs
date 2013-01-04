@@ -17,6 +17,10 @@ module Text.Digestive.Form
     , choice'
     , choiceWith
     , choiceWith'
+    , groupedChoice
+    , groupedChoice'
+    , groupedChoiceWith
+    , groupedChoiceWith'
     , bool
     , file
 
@@ -101,7 +105,56 @@ choiceWith items def = choiceWith' items def'
 --------------------------------------------------------------------------------
 -- | A version of 'choiceWith' for when you have no good 'Eq' instance.
 choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
-choiceWith' items def = fmap fst $ Pure $ Choice items def'
+choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
+  where
+    def' = fromMaybe 0 def
+
+
+--------------------------------------------------------------------------------
+groupedChoice :: (Eq a, Monad m) => [(Text, [(a, v)])] -> Formlet v m a
+groupedChoice items def =
+    groupedChoiceWith (mkGroupedRefs items makeRefs) def
+
+
+--------------------------------------------------------------------------------
+-- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
+-- can use this function, which takes an index in the list as default.
+groupedChoice' :: Monad m => [(Text, [(a, v)])] -> Maybe Int -> Form v m a
+groupedChoice' items def =
+    groupedChoiceWith' (mkGroupedRefs items makeRefs) def
+
+
+mkGroupedRefs :: [(Text, [a])]
+              -> [Text]
+              -> [(Text, [(Text, a)])]
+mkGroupedRefs [] _ = []
+mkGroupedRefs (g:gs) is = cur : mkGroupedRefs gs b
+  where
+    (a,b) = splitAt (length $ snd g) is
+    cur = (fst g, zip a (snd g))
+
+
+--------------------------------------------------------------------------------
+-- | Allows you to assign your own values: these values will be used in the
+-- resulting HTML instead of the default @[0 ..]@. This fixes some race
+-- conditions that might otherwise appear, e.g. if new choice items are added to
+-- some database while a user views and submits the form...
+groupedChoiceWith :: (Eq a, Monad m)
+                  => [(Text, [(Text, (a, v))])]
+                  -> Formlet v m a
+groupedChoiceWith items def = groupedChoiceWith' items def'
+  where
+    def' = def >>= (\d -> findIndex ((== d) . fst . snd) $
+                            concat $ map snd items)
+
+
+--------------------------------------------------------------------------------
+-- | Low-level support for grouped choice.
+groupedChoiceWith' :: Monad m
+                   => [(Text, [(Text, (a, v))])]
+                   -> Maybe Int
+                   -> Form v m a
+groupedChoiceWith' items def = fmap fst $ Pure $ Choice items def'
   where
     def' = fromMaybe 0 def
 
