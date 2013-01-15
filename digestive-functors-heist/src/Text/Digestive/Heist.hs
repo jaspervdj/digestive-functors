@@ -454,6 +454,7 @@ dfInputList view = do
         templateAttrs v _ = return
             [ ("id", T.concat [listRef, ".", last $ "-1" : viewContext v])
             , ("class", T.append listRef ".inputListTemplate")
+            , ("style", "display: none;")
             ]
         items = listSubViews ref view
         f attrs v = localHS (bindAttributeSplices [("itemAttrs", attrs v)] .
