@@ -6,13 +6,13 @@ module Text.Digestive.Field.Tests
 
 
 --------------------------------------------------------------------------------
-import           Test.Framework                 (Test, testGroup)
-import           Test.Framework.Providers.HUnit (testCase)
-import           Test.HUnit                     ((@=?))
+import           Test.Framework                     (Test, testGroup)
+import           Test.Framework.Providers.HUnit     (testCase)
+import           Test.HUnit                         ((@=?))
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Field
+import           Text.Digestive.Form.Internal.Field
 import           Text.Digestive.Types
 
 

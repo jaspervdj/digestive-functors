@@ -3,7 +3,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
-module Text.Digestive.Field
+module Text.Digestive.Form.Internal.Field
     ( Field (..)
     , SomeField (..)
     , evalField
