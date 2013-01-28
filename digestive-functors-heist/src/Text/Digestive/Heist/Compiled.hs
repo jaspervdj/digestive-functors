@@ -58,7 +58,6 @@ import           Blaze.ByteString.Builder
 import           Control.Monad         (liftM, mplus)
 import           Control.Monad.Trans
 import           Data.Function         (on)
-import qualified Data.DList            as DL
 import           Data.List             (unionBy)
 import           Data.Maybe            (fromMaybe)
 import           Data.Monoid           ((<>), mempty)
@@ -121,7 +120,7 @@ formSplice getView = do
                     , ("enctype", "${dfEncType}")
                     ])
                  (X.childNodes node)
-        action = liftM (codeGen . DL.toList) $ runNode tree
+        action = runNode tree
     defer (\vp -> withLocalSplices (digestiveSplices vp) [] action)
           (lift getView)
 
@@ -477,7 +476,7 @@ dfSingleListItem node attrs viewPromise = do
     res <- withLocalSplices (digestiveSplices p2)
                             [("itemAttrs", attrs viewPromise)]
                             (runNodeList $ X.childNodes node)
-    return $ codeGen $ DL.toList $ action <> res
+    return $ codeGen $ action <> res
 
 
 --------------------------------------------------------------------------------
