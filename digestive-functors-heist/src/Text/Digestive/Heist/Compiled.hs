@@ -200,8 +200,8 @@ dfInputText = dfInputGeneric [("type", "text")]
 -- > <dfInputTextArea ref="user.about" />
 dfInputTextArea :: Monad m => Promise (View v) -> Splice m
 dfInputTextArea = dfTag $ \ref attrs value ->
-    makeElement "textarea" [] $ addAttrs attrs
-        [("id", ref), ("name", ref), ("value", value)]
+    makeElement "textarea" [X.TextNode value] $ addAttrs attrs
+        [("id", ref), ("name", ref)]
 
 
 --------------------------------------------------------------------------------
