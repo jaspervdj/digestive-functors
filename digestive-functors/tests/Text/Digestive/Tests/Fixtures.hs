@@ -26,14 +26,15 @@ module Text.Digestive.Tests.Fixtures
 
       -- * Various
     , floatForm
+    , altForm
     ) where
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative          ((<$>), (<*>))
-import           Control.Monad.Reader         (Reader, ask, runReader)
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
+import           Control.Applicative  ((<$>), (<*>), (<|>))
+import           Control.Monad.Reader (Reader, ask, runReader)
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 
 
 --------------------------------------------------------------------------------
@@ -198,3 +199,10 @@ ordersForm def = (,)
 --------------------------------------------------------------------------------
 floatForm :: Monad m => Form Text m Float
 floatForm = "f" .: stringRead "Can't parse float" Nothing
+
+
+--------------------------------------------------------------------------------
+altForm :: Monad m => Form Text m Text
+altForm = ("xo" .:) $
+    check "must be x" (== "x") (text Nothing) <|>
+    check "must be o" (== "o") (text Nothing)

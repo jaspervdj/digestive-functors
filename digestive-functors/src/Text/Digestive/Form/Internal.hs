@@ -30,7 +30,8 @@ module Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative                (Applicative (..))
+import           Control.Applicative                (Alternative (..),
+                                                     Applicative (..))
 import           Control.Monad                      (liftM, liftM2,
                                                      mapAndUnzipM, (>=>))
 import           Control.Monad.Identity             (Identity (..))
@@ -79,6 +80,12 @@ data FormTree t v m a where
             -> FormTree t v m b
             -> FormTree t v m a
 
+    -- Alternative interface
+    Empty   :: FormTree t v m a
+    Alt     :: FormTree t v m a
+            -> FormTree t v m a
+            -> FormTree t v m a
+
     -- Modifications
     Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
     Monadic :: t (FormTree t v m a) -> FormTree t v m a
@@ -98,6 +105,12 @@ instance Monad m => Functor (FormTree t v m) where
 instance (Monad m, Monoid v) => Applicative (FormTree t v m) where
     pure x  = Pure (Singleton x)
     x <*> y = App x y
+
+
+--------------------------------------------------------------------------------
+instance (Monad m, Monoid v) => Alternative (FormTree t v m) where
+    empty   = Empty
+    x <|> y = Alt x y
 
 
 --------------------------------------------------------------------------------
@@ -128,6 +141,12 @@ showForm form = case form of
         , map indent (showForm x)
         , map indent (showForm y)
         ]
+    Empty       -> ["Empty"]
+    (Alt x y)   -> concat
+        [ ["Alt"]
+        , map indent (showForm x)
+        , map indent (showForm y)
+        ]
     (Map _ x)   -> "Map _" : map indent (showForm x)
     (Monadic x) -> "Monadic" : map indent (showForm $ runIdentity x)
     (List _ is) -> concat
@@ -155,6 +174,8 @@ toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
 toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
 toFormTree (Pure x)    = return $ Pure x
 toFormTree (App x y)   = liftM2 App (toFormTree x) (toFormTree y)
+toFormTree Empty       = return Empty
+toFormTree (Alt x y)   = liftM2 Alt (toFormTree x) (toFormTree y)
 toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
 toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
 toFormTree (List d is) = liftM2 List (mapM toFormTree d) (toFormTree is)
@@ -165,6 +186,8 @@ children :: FormTree Identity v m a -> [SomeForm v m]
 children (Ref _ x )  = children x
 children (Pure _)    = []
 children (App x y)   = [SomeForm x, SomeForm y]
+children Empty       = []
+children (Alt x y)   = [SomeForm x, SomeForm y]
 children (Map _ x)   = children x
 children (Monadic x) = children $ runIdentity x
 children (List _ is) = [SomeForm is]
@@ -188,6 +211,8 @@ popRef form = case form of
     (Ref r x)   -> (Just r, x)
     (Pure _)    -> (Nothing, form)
     (App _ _)   -> (Nothing, form)
+    Empty       -> (Nothing, form)
+    (Alt _ _)   -> (Nothing, form)
     (Map f x)   -> let (r, form') = popRef x in (r, Map f form')
     (Monadic x) -> popRef $ runIdentity x
     (List _ _)  -> (Nothing, form)
@@ -230,6 +255,8 @@ lookupList path form = case candidates of
     getList (Ref _ _)   = []
     getList (Pure _)    = []
     getList (App x y)   = getList x ++ getList y
+    getList Empty       = []
+    getList (Alt x y)   = getList x ++ getList y
     getList (Map _ x)   = getList x
     getList (Monadic x) = getList $ runIdentity x
     getList (List d is) = [SomeForm (List d is)]
@@ -240,6 +267,8 @@ toField :: FormTree Identity v m a -> Maybe (SomeField v)
 toField (Ref _ x)   = toField x
 toField (Pure x)    = Just (SomeField x)
 toField (App _ _)   = Nothing
+toField Empty       = Nothing
+toField (Alt _ _)   = Nothing
 toField (Map _ x)   = toField x
 toField (Monadic x) = toField (runIdentity x)
 toField (List _ _)  = Nothing
@@ -286,6 +315,14 @@ eval' path method env form = case form of
         (y', inp2) <- eval' path method env y
         return (x' <*> y', inp1 ++ inp2)
 
+    Empty -> return (Error [], [])  -- TODO maybe generate error message...
+
+    Alt x y -> do
+        (x', inp1) <- eval' path method env x
+        case x' of
+            Success _ -> return (x', inp1)
+            _         -> eval' path method env y
+
     Map f x -> do
         (x', inp) <- eval' path method env x
         x''       <- bindResult (return x') (f >=> return . ann path)
@@ -311,6 +348,8 @@ formMapView :: Monad m
 formMapView f (Ref r x)   = Ref r $ formMapView f x
 formMapView f (Pure x)    = Pure $ fieldMapView f x
 formMapView f (App x y)   = App (formMapView f x) (formMapView f y)
+formMapView _ Empty       = Empty
+formMapView f (Alt x y)   = Alt (formMapView f x) (formMapView f y)
 formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
 formMapView f (Monadic x) = formMapView f $ runIdentity x
 formMapView f (List d is) = List (fmap (formMapView f) d) (formMapView f is)
@@ -332,6 +371,8 @@ bindResult mx f = do
 debugFormPaths :: Monad m => FormTree Identity v m a -> [Path]
 debugFormPaths (Pure _)    = [[]]
 debugFormPaths (App x y)   = debugFormPaths x ++ debugFormPaths y
+debugFormPaths Empty       = [[]]
+debugFormPaths (Alt x y)   = debugFormPaths x ++ debugFormPaths y
 debugFormPaths (Map _ x)   = debugFormPaths x
 debugFormPaths (Monadic x) = debugFormPaths $ runIdentity x
 debugFormPaths (List d is) =

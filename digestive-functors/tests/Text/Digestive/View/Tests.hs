@@ -51,6 +51,10 @@ tests = testGroup "Text.Digestive.View.Tests"
         snd $ runIdentity $ postForm "f" floatForm $ testEnv
             [("f.f", "4.323")]
 
+    , testCase "alternative instance" $ (@=?)
+        (Just "o") $
+        snd $ runIdentity $ postForm "f" altForm $ testEnv [("f.xo", "o")]
+
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
         childErrors "" $ fst $ runTrainerM $ postForm "f" pokemonForm $ testEnv
