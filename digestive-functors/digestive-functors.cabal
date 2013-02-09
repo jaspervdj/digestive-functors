@@ -68,6 +68,11 @@ Test-suite digestive-functors-tests
   Type:           exitcode-stdio-1.0
   Hs-source-dirs: src tests
   Main-is:        TestSuite.hs
+  Other-modules:
+      Text.Digestive.Field.Tests
+      Text.Digestive.Form.Encoding.Tests
+      Text.Digestive.Tests.Fixtures
+      Text.Digestive.View.Tests
   Ghc-options:    -Wall
 
   Build-depends:
