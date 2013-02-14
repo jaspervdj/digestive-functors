@@ -55,7 +55,7 @@ module Text.Digestive.Heist.Compiled
 
 --------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
-import           Control.Monad         (liftM, mplus)
+import           Control.Monad         (mplus)
 import           Control.Monad.Trans
 import           Data.Function         (on)
 import           Data.List             (unionBy)
