@@ -30,21 +30,22 @@ module Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative      (Applicative (..))
-import           Control.Monad            (liftM, liftM2, mapAndUnzipM, (>=>))
-import           Control.Monad.Identity   (Identity (..))
-import           Data.Monoid              (Monoid)
-import           Data.Traversable         (mapM, sequenceA)
-import           Prelude                  hiding (mapM)
+import           Control.Applicative                (Applicative (..))
+import           Control.Monad                      (liftM, liftM2,
+                                                     mapAndUnzipM, (>=>))
+import           Control.Monad.Identity             (Identity (..))
+import           Data.Monoid                        (Monoid)
+import           Data.Traversable                   (mapM, sequenceA)
+import           Prelude                            hiding (mapM)
 
 
 --------------------------------------------------------------------------------
-import           Data.Text                (Text)
-import qualified Data.Text                as T
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Field
+import           Text.Digestive.Form.Internal.Field
 import           Text.Digestive.Form.List
 import           Text.Digestive.Types
 

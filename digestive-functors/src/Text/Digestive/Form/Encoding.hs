@@ -8,15 +8,15 @@ module Text.Digestive.Form.Encoding
 
 
 --------------------------------------------------------------------------------
-import           Control.Monad                (liftM)
-import           Control.Monad.Identity       (Identity)
-import           Data.Maybe                   (mapMaybe)
-import           Data.Monoid                  (Monoid(..), mconcat)
+import           Control.Monad                      (liftM)
+import           Control.Monad.Identity             (Identity)
+import           Data.Maybe                         (mapMaybe)
+import           Data.Monoid                        (Monoid (..), mconcat)
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Field
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.Internal.Field
 
 
 --------------------------------------------------------------------------------

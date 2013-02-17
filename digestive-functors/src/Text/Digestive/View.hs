@@ -25,7 +25,7 @@ module Text.Digestive.View
       -- ** Input
     , fieldInputText
     , fieldInputChoice
-    , fieldInputChoiceGroup 
+    , fieldInputChoiceGroup
     , fieldInputBool
     , fieldInputFile
 
@@ -43,17 +43,17 @@ module Text.Digestive.View
 
 
 --------------------------------------------------------------------------------
-import           Control.Arrow                (second)
-import           Control.Monad.Identity       (Identity)
-import           Data.List                    (isPrefixOf)
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
+import           Control.Arrow                      (second)
+import           Control.Monad.Identity             (Identity)
+import           Data.List                          (isPrefixOf)
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Field
 import           Text.Digestive.Form.Encoding
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.Internal.Field
 import           Text.Digestive.Form.List
 import           Text.Digestive.Types
 

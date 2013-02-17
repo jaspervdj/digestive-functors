@@ -44,16 +44,16 @@ module Text.Digestive.Form
 
 
 --------------------------------------------------------------------------------
-import           Control.Monad                (liftM)
-import           Data.List                    (findIndex)
-import           Data.Maybe                   (fromMaybe)
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
+import           Control.Monad                      (liftM)
+import           Data.List                          (findIndex)
+import           Data.Maybe                         (fromMaybe)
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
 
 
 --------------------------------------------------------------------------------
-import           Text.Digestive.Field
 import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.Internal.Field
 import           Text.Digestive.Form.List
 import           Text.Digestive.Ref
 import           Text.Digestive.Types
