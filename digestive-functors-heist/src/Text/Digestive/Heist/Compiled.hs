@@ -29,6 +29,7 @@
 module Text.Digestive.Heist.Compiled
     ( -- * Core methods
       formSplice
+    , formSplice'
 
       -- * Main splices
     , dfInput
@@ -111,7 +112,25 @@ digestiveSplices vp =
 -- Then you can use the customerForm tag just like you would use the dfForm
 -- tag in interpreted templates anywhere you want to have a customer form.
 formSplice :: Monad m => m (View Text) -> Splice m
-formSplice getView = do
+formSplice = formSplice' [] []
+
+
+------------------------------------------------------------------------------
+-- | A compiled splice for a specific form.  You pass in a runtime action that
+-- gets the form's view and this function returns a splice that creates a form
+-- tag.  In your HeistConfig you might have a compiled splice like this:
+--
+-- `("customerForm", formSplice (liftM fst $ runForm "customer" custForm))`
+--
+-- Then you can use the customerForm tag just like you would use the dfForm
+-- tag in interpreted templates anywhere you want to have a customer form.
+--formSplice' :: Monad m => m (View Text) -> Splice m
+formSplice' :: Monad m
+            => [(Text, Splice m)]
+            -> [(Text, AttrSplice m)]
+            -> m (View Text)
+            -> Splice m
+formSplice' ss as getView = do
     node <- getParamNode
     let (_, attrs) = getRefAttributes node Nothing
         tree = X.Element "form"
@@ -121,7 +140,7 @@ formSplice getView = do
                     ])
                  (X.childNodes node)
         action = runNode tree
-    defer (\vp -> withLocalSplices (digestiveSplices vp) [] action)
+    defer (\vp -> withLocalSplices (digestiveSplices vp ++ ss) as action)
           (lift getView)
 
 
@@ -153,20 +172,29 @@ dfEncType p = do
         return $ fromByteString $ encodeUtf8 $ T.pack (show $ viewEncType view)
 
 
+dfMaster :: Monad m
+         => (Text -> [(Text, Text)] -> View v -> RuntimeSplice m Builder)
+         -> Promise (View v) -> Splice m
+dfMaster f p = do
+    node <- getParamNode
+    let (ref, attrs) = getRefAttributes node Nothing
+    runAttrs <- runAttributesRaw attrs
+    return $ yieldRuntime $ do
+        view <- getPromise p
+        attrs' <- runAttrs
+        f ref attrs' view
+
+
 dfTag :: (Monad m)
       => (Text -> [(Text, Text)] -> Text -> [X.Node])
       -> Promise (View v)
       -> Splice m
-dfTag f p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref' = absoluteRef ref view
-            -- If there is no bang pattern on value, then for some reason it
-            -- doesn't get forced and errors aren't displayed properly.
-            !value = fieldInputText ref view
-        return $ X.renderHtmlFragment X.UTF8 $ f ref' attrs value
+dfTag f = dfMaster $ \ref attrs view -> do
+    let ref' = absoluteRef ref view
+        -- If there is no bang pattern on value, then for some reason it
+        -- doesn't get forced and errors aren't displayed properly.
+        !value = fieldInputText ref view
+    return $ X.renderHtmlFragment X.UTF8 $ f ref' attrs value
 
 
 dfInputGeneric :: Monad m
@@ -176,6 +204,41 @@ dfInputGeneric :: Monad m
 dfInputGeneric as = dfTag $ \ref attrs value ->
     makeElement "input" [] $ addAttrs attrs $
         as ++ [("id", ref), ("name", ref), ("value", value)]
+
+
+--------------------------------------------------------------------------------
+-- | Generate a submit button. Example:
+--
+-- > <dfInputSubmit />
+dfInputSubmit :: Monad m => Splice m
+dfInputSubmit = do
+    node <- getParamNode
+    let (_, attrs) = getRefAttributes node Nothing
+    runAttrs <- runAttributesRaw attrs
+    return $ yieldRuntime $ do
+        attrs' <- runAttrs
+        let e = makeElement "input" [] $ addAttrs attrs'
+                [("type", "submit")]
+        return $ X.renderHtmlFragment X.UTF8 e
+
+
+--------------------------------------------------------------------------------
+-- | Generate a label for a field. Example:
+--
+-- > <dfLabel ref="user.married">Married: </dfLabel>
+-- > <dfInputCheckbox ref="user.married" />
+dfLabel :: Monad m => Promise (View v) -> Splice m
+dfLabel p = do
+    node <- getParamNode
+    let (ref, attrs) = getRefAttributes node Nothing
+    runAttrs <- runAttributesRaw attrs
+    return $ yieldRuntime $ do
+        view <- getPromise p
+        attrs' <- runAttrs
+        let ref'  = absoluteRef ref view
+            e = makeElement "label" (X.childNodes node) $ addAttrs attrs'
+                [("for", ref')]
+        return $ X.renderHtmlFragment X.UTF8 e
 
 
 --------------------------------------------------------------------------------
@@ -227,18 +290,14 @@ dfInputHidden = dfInputGeneric [("type", "hidden")]
 dfInputCheckbox :: Monad m
                 => Promise (View v)
                 -> Splice m
-dfInputCheckbox p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'  = absoluteRef ref view
-            value = fieldInputBool ref view
-            e = makeElement "input" [] $ addAttrs attrs $
-                       attr value ("checked", "checked") $
-                       [("type", "checkbox"), ("id", ref'), ("name", ref')]
+dfInputCheckbox = dfMaster $ \ref attrs view -> do
+    let ref'  = absoluteRef ref view
+        value = fieldInputBool ref view
+        e = makeElement "input" [] $ addAttrs attrs $
+                   attr value ("checked", "checked") $
+                   [("type", "checkbox"), ("id", ref'), ("name", ref')]
 
-        return $ X.renderHtmlFragment X.UTF8 e
+    return $ X.renderHtmlFragment X.UTF8 e
 
 
 --------------------------------------------------------------------------------
@@ -246,48 +305,13 @@ dfInputCheckbox p = do
 --
 -- > <dfInputFile ref="user.avatar" />
 dfInputFile :: Monad m => Promise (View v) -> Splice m
-dfInputFile p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'  = absoluteRef ref view
-            value = maybe "" T.pack $ fieldInputFile ref view
-            e = makeElement "input" [] $ addAttrs attrs $
-                [ ("type", "file"), ("id", ref')
-                , ("name", ref'), ("value", value)]
-        return $ X.renderHtmlFragment X.UTF8 e
-
-
---------------------------------------------------------------------------------
--- | Generate a submit button. Example:
---
--- > <dfInputSubmit />
-dfInputSubmit :: Monad m => Splice m
-dfInputSubmit = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        let (_, attrs) = getRefAttributes node Nothing
-            e = makeElement "input" [] $ addAttrs attrs
-                [("type", "submit")]
-        return $ X.renderHtmlFragment X.UTF8 e
-
-
---------------------------------------------------------------------------------
--- | Generate a label for a field. Example:
---
--- > <dfLabel ref="user.married">Married: </dfLabel>
--- > <dfInputCheckbox ref="user.married" />
-dfLabel :: Monad m => Promise (View v) -> Splice m
-dfLabel p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'  = absoluteRef ref view
-            e = makeElement "label" (X.childNodes node) $ addAttrs attrs
-                [("for", ref')]
-        return $ X.renderHtmlFragment X.UTF8 e
+dfInputFile = dfMaster $ \ref attrs view -> do
+    let ref'  = absoluteRef ref view
+        value = maybe "" T.pack $ fieldInputFile ref view
+        e = makeElement "input" [] $ addAttrs attrs $
+            [ ("type", "file"), ("id", ref')
+            , ("name", ref'), ("value", value)]
+    return $ X.renderHtmlFragment X.UTF8 e
 
 
 --------------------------------------------------------------------------------
@@ -295,23 +319,19 @@ dfLabel p = do
 --
 -- > <dfInputSelect ref="user.sex" />
 dfInputSelect :: Monad m => Promise (View Text) -> Splice m
-dfInputSelect p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'     = absoluteRef ref view
-            choices  = fieldInputChoice ref view
-            kids     = map makeOption choices
-            value i  = ref' <> "." <> i
+dfInputSelect = dfMaster $ \ref attrs view -> do
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoice ref view
+        kids     = map makeOption choices
+        value i  = ref' <> "." <> i
 
-            makeOption (i, c, sel) = X.Element "option"
-                (attr sel ("selected", "selected") [("value", value i)])
-                [X.TextNode c]
+        makeOption (i, c, sel) = X.Element "option"
+            (attr sel ("selected", "selected") [("value", value i)])
+            [X.TextNode c]
 
-            e = makeElement "select" kids $ addAttrs attrs
-                [("id", ref'), ("name", ref')]
-        return $ X.renderHtmlFragment X.UTF8 e
+        e = makeElement "select" kids $ addAttrs attrs
+            [("id", ref'), ("name", ref')]
+    return $ X.renderHtmlFragment X.UTF8 e
 
 
 --------------------------------------------------------------------------------
@@ -319,25 +339,21 @@ dfInputSelect p = do
 --
 -- > <dfInputSelectGroup ref="user.sex" />
 dfInputSelectGroup :: Monad m => Promise (View Text) -> Splice m
-dfInputSelectGroup p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'     = absoluteRef ref view
-            choices  = fieldInputChoiceGroup ref view
-            kids     = map makeGroup choices
-            value i  = ref' <> "." <> i
+dfInputSelectGroup = dfMaster $ \ref attrs view -> do
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoiceGroup ref view
+        kids     = map makeGroup choices
+        value i  = ref' <> "." <> i
     
-            makeGroup (name, options) = X.Element "optgroup"
-                [("label", name)] $ map makeOption options
-            makeOption (i, c, sel) = X.Element "option"
-                (attr sel ("selected", "selected") [("value", value i)])
-                [X.TextNode c]
+        makeGroup (name, options) = X.Element "optgroup"
+            [("label", name)] $ map makeOption options
+        makeOption (i, c, sel) = X.Element "option"
+            (attr sel ("selected", "selected") [("value", value i)])
+            [X.TextNode c]
     
-            e = makeElement "select" kids $ addAttrs attrs
-                [("id", ref'), ("name", ref')]
-        return $ X.renderHtmlFragment X.UTF8 e
+        e = makeElement "select" kids $ addAttrs attrs
+            [("id", ref'), ("name", ref')]
+    return $ X.renderHtmlFragment X.UTF8 e
 
 
 --------------------------------------------------------------------------------
@@ -345,26 +361,22 @@ dfInputSelectGroup p = do
 --
 -- > <dfInputRadio ref="user.sex" />
 dfInputRadio :: Monad m => Promise (View Text) -> Splice m
-dfInputRadio p = do
-    node <- getParamNode
-    return $ yieldRuntime $ do
-        view <- getPromise p
-        let (ref, attrs) = getRefAttributes node Nothing
-            ref'     = absoluteRef ref view
-            choices  = fieldInputChoice ref view
-            kids     = concatMap makeOption choices
-            value i  = ref' <> "." <> i
+dfInputRadio = dfMaster $ \ref attrs view -> do
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoice ref view
+        kids     = concatMap makeOption choices
+        value i  = ref' <> "." <> i
     
-            makeOption (i, c, sel) =
-                [ X.Element "input"
-                    (attr sel ("checked", "checked") $ addAttrs attrs
-                        [ ("type", "radio"), ("value", value i)
-                        , ("id", value i), ("name", ref')
-                        ]) []
-                , X.Element "label" [("for", value i)] [X.TextNode c]
-                ]
+        makeOption (i, c, sel) =
+            [ X.Element "input"
+                (attr sel ("checked", "checked") $ addAttrs attrs
+                    [ ("type", "radio"), ("value", value i)
+                    , ("id", value i), ("name", ref')
+                    ]) []
+            , X.Element "label" [("for", value i)] [X.TextNode c]
+            ]
     
-        return $ X.renderHtmlFragment X.UTF8 kids
+    return $ X.renderHtmlFragment X.UTF8 kids
 
 
 --------------------------------------------------------------------------------
