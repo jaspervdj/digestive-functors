@@ -1,5 +1,5 @@
 Name:          digestive-functors-heist
-Version:       0.6.0.0
+Version:       0.6.1
 Synopsis:      Heist frontend for the digestive-functors library
 Description:   Heist frontend for the digestive-functors library
 Homepage:      http://github.com/jaspervdj/digestive-functors
@@ -14,12 +14,15 @@ Cabal-version: >= 1.6
 Library
   Hs-source-dirs:  src
   GHC-options:     -Wall -fwarn-tabs
-  Exposed-modules: Text.Digestive.Heist
+  Exposed-modules:
+    Text.Digestive.Heist
+    Text.Digestive.Heist.Compiled
 
   Build-depends:
     base               >= 4      && < 5,
+    blaze-builder      >= 0.3    && < 0.4,
     digestive-functors >= 0.6    && < 0.7,
-    heist              >= 0.10.2 && < 0.11,
+    heist              >= 0.10.2 && < 0.12,
     mtl                >= 2,
     text               >= 0.11   && < 0.12,
     xmlhtml            >= 0.1    && < 0.3
