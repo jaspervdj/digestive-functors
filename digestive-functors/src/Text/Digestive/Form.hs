@@ -29,11 +29,12 @@ module Text.Digestive.Form
     , optionalString
     , optionalStringRead
 
-      -- * Validation
+      -- * Validation and transformation
     , check
     , checkM
     , validate
     , validateM
+    , disable
 
       -- * Lifting forms
     , monadic
@@ -217,6 +218,12 @@ validateM = transform
 
 
 --------------------------------------------------------------------------------
+-- | Disables a form
+disable :: Form v m a -> Form v m a
+disable f = Disabled f
+
+
+--------------------------------------------------------------------------------
 optionalText :: Monad m => Maybe Text -> Form v m (Maybe Text)
 optionalText def = validate optional (text def)
   where
@@ -261,3 +268,5 @@ listOf single def =
 --------------------------------------------------------------------------------
 listIndices :: Monad m => [Int] -> Form v m [Int]
 listIndices = fmap parseIndices . text . Just . unparseIndices
+
+
