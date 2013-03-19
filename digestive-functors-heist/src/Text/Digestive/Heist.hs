@@ -139,8 +139,8 @@ addAttrs = unionBy (on (==) fst)
 
 --------------------------------------------------------------------------------
 -- | 
-setDisabled :: View v -> [(Text, Text)] -> [(Text, Text)]
-setDisabled view = if viewDisabled view then (("disabled",""):) else id
+setDisabled :: Text -> View v -> [(Text, Text)] -> [(Text, Text)]
+setDisabled ref view = if viewDisabled ref view then (("disabled",""):) else id
 
 
 --------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ dfInput view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled view
+    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
         [("id", ref'), ("name", ref'), ("value", value)]
 
 
@@ -165,7 +165,7 @@ dfInputText view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled view
+    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
         [("type", "text"), ("id", ref'), ("name", ref'), ("value", value)]
 
 
@@ -179,7 +179,7 @@ dfInputTextArea view = do
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
     return $ makeElement "textarea" [X.TextNode value] $ addAttrs attrs $
-        setDisabled view [("id", ref'), ("name", ref')]
+        setDisabled ref view [("id", ref'), ("name", ref')]
 
 
 --------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ dfInputPassword view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled view
+    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
         [("type", "password"), ("id", ref'), ("name", ref'), ("value", value)]
 
 
@@ -204,7 +204,7 @@ dfInputHidden view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = fieldInputText ref view
-    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled view
+    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
         [("type", "hidden"), ("id", ref'), ("name", ref'), ("value", value)]
 
 
@@ -224,7 +224,7 @@ dfInputSelect view = do
             (attr sel ("selected", "selected") [("value", value i)])
             [X.TextNode c]
 
-    return $ makeElement "select" kids $ addAttrs attrs $ setDisabled view
+    return $ makeElement "select" kids $ addAttrs attrs $ setDisabled ref view
         [("id", ref'), ("name", ref')]
 
 
@@ -246,7 +246,7 @@ dfInputSelectGroup view = do
             (attr sel ("selected", "selected") [("value", value i)])
             [X.TextNode c]
 
-    return $ makeElement "select" kids $ addAttrs attrs $ setDisabled view
+    return $ makeElement "select" kids $ addAttrs attrs $ setDisabled ref view
         [("id", ref'), ("name", ref')]
 
 
@@ -266,7 +266,7 @@ dfInputRadio view = do
         makeOption (i, c, sel) =
             [ X.Element "input"
                 (attr sel ("checked", "checked") $ addAttrs attrs $
-                    setDisabled view
+                    setDisabled ref view
                     [ ("type", "radio"), ("value", value i)
                     , ("id", value i), ("name", ref')
                     ]) []
@@ -286,7 +286,7 @@ dfInputCheckbox view = do
     let ref'  = absoluteRef ref view
         value = fieldInputBool ref view
     return $ makeElement "input" [] $ addAttrs attrs $
-        attr value ("checked", "checked") $ setDisabled view
+        attr value ("checked", "checked") $ setDisabled ref view
         [("type", "checkbox"), ("id", ref'), ("name", ref')]
 
 
@@ -299,7 +299,7 @@ dfInputFile view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
         value = maybe "" T.pack $ fieldInputFile ref view
-    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled view
+    return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
         [("type", "file"), ("id", ref'), ("name", ref'), ("value", value)]
 
 
@@ -417,8 +417,9 @@ dfSubView view = do
     return nodes
 
 
-disableOnclick :: View v -> [(Text, Text)] -> [(Text, Text)]
-disableOnclick view = if viewDisabled view then const [("disabled","")] else id
+disableOnclick :: Text -> View v -> [(Text, Text)] -> [(Text, Text)]
+disableOnclick ref view =
+    if viewDisabled ref view then const [("disabled","")] else id
 
 
 --------------------------------------------------------------------------------
@@ -450,11 +451,11 @@ dfInputList view = do
             [ ("id", listRef)
             , ("class", "inputList")
             ]
-        addControl _ = return $ disableOnclick view
+        addControl _ = return $ disableOnclick ref view
             [ ("onclick", T.concat [ "addInputListItem(this, '"
                                    , listRef
                                    , "'); return false;"] ) ]
-        removeControl _ = return $ disableOnclick view
+        removeControl _ = return $ disableOnclick ref view
             [ ("onclick", T.concat [ "removeInputListItem(this, '"
                                    , listRef
                                    , "'); return false;"] ) ]
