@@ -31,8 +31,7 @@ module Text.Digestive.Form.Internal
 
 --------------------------------------------------------------------------------
 import           Control.Applicative                (Applicative (..))
-import           Control.Monad                      (liftM, liftM2,
-                                                     mapAndUnzipM, (>=>))
+import           Control.Monad                      (liftM, liftM2, (>=>))
 import           Control.Monad.Identity             (Identity (..))
 import           Data.Monoid                        (Monoid)
 import           Data.Traversable                   (mapM, sequenceA)
@@ -71,22 +70,25 @@ type Form v m a = FormTree m v m a
 --------------------------------------------------------------------------------
 data FormTree t v m a where
     -- Setting refs
-    Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
+    Ref      :: Ref -> FormTree t v m a -> FormTree t v m a
 
     -- Applicative interface
-    Pure    :: Field v a -> FormTree t v m a
-    App     :: FormTree t v m (b -> a)
-            -> FormTree t v m b
-            -> FormTree t v m a
+    Pure     :: Field v a -> FormTree t v m a
+    App      :: FormTree t v m (b -> a)
+             -> FormTree t v m b
+             -> FormTree t v m a
 
     -- Modifications
-    Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
-    Monadic :: t (FormTree t v m a) -> FormTree t v m a
+    Map      :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
+    Monadic  :: t (FormTree t v m a) -> FormTree t v m a
 
     -- Dynamic lists
-    List    :: DefaultList (FormTree t v m a)  -- Not the optimal structure
-            -> FormTree t v m [Int]
-            -> FormTree t v m [a]
+    List     :: DefaultList (FormTree t v m a)  -- Not the optimal structure
+             -> FormTree t v m [Int]
+             -> FormTree t v m [a]
+
+    -- The ability to disable forms
+    Disabled :: FormTree t v m a -> FormTree t v m a
 
 
 --------------------------------------------------------------------------------
@@ -134,6 +136,7 @@ showForm form = case form of
         [ ["List <defaults>"]  -- TODO show defaults
         , map indent (showForm is)
         ]
+    (Disabled x) -> "Disabled" : map indent (showForm x)
   where
     indent = ("  " ++)
 
@@ -152,22 +155,24 @@ monadic = Monadic
 
 --------------------------------------------------------------------------------
 toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
-toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
-toFormTree (Pure x)    = return $ Pure x
-toFormTree (App x y)   = liftM2 App (toFormTree x) (toFormTree y)
-toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
-toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
-toFormTree (List d is) = liftM2 List (mapM toFormTree d) (toFormTree is)
+toFormTree (Ref r x)    = liftM (Ref r) (toFormTree x)
+toFormTree (Pure x)     = return $ Pure x
+toFormTree (App x y)    = liftM2 App (toFormTree x) (toFormTree y)
+toFormTree (Map f x)    = liftM (Map f) (toFormTree x)
+toFormTree (Monadic x)  = x >>= toFormTree >>= return . Monadic . Identity
+toFormTree (List d is)  = liftM2 List (mapM toFormTree d) (toFormTree is)
+toFormTree (Disabled x) = liftM Disabled (toFormTree x)
 
 
 --------------------------------------------------------------------------------
 children :: FormTree Identity v m a -> [SomeForm v m]
-children (Ref _ x )  = children x
-children (Pure _)    = []
-children (App x y)   = [SomeForm x, SomeForm y]
-children (Map _ x)   = children x
-children (Monadic x) = children $ runIdentity x
-children (List _ is) = [SomeForm is]
+children (Ref _ x )    = children x
+children (Pure _)      = []
+children (App x y)     = [SomeForm x, SomeForm y]
+children (Map _ x)     = children x
+children (Monadic x)   = children $ runIdentity x
+children (List _ is)   = [SomeForm is]
+children (Disabled x ) = children x
 
 
 --------------------------------------------------------------------------------
@@ -185,12 +190,13 @@ infixr 5 .:
 --------------------------------------------------------------------------------
 popRef :: FormTree Identity v m a -> (Maybe Ref, FormTree Identity v m a)
 popRef form = case form of
-    (Ref r x)   -> (Just r, x)
-    (Pure _)    -> (Nothing, form)
-    (App _ _)   -> (Nothing, form)
-    (Map f x)   -> let (r, form') = popRef x in (r, Map f form')
-    (Monadic x) -> popRef $ runIdentity x
-    (List _ _)  -> (Nothing, form)
+    (Ref r x)    -> (Just r, x)
+    (Pure _)     -> (Nothing, form)
+    (App _ _)    -> (Nothing, form)
+    (Map f x)    -> let (r, form') = popRef x in (r, Map f form')
+    (Monadic x)  -> popRef $ runIdentity x
+    (List _ _)   -> (Nothing, form)
+    (Disabled _) -> (Nothing, form)
 
 
 --------------------------------------------------------------------------------
@@ -227,22 +233,24 @@ lookupList path form = case candidates of
         ]
 
     getList :: forall a v m. FormTree Identity v m a -> [SomeForm v m]
-    getList (Ref _ _)   = []
-    getList (Pure _)    = []
-    getList (App x y)   = getList x ++ getList y
-    getList (Map _ x)   = getList x
-    getList (Monadic x) = getList $ runIdentity x
-    getList (List d is) = [SomeForm (List d is)]
+    getList (Ref _ _)    = []
+    getList (Pure _)     = []
+    getList (App x y)    = getList x ++ getList y
+    getList (Map _ x)    = getList x
+    getList (Monadic x)  = getList $ runIdentity x
+    getList (List d is)  = [SomeForm (List d is)]
+    getList (Disabled _) = []
 
 
 --------------------------------------------------------------------------------
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
-toField (Ref _ x)   = toField x
-toField (Pure x)    = Just (SomeField x)
-toField (App _ _)   = Nothing
-toField (Map _ x)   = toField x
-toField (Monadic x) = toField (runIdentity x)
-toField (List _ _)  = Nothing
+toField (Ref _ x)    = toField x
+toField (Pure x)     = Just (SomeField x)
+toField (App _ _)    = Nothing
+toField (Map _ x)    = toField x
+toField (Monadic x)  = toField (runIdentity x)
+toField (List _ _)   = Nothing
+toField (Disabled x) = toField x
 
 
 --------------------------------------------------------------------------------
@@ -267,53 +275,58 @@ ann path (Error x)   = Error [(path, x)]
 
 --------------------------------------------------------------------------------
 eval :: Monad m => Method -> Env m -> FormTree Identity v m a
-     -> m (Result [(Path, v)] a, [(Path, FormInput)])
-eval = eval' []
+     -> m (Result [(Path, v)] a, [(Path, FormInput)], Bool)
+eval = eval' False []
 
-eval' :: Monad m => Path -> Method -> Env m -> FormTree Identity v m a
-      -> m (Result [(Path, v)] a, [(Path, FormInput)])
+eval' :: Monad m => Bool -> Path -> Method -> Env m -> FormTree Identity v m a
+      -> m (Result [(Path, v)] a, [(Path, FormInput)], Bool)
 
-eval' path method env form = case form of
-    Ref r x -> eval' (path ++ [r]) method env x
+eval' disabled path method env form = case form of
+    Ref r x -> eval' disabled (path ++ [r]) method env x
 
     Pure field -> do
         val <- env path
         let x = evalField method val field
-        return $ (pure x, [(path, v) | v <- val])
+        return $ (pure x, [(path, v) | v <- val], disabled)
 
     App x y -> do
-        (x', inp1) <- eval' path method env x
-        (y', inp2) <- eval' path method env y
-        return (x' <*> y', inp1 ++ inp2)
+        (x', inp1, _) <- eval' disabled path method env x
+        (y', inp2, _) <- eval' disabled path method env y
+        return (x' <*> y', inp1 ++ inp2, disabled)
 
     Map f x -> do
-        (x', inp) <- eval' path method env x
+        (x', inp, _) <- eval' disabled path method env x
         x''       <- bindResult (return x') (f >=> return . ann path)
-        return (x'', inp)
+        return (x'', inp, disabled)
 
-    Monadic x -> eval' path method env $ runIdentity x
+    Monadic x -> eval' disabled path method env $ runIdentity x
 
     List defs fis -> do
-        (ris, inp1) <- eval' path method env fis
+        (ris, inp1, _) <- eval' disabled path method env fis
         case ris of
-            Error errs -> return (Error errs, inp1)
+            Error errs -> return (Error errs, inp1, disabled)
             Success is -> do
-                (results, inps) <- mapAndUnzipM
+                res <- mapM
                     -- TODO fix head defs
-                    (\i -> eval' (path ++ [T.pack $ show i])
+                    (\i -> eval' disabled (path ++ [T.pack $ show i])
                         method env $ defs `defaultListIndex` i) is
-                return (sequenceA results, inp1 ++ concat inps)
+
+                let (results, inps, _) = unzip3 res
+                return (sequenceA results, inp1 ++ concat inps, disabled)
+
+    Disabled x -> eval' True path method env x
 
 
 --------------------------------------------------------------------------------
 formMapView :: Monad m
             => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
-formMapView f (Ref r x)   = Ref r $ formMapView f x
-formMapView f (Pure x)    = Pure $ fieldMapView f x
-formMapView f (App x y)   = App (formMapView f x) (formMapView f y)
-formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
-formMapView f (Monadic x) = formMapView f $ runIdentity x
-formMapView f (List d is) = List (fmap (formMapView f) d) (formMapView f is)
+formMapView f (Ref r x)    = Ref r $ formMapView f x
+formMapView f (Pure x)     = Pure $ fieldMapView f x
+formMapView f (App x y)    = App (formMapView f x) (formMapView f y)
+formMapView f (Map g x)    = Map (g >=> return . resultMapError f) (formMapView f x)
+formMapView f (Monadic x)  = formMapView f $ runIdentity x
+formMapView f (List d is)  = List (fmap (formMapView f) d) (formMapView f is)
+formMapView f (Disabled x) = Disabled $ formMapView f x
 
 
 --------------------------------------------------------------------------------
@@ -330,11 +343,12 @@ bindResult mx f = do
 --------------------------------------------------------------------------------
 -- | Debugging purposes
 debugFormPaths :: Monad m => FormTree Identity v m a -> [Path]
-debugFormPaths (Pure _)    = [[]]
-debugFormPaths (App x y)   = debugFormPaths x ++ debugFormPaths y
-debugFormPaths (Map _ x)   = debugFormPaths x
-debugFormPaths (Monadic x) = debugFormPaths $ runIdentity x
-debugFormPaths (List d is) =
+debugFormPaths (Pure _)     = [[]]
+debugFormPaths (App x y)    = debugFormPaths x ++ debugFormPaths y
+debugFormPaths (Map _ x)    = debugFormPaths x
+debugFormPaths (Monadic x)  = debugFormPaths $ runIdentity x
+debugFormPaths (List d is)  =
     debugFormPaths is ++
     (map ("0" :) $ debugFormPaths $ d `defaultListIndex` 0)
-debugFormPaths (Ref r x)   = map (r :) $ debugFormPaths x
+debugFormPaths (Ref r x)    = map (r :) $ debugFormPaths x
+debugFormPaths (Disabled x) = debugFormPaths x
