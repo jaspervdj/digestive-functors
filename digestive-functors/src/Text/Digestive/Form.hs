@@ -220,7 +220,7 @@ validateM = transform
 --------------------------------------------------------------------------------
 -- | Disables a form
 disable :: Form v m a -> Form v m a
-disable f = Disabled f
+disable f = Metadata [Disabled] f
 
 
 --------------------------------------------------------------------------------

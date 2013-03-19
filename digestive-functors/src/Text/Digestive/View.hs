@@ -37,6 +37,9 @@ module Text.Digestive.View
     , errors
     , childErrors
 
+      -- * Further metadata queries
+    , viewDisabled
+
       -- * Debugging
     , debugViewPaths
     ) where
@@ -66,49 +69,48 @@ data View v = forall a m. Monad m => View
     , viewInput    :: [(Path, FormInput)]
     , viewErrors   :: [(Path, v)]
     , viewMethod   :: Method
-    , viewDisabled :: Bool
     }
 
 
 --------------------------------------------------------------------------------
 instance Functor View where
-    fmap f (View name ctx form input errs method dis) = View
-        name ctx (formMapView f form) input (map (second f) errs) method dis
+    fmap f (View name ctx form input errs method) = View
+        name ctx (formMapView f form) input (map (second f) errs) method
 
 
 --------------------------------------------------------------------------------
 instance Show v => Show (View v) where
-    show (View name ctx form input errs method dis) =
+    show (View name ctx form input errs method) =
         "View " ++ show name ++ " " ++ show ctx ++ " " ++ show form ++ " " ++
-        show input ++ " " ++ show errs ++ " " ++ show method ++ " " ++ show dis
+        show input ++ " " ++ show errs ++ " " ++ show method
 
 
 --------------------------------------------------------------------------------
 getForm :: Monad m => Text -> Form v m a -> m (View v)
 getForm name form = do
     form' <- toFormTree form
-    return $ View name [] form' [] [] Get False
+    return $ View name [] form' [] [] Get
 
 
 --------------------------------------------------------------------------------
 postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
 postForm name form env = do
     form' <- toFormTree form
-    eval Post env' form' >>= \(r, inp, dis) -> return $ case r of
-        Error errs -> (View name [] form' inp errs Post dis, Nothing)
-        Success x  -> (View name [] form' inp [] Post dis, Just x)
+    eval Post env' form' >>= \(r, inp) -> return $ case r of
+        Error errs -> (View name [] form' inp errs Post, Nothing)
+        Success x  -> (View name [] form' inp [] Post, Just x)
   where
     env' = env . (name :)
 
 
 --------------------------------------------------------------------------------
 subView :: Text -> View v -> View v
-subView ref (View name ctx form input errs method dis) =
+subView ref (View name ctx form input errs method) =
     case lookupForm path form of
         []               ->
-          View name (ctx ++ path) notFound (strip input) (strip errs) method dis
+          View name (ctx ++ path) notFound (strip input) (strip errs) method
         (SomeForm f : _) ->
-          View name (ctx ++ path) f (strip input) (strip errs) method dis
+          View name (ctx ++ path) f (strip input) (strip errs) method
   where
     path     = toPath ref
     lpath    = length path
@@ -124,7 +126,7 @@ subView ref (View name ctx form input errs method dis) =
 --------------------------------------------------------------------------------
 -- | Returns all immediate subviews of a view
 subViews :: View v -> [View v]
-subViews view@(View _ _ form _ _ _ _) =
+subViews view@(View _ _ form _ _ _) =
     [subView r view | r <- go (SomeForm form)]
   where
     go (SomeForm f) = case getRef f of
@@ -135,7 +137,7 @@ subViews view@(View _ _ form _ _ _ _) =
 --------------------------------------------------------------------------------
 -- | Determine an absolute 'Path' for a field in the form
 absolutePath :: Text -> View v -> Path
-absolutePath ref (View name ctx _ _ _ _ _) = name : (ctx ++ toPath ref)
+absolutePath ref (View name ctx _ _ _ _) = name : (ctx ++ toPath ref)
 
 
 --------------------------------------------------------------------------------
@@ -147,7 +149,7 @@ absoluteRef ref view = fromPath $ absolutePath ref view
 
 --------------------------------------------------------------------------------
 viewEncType :: View v -> FormEncType
-viewEncType (View _ _ form _ _ _ _) = formTreeEncType form
+viewEncType (View _ _ form _ _ _) = formTreeEncType form
 
 
 --------------------------------------------------------------------------------
@@ -157,7 +159,7 @@ lookupInput path = map snd . filter ((== path) . fst)
 
 --------------------------------------------------------------------------------
 fieldInputText :: forall v. Text -> View v -> Text
-fieldInputText ref (View _ _ form input _ method _) =
+fieldInputText ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
@@ -173,7 +175,7 @@ fieldInputText ref (View _ _ form input _ method _) =
 --------------------------------------------------------------------------------
 -- | Returns a list of (identifier, view, selected?)
 fieldInputChoice :: forall v. Text -> View v -> [(Text, v, Bool)]
-fieldInputChoice ref (View _ _ form input _ method _) =
+fieldInputChoice ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
@@ -194,7 +196,7 @@ fieldInputChoice ref (View _ _ form input _ method _) =
 fieldInputChoiceGroup :: forall v. Text
                       -> View v
                       -> [(Text, [(Text, v, Bool)])]
-fieldInputChoiceGroup ref (View _ _ form input _ method _) =
+fieldInputChoiceGroup ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
@@ -220,7 +222,7 @@ merge idx (g:gs) is = cur : merge idx gs b
 
 --------------------------------------------------------------------------------
 fieldInputBool :: forall v. Text -> View v -> Bool
-fieldInputBool ref (View _ _ form input _ method _) =
+fieldInputBool ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
@@ -235,7 +237,7 @@ fieldInputBool ref (View _ _ form input _ method _) =
 
 --------------------------------------------------------------------------------
 fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
-fieldInputFile ref (View _ _ form input _ method _) =
+fieldInputFile ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
@@ -267,14 +269,14 @@ makeListSubView :: Text
                 -> View v
                 -- ^ list view
                 -> View v
-makeListSubView ref ind view@(View _ _ form _ _ _ _) =
+makeListSubView ref ind view@(View _ _ form _ _ _) =
     case subView (fromPath $ path ++ [T.pack $ show ind]) view of
-        View name ctx _ input errs method dis ->
+        View name ctx _ input errs method ->
             case lookupList path form of
                 -- TODO don't use head
                 (SomeForm (List defs _)) ->
                     View name ctx (defs `defaultListIndex` ind)
-                        input errs method dis
+                        input errs method
                 _                                -> error $
                     T.unpack ref ++ ": expected List, but got another form"
   where
@@ -293,5 +295,13 @@ childErrors ref = map snd .
 
 
 --------------------------------------------------------------------------------
+viewDisabled :: Text -> View v -> Bool
+viewDisabled ref (View _ _ form _ _ _) = Disabled `elem` metadata
+  where
+    path     = toPath ref
+    metadata = concatMap snd $ lookupFormMetadata path form
+
+
+--------------------------------------------------------------------------------
 debugViewPaths :: View v -> [Path]
-debugViewPaths (View _ _ form _ _ _ _) = debugFormPaths form
+debugViewPaths (View _ _ form _ _ _) = debugFormPaths form
