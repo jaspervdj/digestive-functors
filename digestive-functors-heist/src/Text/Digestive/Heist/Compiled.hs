@@ -29,7 +29,6 @@
 module Text.Digestive.Heist.Compiled
     ( -- * Core methods
       formSplice
-    , formSplice'
 
       -- * Main splices
     , dfInput
@@ -57,7 +56,6 @@ module Text.Digestive.Heist.Compiled
 --------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
 import           Control.Monad         (mplus)
-import           Control.Monad.Trans
 import           Data.Function         (on)
 import           Data.List             (unionBy)
 import           Data.Maybe            (fromMaybe)
@@ -111,26 +109,12 @@ digestiveSplices vp =
 --
 -- Then you can use the customerForm tag just like you would use the dfForm
 -- tag in interpreted templates anywhere you want to have a customer form.
-formSplice :: Monad m => m (View Text) -> Splice m
-formSplice = formSplice' [] []
-
-
-------------------------------------------------------------------------------
--- | A compiled splice for a specific form.  You pass in a runtime action that
--- gets the form's view and this function returns a splice that creates a form
--- tag.  In your HeistConfig you might have a compiled splice like this:
---
--- `("customerForm", formSplice (liftM fst $ runForm "customer" custForm))`
---
--- Then you can use the customerForm tag just like you would use the dfForm
--- tag in interpreted templates anywhere you want to have a customer form.
---formSplice' :: Monad m => m (View Text) -> Splice m
-formSplice' :: Monad m
-            => [(Text, Splice m)]
-            -> [(Text, AttrSplice m)]
-            -> m (View Text)
-            -> Splice m
-formSplice' ss as getView = do
+formSplice :: Monad m
+           => [(Text, Splice m)]
+           -> [(Text, AttrSplice m)]
+           -> RuntimeSplice m (View Text)
+           -> Splice m
+formSplice ss as getView = do
     node <- getParamNode
     let (_, attrs) = getRefAttributes node Nothing
         tree = X.Element "form"
@@ -141,7 +125,7 @@ formSplice' ss as getView = do
                  (X.childNodes node)
         action = runNode tree
     defer (\vp -> withLocalSplices (digestiveSplices vp ++ ss) as action)
-          (lift getView)
+          getView
 
 
 --------------------------------------------------------------------------------
