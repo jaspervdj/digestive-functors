@@ -258,12 +258,15 @@ dfInputRadio view = do
         value i  = ref' `mappend` "." `mappend` i
 
         makeOption (i, c, sel) =
-            [ X.Element "input"
-                (attr sel ("checked", "checked") $ addAttrs attrs
-                    [ ("type", "radio"), ("value", value i)
-                    , ("id", value i), ("name", ref')
-                    ]) []
-            , X.Element "label" [("for", value i)] [X.TextNode c]
+            [ X.Element "div"
+                [("class", "radio")]
+                [X.Element "input"
+                  (attr sel ("checked", "checked") $ addAttrs attrs
+                      [ ("type", "radio"), ("value", value i)
+                      , ("id", value i), ("name", ref')
+                      ]) []
+                , X.Element "label" [("for", value i)] [X.TextNode c]
+                ]
             ]
 
     return kids
