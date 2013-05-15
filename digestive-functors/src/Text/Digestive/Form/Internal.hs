@@ -64,11 +64,13 @@ import           Text.Digestive.Types
 --
 -- * @a@: the type of the value returned by the form, used for its Applicative
 --   instance.
---
+
 type Form v m a = FormTree m v m a
 
 
 --------------------------------------------------------------------------------
+-- | Embedded tree structure for forms - the basis for deferred evaluation
+-- and the applicative interface.
 data FormTree t v m a where
     -- Setting refs
     Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
@@ -106,6 +108,7 @@ instance Show (FormTree Identity v m a) where
 
 
 --------------------------------------------------------------------------------
+-- | Value-agnostic Form
 data SomeForm v m = forall a. SomeForm (FormTree Identity v m a)
 
 
@@ -115,10 +118,12 @@ instance Show (SomeForm v m) where
 
 
 --------------------------------------------------------------------------------
+-- | Compact type for form labelling
 type Ref = Text
 
 
 --------------------------------------------------------------------------------
+-- Helper for the FormTree Show instance
 showForm :: FormTree Identity v m a -> [String]
 showForm form = case form of
     (Ref r x) -> ("Ref " ++ show r) : map indent (showForm x)
@@ -139,18 +144,21 @@ showForm form = case form of
 
 
 --------------------------------------------------------------------------------
+-- | Map on the value type
 transform :: Monad m
           => (a -> m (Result v b)) -> FormTree t v m a -> FormTree t v m b
-transform f (Map g x) = flip Map x $ \y -> bindResult (g y) f
+transform f (Map g x) = Map (\y -> g y `bindResult` f) x
 transform f x         = Map f x
 
 
 --------------------------------------------------------------------------------
+-- | Hide a monadic wrapper
 monadic :: m (Form v m a) -> Form v m a
 monadic = Monadic
 
 
 --------------------------------------------------------------------------------
+-- | Normalize a Form to allow operations on the contents
 toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
 toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
 toFormTree (Pure x)    = return $ Pure x
@@ -161,6 +169,8 @@ toFormTree (List d is) = liftM2 List (mapM toFormTree d) (toFormTree is)
 
 
 --------------------------------------------------------------------------------
+-- | Returns the topmost applicative or index trees if either exists
+-- otherwise returns an empty list
 children :: FormTree Identity v m a -> [SomeForm v m]
 children (Ref _ x )  = children x
 children (Pure _)    = []
@@ -183,6 +193,7 @@ infixr 5 .:
 
 
 --------------------------------------------------------------------------------
+-- Return topmost label of the tree if it exists, with the rest of the form
 popRef :: FormTree Identity v m a -> (Maybe Ref, FormTree Identity v m a)
 popRef form = case form of
     (Ref r x)   -> (Just r, x)
@@ -194,11 +205,13 @@ popRef form = case form of
 
 
 --------------------------------------------------------------------------------
+-- | Return the first/topmost label of a form
 getRef :: FormTree Identity v m a -> Maybe Ref
 getRef = fst . popRef
 
 
 --------------------------------------------------------------------------------
+-- | Retrieve the form(s) at the given path
 lookupForm :: Path -> FormTree Identity v m a -> [SomeForm v m]
 lookupForm path = go path . SomeForm
   where
@@ -213,7 +226,7 @@ lookupForm path = go path . SomeForm
 
 
 --------------------------------------------------------------------------------
--- | Always returns a List
+-- | Always returns a List - fails if path does not directly reference a list
 lookupList :: Path -> FormTree Identity v m a -> SomeForm v m
 lookupList path form = case candidates of
     (SomeForm f : _) -> SomeForm f
@@ -236,6 +249,7 @@ lookupList path form = case candidates of
 
 
 --------------------------------------------------------------------------------
+-- | Returns the topmost untransformed single field, if one exists
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
 toField (Ref _ x)   = toField x
 toField (Pure x)    = Just (SomeField x)
@@ -246,6 +260,8 @@ toField (List _ _)  = Nothing
 
 
 --------------------------------------------------------------------------------
+-- | Retrieve the field at the given path of the tree and apply the evaluation.
+-- Used in field evaluation functions in "View".
 queryField :: Path
            -> FormTree Identity v m a
            -> (forall b. Field v b -> c)
@@ -260,12 +276,17 @@ queryField path form f = case lookupForm path form of
 
 
 --------------------------------------------------------------------------------
+-- Annotate errors with the path from where they originated
 ann :: Path -> Result v a -> Result [(Path, v)] a
 ann _    (Success x) = Success x
 ann path (Error x)   = Error [(path, x)]
 
 
 --------------------------------------------------------------------------------
+-- | Evaluate a formtree with a given method and environment.
+-- Incrementally builds the path based on the set labels and
+-- evaluates recursively - applying transformations and
+-- applications with a bottom-up strategy.
 eval :: Monad m => Method -> Env m -> FormTree Identity v m a
      -> m (Result [(Path, v)] a, [(Path, FormInput)])
 eval = eval' []
@@ -306,6 +327,8 @@ eval' path method env form = case form of
 
 
 --------------------------------------------------------------------------------
+-- | Map on the error type of a FormTree -
+-- used to define the Functor instance of "View.View"
 formMapView :: Monad m
             => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
 formMapView f (Ref r x)   = Ref r $ formMapView f x
@@ -319,7 +342,9 @@ formMapView f (List d is) = List (fmap (formMapView f) d) (formMapView f is)
 --------------------------------------------------------------------------------
 -- | Utility: bind for 'Result' inside another monad
 bindResult :: Monad m
-           => m (Result v a) -> (a -> m (Result v b)) -> m (Result v b)
+           => m (Result v a) ->
+           (a -> m (Result v b)) ->
+           m (Result v b)
 bindResult mx f = do
     x <- mx
     case x of

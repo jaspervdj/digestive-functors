@@ -3,6 +3,9 @@
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE Rank2Types                #-}
+-- | End-user interface - provides the main functionality for
+-- form creation and validation. For an interface for front-end
+-- implementation, see "View".
 module Text.Digestive.Form
     ( Formlet
     , Form
@@ -61,25 +64,31 @@ import           Text.Digestive.Util
 
 
 --------------------------------------------------------------------------------
+-- | A 'Form' with a set, optional default value
 type Formlet v m a = Maybe a -> Form v m a
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' which may optionally take a default text
 text :: Formlet v m Text
 text def = Pure $ Text $ fromMaybe "" def
 
 
 --------------------------------------------------------------------------------
+-- | Identical to "text" but takes a String
 string :: Monad m => Formlet v m String
 string = fmap T.unpack . text . fmap T.pack
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for a parseable and serializable value type
 stringRead :: (Monad m, Read a, Show a) => v -> Formlet v m a
 stringRead err = transform (readTransform err) . string . fmap show
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for a value restricted to
+-- the provided list of value-message tuples
 choice :: (Eq a, Monad m) => [(a, v)] -> Formlet v m a
 choice items def = choiceWith (zip makeRefs items) def
 
@@ -103,7 +112,7 @@ choiceWith items def = choiceWith' items def'
 
 
 --------------------------------------------------------------------------------
--- | A version of 'choiceWith' for when you have no good 'Eq' instance.
+-- | A version of 'choiceWith' for when there is no good 'Eq' instance.
 choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
 choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
   where
@@ -111,6 +120,7 @@ choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for named groups of choices.
 groupedChoice :: (Eq a, Monad m) => [(Text, [(a, v)])] -> Formlet v m a
 groupedChoice items def =
     groupedChoiceWith (mkGroupedRefs items makeRefs) def
@@ -160,11 +170,13 @@ groupedChoiceWith' items def = fmap fst $ Pure $ Choice items def'
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for binary choices
 bool :: Formlet v m Bool
 bool = Pure . Bool . fromMaybe False
 
 
 --------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for file selection
 file :: Form v m (Maybe FilePath)
 file = Pure File
 
@@ -205,7 +217,6 @@ checkM err predicate form = validateM f form
 -- >
 -- > char :: Monad m => Form m String Char
 -- > char = validate head' (string Nothing)
---
 validate :: Monad m => (a -> Result v b) -> Form v m a -> Form v m b
 validate = validateM . (return .)
 
@@ -217,6 +228,9 @@ validateM = transform
 
 
 --------------------------------------------------------------------------------
+-- | Create a text form with an optional default text which
+-- returns nothing if no optional text was set, and no input
+-- was retrieved.
 optionalText :: Monad m => Maybe Text -> Form v m (Maybe Text)
 optionalText def = validate optional (text def)
   where
@@ -226,11 +240,13 @@ optionalText def = validate optional (text def)
 
 
 --------------------------------------------------------------------------------
+-- | Identical to 'optionalText', but uses Strings
 optionalString :: Monad m => Maybe String -> Form v m (Maybe String)
 optionalString = fmap (fmap T.unpack) . optionalText . fmap T.pack
 
 
 --------------------------------------------------------------------------------
+-- | Identical to 'optionalText' for parseable and serializable values.
 optionalStringRead :: (Monad m, Read a, Show a)
                    => v -> Maybe a -> Form v m (Maybe a)
 optionalStringRead err = transform readTransform' . optionalString . fmap show
@@ -240,11 +256,13 @@ optionalStringRead err = transform readTransform' . optionalString . fmap show
 
 
 --------------------------------------------------------------------------------
+-- Helper function for attempted parsing, with custom error messages
 readTransform :: (Monad m, Read a) => v -> String -> m (Result v a)
 readTransform err = return . maybe (Error err) return . readMaybe
 
 
 --------------------------------------------------------------------------------
+-- | Dynamic lists
 listOf :: Monad m
        => Formlet v m a
        -> Formlet v m [a]
@@ -259,5 +277,6 @@ listOf single def =
 
 
 --------------------------------------------------------------------------------
+-- Manipulatable indices
 listIndices :: Monad m => [Int] -> Form v m [Int]
 listIndices = fmap parseIndices . text . Just . unparseIndices

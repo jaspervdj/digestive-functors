@@ -1,4 +1,5 @@
 --------------------------------------------------------------------------------
+-- | Utilities for safe failable parsing
 module Text.Digestive.Util
     ( readMaybe
     ) where

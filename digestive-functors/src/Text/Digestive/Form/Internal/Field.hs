@@ -3,6 +3,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
+-- | Internal embedding of form fields with associated functions.
 module Text.Digestive.Form.Internal.Field
     ( Field (..)
     , SomeField (..)
@@ -44,10 +45,13 @@ instance Show (Field v a) where
 
 
 --------------------------------------------------------------------------------
+-- | Value agnostic "Field"
 data SomeField v = forall a. SomeField (Field v a)
 
 
 --------------------------------------------------------------------------------
+-- | Evaluate a field to retrieve a value, using the given method and
+-- a list of input.
 evalField :: Method       -- ^ Get/Post
           -> [FormInput]  -- ^ Given input
           -> Field v a    -- ^ Field
@@ -74,6 +78,7 @@ evalField _    _                 File          = Nothing
 
 
 --------------------------------------------------------------------------------
+-- | Map on the error message type of a Field.
 fieldMapView :: (v -> w) -> Field v a -> Field w a
 fieldMapView _ (Singleton x)   = Singleton x
 fieldMapView _ (Text x)        = Text x
@@ -84,6 +89,8 @@ fieldMapView _ File            = File
 
 
 --------------------------------------------------------------------------------
+-- | Retrieve the value and position of the value referenced to by the given
+-- key in an association list, if the key is in the list.
 lookupIdx :: Eq k => k -> [(k, v)] -> Maybe (v, Int)
 lookupIdx key = go 0
   where

@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
--- | This module contains utilities for creating text fragments to identify
--- forms.
+-- | This module contains utilities for
+-- creating text fragments to identify forms.
 {-# LANGUAGE OverloadedStrings #-}
 module Text.Digestive.Ref
     ( makeRef
@@ -18,7 +18,7 @@ import           Text.Printf        (printf)
 
 --------------------------------------------------------------------------------
 -- | Convert an arbitrary text value (possibly containing spaces, dots etc. to
--- a text value that safely be used as an identifier in forms.
+-- a text value that can safely be used as an identifier in forms.
 makeRef :: Text -> Text
 makeRef =
     -- We simply UTF-8 encode and then hex encode, so all characters are valid.

@@ -3,6 +3,14 @@
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+-- | Provides functionality for frontend and backend integration.
+--
+-- This module contains functions used to glue form handling to
+-- particular server implementations and view libraries, defining
+-- the standard behaviour for handling GET and POST requests.
+--
+-- Field accessors can be used to write frontend libraries,
+-- mapping field values to concrete elements.
 module Text.Digestive.View
     ( View (..)
 
@@ -59,6 +67,8 @@ import           Text.Digestive.Types
 
 
 --------------------------------------------------------------------------------
+-- | Finalized form - handles the form, error messages and input.
+-- Internally handles the addressing of individual fields.
 data View v = forall a m. Monad m => View
     { viewName    :: Text
     , viewContext :: Path
@@ -83,6 +93,7 @@ instance Show v => Show (View v) where
 
 
 --------------------------------------------------------------------------------
+-- | Serve up a form for a GET request - no form input
 getForm :: Monad m => Text -> Form v m a -> m (View v)
 getForm name form = do
     form' <- toFormTree form
@@ -90,6 +101,8 @@ getForm name form = do
 
 
 --------------------------------------------------------------------------------
+-- | Handle a form for a POST request - evaluate with the given environment
+-- and return the result.
 postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
 postForm name form env = do
     form' <- toFormTree form
@@ -101,6 +114,7 @@ postForm name form env = do
 
 
 --------------------------------------------------------------------------------
+-- | Returns the subview of a view matching the given serialized 'Path'
 subView :: Text -> View v -> View v
 subView ref (View name ctx form input errs method) =
     case lookupForm path form of
@@ -145,16 +159,20 @@ absoluteRef ref view = fromPath $ absolutePath ref view
 
 
 --------------------------------------------------------------------------------
+-- | Returns the content type of the View - depends on contained fields
 viewEncType :: View v -> FormEncType
 viewEncType (View _ _ form _ _ _) = formTreeEncType form
 
 
 --------------------------------------------------------------------------------
+-- Return form inputs which are paired with a path identical to the argument
 lookupInput :: Path -> [(Path, FormInput)] -> [FormInput]
 lookupInput path = map snd . filter ((== path) . fst)
 
 
 --------------------------------------------------------------------------------
+-- | Return the text data at the position referred to by the given
+-- serialized Path.
 fieldInputText :: forall v. Text -> View v -> Text
 fieldInputText ref (View _ _ form input _ method) =
     queryField path form eval'
@@ -218,6 +236,8 @@ merge idx (g:gs) is = cur : merge idx gs b
     cur = (fst g, map (\(i, (k, (_, v))) -> (k, v, i == idx)) $ zip a (snd g))
 
 --------------------------------------------------------------------------------
+-- | Returns True/False based on the field referred to by the given
+-- serialized Path.
 fieldInputBool :: forall v. Text -> View v -> Bool
 fieldInputBool ref (View _ _ form input _ method) =
     queryField path form eval'
@@ -233,6 +253,7 @@ fieldInputBool ref (View _ _ form input _ method) =
 
 
 --------------------------------------------------------------------------------
+-- | Return the FilePath referred to by the given serialized path, if set.
 fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
 fieldInputFile ref (View _ _ form input _ method) =
     queryField path form eval'
@@ -248,7 +269,9 @@ fieldInputFile ref (View _ _ form input _ method) =
 
 
 --------------------------------------------------------------------------------
-listSubViews :: forall v. Text -> View v -> [View v]
+-- | Returns sub views referred to by dynamic list indices
+-- at the given serialized path.
+listSubViews :: Text -> View v -> [View v]
 listSubViews ref view =
     map (\i -> makeListSubView ref i view) indices
   where
@@ -281,16 +304,21 @@ makeListSubView ref ind view@(View _ _ form _ _ _) =
 
 
 --------------------------------------------------------------------------------
+-- | Returns all errors related to the form corresponding to the given
+-- serialized Path
 errors :: Text -> View v -> [v]
 errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 
 
 --------------------------------------------------------------------------------
+-- | Returns all errors related to the form, and its children, pointed
+-- to by the given serialized Path.
 childErrors :: Text -> View v -> [v]
 childErrors ref = map snd .
     filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
 
 
 --------------------------------------------------------------------------------
+-- | Retrieve all paths of the contained form
 debugViewPaths :: View v -> [Path]
 debugViewPaths (View _ _ form _ _ _) = debugFormPaths form

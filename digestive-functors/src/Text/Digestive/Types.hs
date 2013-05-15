@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
+-- | Core types used internally
 module Text.Digestive.Types
     ( Result (..)
     , resultMapError

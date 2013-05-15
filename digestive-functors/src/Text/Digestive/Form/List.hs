@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
+-- | Functionality related to index storage and the DefaultList type.
 module Text.Digestive.Form.List
     ( indicesRef
     , parseIndices
@@ -24,16 +25,20 @@ import           Text.Digestive.Util
 
 
 --------------------------------------------------------------------------------
+-- | Key used to store list indices
 indicesRef :: Text
 indicesRef = "indices"
 
 
 --------------------------------------------------------------------------------
+-- | Parse a string of comma-delimited integers to a list.
+-- Unparseable substrings are left out of the result.
 parseIndices :: Text -> [Int]
 parseIndices = mapMaybe (readMaybe . T.unpack) . T.split (== ',')
 
 
 --------------------------------------------------------------------------------
+-- | Serialize a list of integers as a comma-delimited Text
 unparseIndices :: [Int] -> Text
 unparseIndices = T.intercalate "," . map (T.pack . show)
 
@@ -60,6 +65,8 @@ instance Traversable DefaultList where
 
 
 --------------------------------------------------------------------------------
+-- | Safe indexing of a DefaultList - returns the default value if
+-- the given index is out of bounds.
 defaultListIndex :: DefaultList a -> Int -> a
 defaultListIndex (DefaultList x xs) i
     | i < 0     = x
