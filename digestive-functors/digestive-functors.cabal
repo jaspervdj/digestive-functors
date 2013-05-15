@@ -68,17 +68,25 @@ Test-suite digestive-functors-tests
   Type:           exitcode-stdio-1.0
   Hs-source-dirs: src tests
   Main-is:        TestSuite.hs
+  Ghc-options:    -Wall
+
   Other-modules:
       Text.Digestive.Field.Tests
+      Text.Digestive.Field.QTests
       Text.Digestive.Form.Encoding.Tests
+      Text.Digestive.Form.Encoding.QTests
+      Text.Digestive.Form.List.QTests
+      Text.Digestive.Form.QTests
       Text.Digestive.Tests.Fixtures
       Text.Digestive.View.Tests
-  Ghc-options:    -Wall
+      Text.Digestive.Types.QTests
 
   Build-depends:
     HUnit                >= 1.2 && < 1.3,
     test-framework       >= 0.4 && < 0.9,
     test-framework-hunit >= 0.2 && < 0.4,
+    test-framework-quickcheck2 >= 0.2 && <= 0.3.0.1,
+    QuickCheck >=2.4.2,
     -- Copied from regular dependencies:
     base       >= 4       && < 5,
     bytestring >= 0.9     && < 0.11,
