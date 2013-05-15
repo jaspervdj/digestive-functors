@@ -44,6 +44,7 @@ Contributors:
 - Daniel Patterson
 - Doug Beardsley
 - Jeremy Shaw
+- Jesper Lloyd
 - Oliver Charles
 - Ozgun Ataman
 - Toon Willems
