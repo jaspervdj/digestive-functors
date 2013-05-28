@@ -45,6 +45,9 @@ module Text.Digestive.View
     , errors
     , childErrors
 
+      -- * Further metadata queries
+    , viewDisabled
+
       -- * Debugging
     , debugViewPaths
     ) where
@@ -70,12 +73,12 @@ import           Text.Digestive.Types
 -- | Finalized form - handles the form, error messages and input.
 -- Internally handles the addressing of individual fields.
 data View v = forall a m. Monad m => View
-    { viewName    :: Text
-    , viewContext :: Path
-    , viewForm    :: FormTree Identity v m a
-    , viewInput   :: [(Path, FormInput)]
-    , viewErrors  :: [(Path, v)]
-    , viewMethod  :: Method
+    { viewName     :: Text
+    , viewContext  :: Path
+    , viewForm     :: FormTree Identity v m a
+    , viewInput    :: [(Path, FormInput)]
+    , viewErrors   :: [(Path, v)]
+    , viewMethod   :: Method
     }
 
 
@@ -119,9 +122,9 @@ subView :: Text -> View v -> View v
 subView ref (View name ctx form input errs method) =
     case lookupForm path form of
         []               ->
-            View name (ctx ++ path) notFound (strip input) (strip errs) method
+          View name (ctx ++ path) notFound (strip input) (strip errs) method
         (SomeForm f : _) ->
-            View name (ctx ++ path) f (strip input) (strip errs) method
+          View name (ctx ++ path) f (strip input) (strip errs) method
   where
     path     = toPath ref
     lpath    = length path
@@ -316,6 +319,14 @@ errors ref = map snd . filter ((== toPath ref) . fst) . viewErrors
 childErrors :: Text -> View v -> [v]
 childErrors ref = map snd .
     filter ((toPath ref `isPrefixOf`) . fst) . viewErrors
+
+
+--------------------------------------------------------------------------------
+viewDisabled :: Text -> View v -> Bool
+viewDisabled ref (View _ _ form _ _ _) = Disabled `elem` metadata
+  where
+    path     = toPath ref
+    metadata = concatMap snd $ lookupFormMetadata path form
 
 
 --------------------------------------------------------------------------------

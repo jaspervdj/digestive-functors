@@ -32,11 +32,12 @@ module Text.Digestive.Form
     , optionalString
     , optionalStringRead
 
-      -- * Validation
+      -- * Validation and transformation
     , check
     , checkM
     , validate
     , validateM
+    , disable
 
       -- * Lifting forms
     , monadic
@@ -228,6 +229,12 @@ validateM = transform
 
 
 --------------------------------------------------------------------------------
+-- | Disables a form
+disable :: Form v m a -> Form v m a
+disable f = Metadata [Disabled] f
+
+
+--------------------------------------------------------------------------------
 -- | Create a text form with an optional default text which
 -- returns nothing if no optional text was set, and no input
 -- was retrieved.
@@ -280,3 +287,5 @@ listOf single def =
 -- Manipulatable indices
 listIndices :: Monad m => [Int] -> Form v m [Int]
 listIndices = fmap parseIndices . text . Just . unparseIndices
+
+

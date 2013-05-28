@@ -38,7 +38,9 @@ import qualified Data.Text                    as T
 
 --------------------------------------------------------------------------------
 import           Text.Digestive.Form
+import           Text.Digestive.Form.Internal
 import           Text.Digestive.Types
+import           Text.Digestive.View
 
 
 --------------------------------------------------------------------------------
@@ -190,7 +192,8 @@ orderForm def = Order
 --------------------------------------------------------------------------------
 ordersForm :: Formlet Text Database (Text, [Order])
 ordersForm def = (,)
-    <$> "name"   .: text             (fst <$> def)
+    -- This field is disabled.
+    <$> disable ("name"   .: text            (fst <$> def))
     -- id is here because of a regression
     <*> (id <$> "orders" .: listOf orderForm (snd <$> def))
 

@@ -11,6 +11,7 @@ module Text.Digestive.Form.Internal
     , FormTree (..)
     , SomeForm (..)
     , Ref
+    , Metadata (..)
     , transform
     , monadic
     , toFormTree
@@ -18,6 +19,7 @@ module Text.Digestive.Form.Internal
     , (.:)
     , getRef
     , lookupForm
+    , lookupFormMetadata
     , lookupList
     , toField
     , queryField
@@ -31,8 +33,7 @@ module Text.Digestive.Form.Internal
 
 --------------------------------------------------------------------------------
 import           Control.Applicative                (Applicative (..))
-import           Control.Monad                      (liftM, liftM2,
-                                                     mapAndUnzipM, (>=>))
+import           Control.Monad                      (liftM, liftM2, (>=>))
 import           Control.Monad.Identity             (Identity (..))
 import           Data.Monoid                        (Monoid)
 import           Data.Traversable                   (mapM, sequenceA)
@@ -73,22 +74,25 @@ type Form v m a = FormTree m v m a
 -- and the applicative interface.
 data FormTree t v m a where
     -- Setting refs
-    Ref     :: Ref -> FormTree t v m a -> FormTree t v m a
+    Ref      :: Ref -> FormTree t v m a -> FormTree t v m a
 
     -- Applicative interface
-    Pure    :: Field v a -> FormTree t v m a
-    App     :: FormTree t v m (b -> a)
-            -> FormTree t v m b
-            -> FormTree t v m a
+    Pure     :: Field v a -> FormTree t v m a
+    App      :: FormTree t v m (b -> a)
+             -> FormTree t v m b
+             -> FormTree t v m a
 
     -- Modifications
-    Map     :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
-    Monadic :: t (FormTree t v m a) -> FormTree t v m a
+    Map      :: (b -> m (Result v a)) -> FormTree t v m b -> FormTree t v m a
+    Monadic  :: t (FormTree t v m a) -> FormTree t v m a
 
     -- Dynamic lists
-    List    :: DefaultList (FormTree t v m a)  -- Not the optimal structure
-            -> FormTree t v m [Int]
-            -> FormTree t v m [a]
+    List     :: DefaultList (FormTree t v m a)  -- Not the optimal structure
+             -> FormTree t v m [Int]
+             -> FormTree t v m [a]
+
+    -- Add arbitrary metadata. This metadata applies to all children.
+    Metadata :: [Metadata] -> FormTree t v m a -> FormTree t v m a
 
 
 --------------------------------------------------------------------------------
@@ -123,6 +127,12 @@ type Ref = Text
 
 
 --------------------------------------------------------------------------------
+data Metadata
+    = Disabled
+    deriving (Eq, Ord, Show)
+
+
+--------------------------------------------------------------------------------
 -- Helper for the FormTree Show instance
 showForm :: FormTree Identity v m a -> [String]
 showForm form = case form of
@@ -139,6 +149,7 @@ showForm form = case form of
         [ ["List <defaults>"]  -- TODO show defaults
         , map indent (showForm is)
         ]
+    (Metadata m x) -> ("Metadata " ++ show m) : map indent (showForm x)
   where
     indent = ("  " ++)
 
@@ -160,24 +171,26 @@ monadic = Monadic
 --------------------------------------------------------------------------------
 -- | Normalize a Form to allow operations on the contents
 toFormTree :: Monad m => Form v m a -> m (FormTree Identity v m a)
-toFormTree (Ref r x)   = liftM (Ref r) (toFormTree x)
-toFormTree (Pure x)    = return $ Pure x
-toFormTree (App x y)   = liftM2 App (toFormTree x) (toFormTree y)
-toFormTree (Map f x)   = liftM (Map f) (toFormTree x)
-toFormTree (Monadic x) = x >>= toFormTree >>= return . Monadic . Identity
-toFormTree (List d is) = liftM2 List (mapM toFormTree d) (toFormTree is)
+toFormTree (Ref r x)      = liftM (Ref r) (toFormTree x)
+toFormTree (Pure x)       = return $ Pure x
+toFormTree (App x y)      = liftM2 App (toFormTree x) (toFormTree y)
+toFormTree (Map f x)      = liftM (Map f) (toFormTree x)
+toFormTree (Monadic x)    = x >>= toFormTree >>= return . Monadic . Identity
+toFormTree (List d is)    = liftM2 List (mapM toFormTree d) (toFormTree is)
+toFormTree (Metadata m x) = liftM (Metadata m) (toFormTree x)
 
 
 --------------------------------------------------------------------------------
 -- | Returns the topmost applicative or index trees if either exists
 -- otherwise returns an empty list
 children :: FormTree Identity v m a -> [SomeForm v m]
-children (Ref _ x )  = children x
-children (Pure _)    = []
-children (App x y)   = [SomeForm x, SomeForm y]
-children (Map _ x)   = children x
-children (Monadic x) = children $ runIdentity x
-children (List _ is) = [SomeForm is]
+children (Ref _ x )     = children x
+children (Pure _)       = []
+children (App x y)      = [SomeForm x, SomeForm y]
+children (Map _ x)      = children x
+children (Monadic x)    = children $ runIdentity x
+children (List _ is)    = [SomeForm is]
+children (Metadata _ x) = children x
 
 
 --------------------------------------------------------------------------------
@@ -196,12 +209,13 @@ infixr 5 .:
 -- Return topmost label of the tree if it exists, with the rest of the form
 popRef :: FormTree Identity v m a -> (Maybe Ref, FormTree Identity v m a)
 popRef form = case form of
-    (Ref r x)   -> (Just r, x)
-    (Pure _)    -> (Nothing, form)
-    (App _ _)   -> (Nothing, form)
-    (Map f x)   -> let (r, form') = popRef x in (r, Map f form')
-    (Monadic x) -> popRef $ runIdentity x
-    (List _ _)  -> (Nothing, form)
+    (Ref r x)      -> (Just r, x)
+    (Pure _)       -> (Nothing, form)
+    (App _ _)      -> (Nothing, form)
+    (Map f x)      -> let (r, form') = popRef x in (r, Map f form')
+    (Monadic x)    -> popRef $ runIdentity x
+    (List _ _)     -> (Nothing, form)
+    (Metadata m x) -> let (r, form') = popRef x in (r, Metadata m form')
 
 
 --------------------------------------------------------------------------------
@@ -211,18 +225,40 @@ getRef = fst . popRef
 
 
 --------------------------------------------------------------------------------
+getMetadata :: FormTree Identity v m a -> [Metadata]
+getMetadata (Ref _ _)      = []
+getMetadata (Pure _)       = []
+getMetadata (App _ _)      = []
+getMetadata (Map _ x)      = getMetadata x
+getMetadata (Monadic x)    = getMetadata $ runIdentity x
+getMetadata (List _ _)     = []
+getMetadata (Metadata m x) = m ++ getMetadata x
+
+
+--------------------------------------------------------------------------------
 -- | Retrieve the form(s) at the given path
 lookupForm :: Path -> FormTree Identity v m a -> [SomeForm v m]
-lookupForm path = go path . SomeForm
+lookupForm path = map fst . lookupFormMetadata path
+
+
+--------------------------------------------------------------------------------
+-- | A variant of 'lookupForm' which also returns all metadata associated with
+-- the form.
+lookupFormMetadata :: Path -> FormTree Identity v m a
+                   -> [(SomeForm v m, [Metadata])]
+lookupFormMetadata path = go [] path . SomeForm
   where
     -- Note how we use `popRef` to strip the ref away. This is really important.
-    go []       form            = [form]
-    go (r : rs) (SomeForm form) = case popRef form of
-        (Just r', stripped)
-            | r == r' && null rs -> [SomeForm stripped]
-            | r == r'            -> children form >>= go rs
-            | otherwise          -> []
-        (Nothing, _)             -> children form >>= go (r : rs)
+    go md path' (SomeForm form) = case path' of
+        []       -> [(SomeForm form, md')]
+        (r : rs) -> case popRef form of
+            (Just r', stripped)
+                | r == r' && null rs -> [(SomeForm stripped, md')]
+                | r == r'            -> children form >>= go md' rs
+                | otherwise          -> []
+            (Nothing, _)             -> children form >>= go md' (r : rs)
+      where
+        md' = getMetadata form ++ md
 
 
 --------------------------------------------------------------------------------
@@ -240,23 +276,25 @@ lookupList path form = case candidates of
         ]
 
     getList :: forall a v m. FormTree Identity v m a -> [SomeForm v m]
-    getList (Ref _ _)   = []
-    getList (Pure _)    = []
-    getList (App x y)   = getList x ++ getList y
-    getList (Map _ x)   = getList x
-    getList (Monadic x) = getList $ runIdentity x
-    getList (List d is) = [SomeForm (List d is)]
+    getList (Ref _ _)      = []
+    getList (Pure _)       = []
+    getList (App x y)      = getList x ++ getList y
+    getList (Map _ x)      = getList x
+    getList (Monadic x)    = getList $ runIdentity x
+    getList (List d is)    = [SomeForm (List d is)]
+    getList (Metadata _ x) = getList x
 
 
 --------------------------------------------------------------------------------
 -- | Returns the topmost untransformed single field, if one exists
 toField :: FormTree Identity v m a -> Maybe (SomeField v)
-toField (Ref _ x)   = toField x
-toField (Pure x)    = Just (SomeField x)
-toField (App _ _)   = Nothing
-toField (Map _ x)   = toField x
-toField (Monadic x) = toField (runIdentity x)
-toField (List _ _)  = Nothing
+toField (Ref _ x)      = toField x
+toField (Pure x)       = Just (SomeField x)
+toField (App _ _)      = Nothing
+toField (Map _ x)      = toField x
+toField (Monadic x)    = toField (runIdentity x)
+toField (List _ _)     = Nothing
+toField (Metadata _ x) = toField x
 
 
 --------------------------------------------------------------------------------
@@ -319,11 +357,15 @@ eval' path method env form = case form of
         case ris of
             Error errs -> return (Error errs, inp1)
             Success is -> do
-                (results, inps) <- mapAndUnzipM
+                res <- mapM
                     -- TODO fix head defs
                     (\i -> eval' (path ++ [T.pack $ show i])
                         method env $ defs `defaultListIndex` i) is
+
+                let (results, inps) = unzip res
                 return (sequenceA results, inp1 ++ concat inps)
+
+    Metadata _ x -> eval' path method env x
 
 
 --------------------------------------------------------------------------------
@@ -331,12 +373,13 @@ eval' path method env form = case form of
 -- used to define the Functor instance of "View.View"
 formMapView :: Monad m
             => (v -> w) -> FormTree Identity v m a -> FormTree Identity w m a
-formMapView f (Ref r x)   = Ref r $ formMapView f x
-formMapView f (Pure x)    = Pure $ fieldMapView f x
-formMapView f (App x y)   = App (formMapView f x) (formMapView f y)
-formMapView f (Map g x)   = Map (g >=> return . resultMapError f) (formMapView f x)
-formMapView f (Monadic x) = formMapView f $ runIdentity x
-formMapView f (List d is) = List (fmap (formMapView f) d) (formMapView f is)
+formMapView f (Ref r x)      = Ref r $ formMapView f x
+formMapView f (Pure x)       = Pure $ fieldMapView f x
+formMapView f (App x y)      = App (formMapView f x) (formMapView f y)
+formMapView f (Map g x)      = Map (g >=> return . resultMapError f) (formMapView f x)
+formMapView f (Monadic x)    = formMapView f $ runIdentity x
+formMapView f (List d is)    = List (fmap (formMapView f) d) (formMapView f is)
+formMapView f (Metadata m x) = Metadata m $ formMapView f x
 
 
 --------------------------------------------------------------------------------
@@ -355,11 +398,12 @@ bindResult mx f = do
 --------------------------------------------------------------------------------
 -- | Debugging purposes
 debugFormPaths :: Monad m => FormTree Identity v m a -> [Path]
-debugFormPaths (Pure _)    = [[]]
-debugFormPaths (App x y)   = debugFormPaths x ++ debugFormPaths y
-debugFormPaths (Map _ x)   = debugFormPaths x
-debugFormPaths (Monadic x) = debugFormPaths $ runIdentity x
-debugFormPaths (List d is) =
+debugFormPaths (Pure _)       = [[]]
+debugFormPaths (App x y)      = debugFormPaths x ++ debugFormPaths y
+debugFormPaths (Map _ x)      = debugFormPaths x
+debugFormPaths (Monadic x)    = debugFormPaths $ runIdentity x
+debugFormPaths (List d is)    =
     debugFormPaths is ++
     (map ("0" :) $ debugFormPaths $ d `defaultListIndex` 0)
-debugFormPaths (Ref r x)   = map (r :) $ debugFormPaths x
+debugFormPaths (Ref r x)      = map (r :) $ debugFormPaths x
+debugFormPaths (Metadata _ x) = debugFormPaths x

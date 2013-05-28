@@ -163,6 +163,10 @@ tests = testGroup "Text.Digestive.View.Tests"
         let subViews' = listSubViews "orders" view
         fst (selection (fieldInputChoice "product" (subViews' !! 1))) @=?
             "s9_ao"
+
+    , testCase "Simple viewDisabled" $ do
+        let view = runDatabase $ getForm "f" (ordersForm Nothing)
+        True @=? viewDisabled "name" view
     ]
 
 
