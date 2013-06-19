@@ -65,6 +65,7 @@ import qualified Data.Text             as T
 import           Data.Text.Encoding
 import           Heist
 import           Heist.Compiled
+import           Heist.Compiled.LowLevel
 import qualified Text.XmlHtml          as X
 
 
@@ -77,27 +78,28 @@ import           Text.Digestive.View
 -- | List of splices defined for forms.  For most uses the formSplice function
 -- will be fine and you won't need to use this directly.  But this is
 -- available if you need more customization.
-digestiveSplices :: (Monad m) => Promise (View Text) -> [(Text, Splice m)]
-digestiveSplices vp =
-    [ ("dfInput",            dfInput vp)
-    , ("dfInputText",        dfInputText vp)
-    , ("dfInputTextArea",    dfInputTextArea vp)
-    , ("dfInputPassword",    dfInputPassword vp)
-    , ("dfInputHidden",      dfInputHidden vp)
-    , ("dfInputSelect",      dfInputSelect vp)
-    , ("dfInputSelectGroup", dfInputSelectGroup vp)
-    , ("dfInputRadio",       dfInputRadio vp)
-    , ("dfInputCheckbox",    dfInputCheckbox vp)
-    , ("dfInputFile",        dfInputFile vp)
-    , ("dfInputSubmit",      dfInputSubmit)
-    , ("dfLabel",            dfLabel vp)
-    , ("dfErrorList",        dfErrorList vp)
-    , ("dfChildErrorList",   dfChildErrorList vp)
-    , ("dfSubView",          dfSubView vp)
-    , ("dfIfChildErrors",    dfIfChildErrors vp)
-    , ("dfInputList",        dfInputList vp)
-    , ("dfEncType",          dfEncType vp)
-    ]
+digestiveSplices :: (Monad m)
+                 => RuntimeSplice m (View Text)
+                 -> Splices (Splice m)
+digestiveSplices vp = do
+    "dfInput"            ?! dfInput vp
+    "dfInputText"        ?! dfInputText vp
+    "dfInputTextArea"    ?! dfInputTextArea vp
+    "dfInputPassword"    ?! dfInputPassword vp
+    "dfInputHidden"      ?! dfInputHidden vp
+    "dfInputSelect"      ?! dfInputSelect vp
+    "dfInputSelectGroup" ?! dfInputSelectGroup vp
+    "dfInputRadio"       ?! dfInputRadio vp
+    "dfInputCheckbox"    ?! dfInputCheckbox vp
+    "dfInputFile"        ?! dfInputFile vp
+    "dfInputSubmit"      ?! dfInputSubmit
+    "dfLabel"            ?! dfLabel vp
+    "dfErrorList"        ?! dfErrorList vp
+    "dfChildErrorList"   ?! dfChildErrorList vp
+    "dfSubView"          ?! dfSubView vp
+    "dfIfChildErrors"    ?! dfIfChildErrors vp
+    "dfInputList"        ?! dfInputList vp
+    "dfEncType"          ?! dfEncType vp
 
 
 ------------------------------------------------------------------------------
@@ -105,13 +107,13 @@ digestiveSplices vp =
 -- gets the form's view and this function returns a splice that creates a form
 -- tag.  In your HeistConfig you might have a compiled splice like this:
 --
--- `("customerForm", formSplice (liftM fst $ runForm "customer" custForm))`
+-- > ("customerForm", formSplice (liftM fst $ runForm "customer" custForm))
 --
 -- Then you can use the customerForm tag just like you would use the dfForm
 -- tag in interpreted templates anywhere you want to have a customer form.
 formSplice :: Monad m
-           => [(Text, Splice m)]
-           -> [(Text, AttrSplice m)]
+           => Splices (Splice m)
+           -> Splices (AttrSplice m)
            -> RuntimeSplice m (View Text)
            -> Splice m
 formSplice ss as getView = do
@@ -124,8 +126,7 @@ formSplice ss as getView = do
                     ])
                  (X.childNodes node)
         action = runNode tree
-    defer (\vp -> withLocalSplices (digestiveSplices vp ++ ss) as action)
-          getView
+    withLocalSplices (unionWith const (digestiveSplices getView) ss) as action
 
 
 --------------------------------------------------------------------------------
@@ -148,30 +149,30 @@ getRefAttributes node defaultRef =
 
 
 dfEncType :: (Monad m)
-          => Promise (View v)
+          => RuntimeSplice m (View v)
           -> Splice m
-dfEncType p = do
+dfEncType getView = do
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         return $ fromByteString $ encodeUtf8 $ T.pack (show $ viewEncType view)
 
 
 dfMaster :: Monad m
          => (Text -> [(Text, Text)] -> View v -> RuntimeSplice m Builder)
-         -> Promise (View v) -> Splice m
-dfMaster f p = do
+         -> RuntimeSplice m (View v) -> Splice m
+dfMaster f getView = do
     node <- getParamNode
     let (ref, attrs) = getRefAttributes node Nothing
     runAttrs <- runAttributesRaw attrs
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         attrs' <- runAttrs
         f ref attrs' view
 
 
 dfTag :: (Monad m)
       => (Text -> [(Text, Text)] -> Text -> [X.Node])
-      -> Promise (View v)
+      -> RuntimeSplice m (View v)
       -> Splice m
 dfTag f = dfMaster $ \ref attrs view -> do
     let ref' = absoluteRef ref view
@@ -183,7 +184,7 @@ dfTag f = dfMaster $ \ref attrs view -> do
 
 dfInputGeneric :: Monad m
                => [(Text, Text)]
-               -> Promise (View v)
+               -> RuntimeSplice m (View v)
                -> Splice m
 dfInputGeneric as = dfTag $ \ref attrs value ->
     makeElement "input" [] $ addAttrs attrs $
@@ -211,13 +212,13 @@ dfInputSubmit = do
 --
 -- > <dfLabel ref="user.married">Married: </dfLabel>
 -- > <dfInputCheckbox ref="user.married" />
-dfLabel :: Monad m => Promise (View v) -> Splice m
-dfLabel p = do
+dfLabel :: Monad m => RuntimeSplice m (View v) -> Splice m
+dfLabel getView = do
     node <- getParamNode
     let (ref, attrs) = getRefAttributes node Nothing
     runAttrs <- runAttributesRaw attrs
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         attrs' <- runAttrs
         let ref'  = absoluteRef ref view
             e = makeElement "label" (X.childNodes node) $ addAttrs attrs'
@@ -229,7 +230,7 @@ dfLabel p = do
 -- | Generate an input field with a supplied type. Example:
 --
 -- > <dfInput type="date" ref="date" />
-dfInput :: Monad m => Promise (View v) -> Splice m
+dfInput :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInput = dfInputGeneric []
 
 
@@ -237,7 +238,7 @@ dfInput = dfInputGeneric []
 -- | Generate a text input field. Example:
 --
 -- > <dfInputText ref="user.name" />
-dfInputText :: Monad m => Promise (View v) -> Splice m
+dfInputText :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputText = dfInputGeneric [("type", "text")]
 
 
@@ -245,7 +246,7 @@ dfInputText = dfInputGeneric [("type", "text")]
 -- | Generate a text area. Example:
 --
 -- > <dfInputTextArea ref="user.about" />
-dfInputTextArea :: Monad m => Promise (View v) -> Splice m
+dfInputTextArea :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputTextArea = dfTag $ \ref attrs value ->
     makeElement "textarea" [X.TextNode value] $ addAttrs attrs
         [("id", ref), ("name", ref)]
@@ -255,7 +256,7 @@ dfInputTextArea = dfTag $ \ref attrs value ->
 -- | Generate a password field. Example:
 --
 -- > <dfInputPassword ref="user.password" />
-dfInputPassword :: Monad m => Promise (View v) -> Splice m
+dfInputPassword :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputPassword = dfInputGeneric [("type", "password")]
 
 
@@ -263,7 +264,7 @@ dfInputPassword = dfInputGeneric [("type", "password")]
 -- | Generate a hidden input field. Example:
 --
 -- > <dfInputHidden ref="user.forgery" />
-dfInputHidden :: Monad m => Promise (View v) -> Splice m
+dfInputHidden :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputHidden = dfInputGeneric [("type", "hidden")]
 
 
@@ -272,7 +273,7 @@ dfInputHidden = dfInputGeneric [("type", "hidden")]
 --
 -- > <dfInputCheckbox ref="user.married" />
 dfInputCheckbox :: Monad m
-                => Promise (View v)
+                => RuntimeSplice m (View v)
                 -> Splice m
 dfInputCheckbox = dfMaster $ \ref attrs view -> do
     let ref'  = absoluteRef ref view
@@ -288,7 +289,7 @@ dfInputCheckbox = dfMaster $ \ref attrs view -> do
 -- | Generate a file upload element. Example:
 --
 -- > <dfInputFile ref="user.avatar" />
-dfInputFile :: Monad m => Promise (View v) -> Splice m
+dfInputFile :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputFile = dfMaster $ \ref attrs view -> do
     let ref'  = absoluteRef ref view
         value = maybe "" T.pack $ fieldInputFile ref view
@@ -302,7 +303,7 @@ dfInputFile = dfMaster $ \ref attrs view -> do
 -- | Generate a select button (also known as a combo box). Example:
 --
 -- > <dfInputSelect ref="user.sex" />
-dfInputSelect :: Monad m => Promise (View Text) -> Splice m
+dfInputSelect :: Monad m => RuntimeSplice m (View Text) -> Splice m
 dfInputSelect = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
@@ -322,7 +323,7 @@ dfInputSelect = dfMaster $ \ref attrs view -> do
 -- | Generate a select button (also known as a combo box). Example:
 --
 -- > <dfInputSelectGroup ref="user.sex" />
-dfInputSelectGroup :: Monad m => Promise (View Text) -> Splice m
+dfInputSelectGroup :: Monad m => RuntimeSplice m (View Text) -> Splice m
 dfInputSelectGroup = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoiceGroup ref view
@@ -344,7 +345,7 @@ dfInputSelectGroup = dfMaster $ \ref attrs view -> do
 -- | Generate a number of radio buttons. Example:
 --
 -- > <dfInputRadio ref="user.sex" />
-dfInputRadio :: Monad m => Promise (View Text) -> Splice m
+dfInputRadio :: Monad m => RuntimeSplice m (View Text) -> Splice m
 dfInputRadio = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
@@ -368,11 +369,11 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
 --
 -- > <dfErrorList ref="user.name" />
 -- > <dfInputText ref="user.name" />
-dfErrorList :: Monad m => Promise (View Text) -> Splice m
-dfErrorList p = do
+dfErrorList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfErrorList getView = do
     node <- getParamNode
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         let (ref, attrs) = getRefAttributes node Nothing
             nodes = errorList (errors ref view) attrs
         return $ X.renderHtmlFragment X.UTF8 nodes
@@ -391,11 +392,11 @@ dfErrorList p = do
 -- Which is more conveniently written as:
 --
 -- > <dfChildErrorList />
-dfChildErrorList :: Monad m => Promise (View Text) -> Splice m
-dfChildErrorList p = do
+dfChildErrorList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfChildErrorList getView = do
     node <- getParamNode
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         let (ref, attrs) = getRefAttributes node (Just "")
             nodes = errorList (childErrors ref view) attrs
         return $ X.renderHtmlFragment X.UTF8 nodes
@@ -410,11 +411,11 @@ dfChildErrorList p = do
 -- > </dfIfChildErrors>
 --
 -- The @ref@ attribute can be omitted if you want to check the entire form.
-dfIfChildErrors :: (Monad m) => Promise (View v) -> Splice m
-dfIfChildErrors p = do
+dfIfChildErrors :: (Monad m) => RuntimeSplice m (View v) -> Splice m
+dfIfChildErrors getView = do
     node <- getParamNode
     return $ yieldRuntime $ do
-        view <- getPromise p
+        view <- getView
         let (ref, _) = getRefAttributes node Nothing
         if null (childErrors ref view)
           then return mempty
@@ -445,34 +446,34 @@ dfIfChildErrors p = do
 -- > </dfSubView>
 -- >
 -- > <dfInputTextArea ref="comment.body" />
-dfSubView :: Monad m => Promise (View Text) -> Splice m
-dfSubView p = do
+dfSubView :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfSubView getView = do
     node <- getParamNode
     p2 <- newEmptyPromise
     let action = yieldRuntimeEffect $ do
-            view <- getPromise p
+            view <- getView
             let (ref, _) = getRefAttributes node Nothing
                 view' = subView ref view
             putPromise p2 view'
-    res <- withLocalSplices (digestiveSplices p2) [] $
+    res <- withLocalSplices (digestiveSplices (getPromise p2)) noSplices $
              runNodeList $ X.childNodes node
     return $ action <> res
 
 
-dfSingleListItem :: Monad m
+dfSingleListItem :: Monad n
                  => X.Node
-                 -> (Promise (View Text) -> AttrSplice m)
-                 -> Promise (View Text)
-                 -> HeistT m IO (RuntimeSplice m Builder)
+                 -> (RuntimeSplice n (View Text) -> AttrSplice n)
+                 -> RuntimeSplice n (View Text)
+                 -> Splice n
 dfSingleListItem node attrs viewPromise = do
     p2 <- newEmptyPromise
     let action = yieldRuntimeEffect $ do
-            view <- getPromise viewPromise
+            view <- viewPromise
             putPromise p2 view
-    res <- withLocalSplices (digestiveSplices p2)
-                            [("itemAttrs", attrs viewPromise)]
+    res <- withLocalSplices (digestiveSplices (getPromise p2))
+                            ("itemAttrs" ?! attrs viewPromise)
                             (runNodeList $ X.childNodes node)
-    return $ codeGen $ action <> res
+    return $ action <> res
 
 
 --------------------------------------------------------------------------------
@@ -496,22 +497,22 @@ dfSingleListItem node attrs viewPromise = do
 --     an onclick attribute that calls a javascript function addInputListItem.
 --   removeControl - Use this attribute on the control for removing individual
 --     items.  It adds an onclick attribute that calls removeInputListItem.
-dfInputList :: Monad m => Promise (View Text) -> Splice m
-dfInputList p = do
+dfInputList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfInputList getView = do
     node <- getParamNode
     itemsPromise <- newEmptyPromise
     refPromise <- newEmptyPromise
     indicesPromise <- newEmptyPromise
     templateViewPromise <- newEmptyPromise
-    let itemAttrs viewPromise _ = do
-            view <- getPromise viewPromise
+    let itemAttrs gv _ = do
+            view <- gv
             listRef <- getPromise refPromise
             return
               [ ("id", T.concat [listRef, ".", last $ "0" : viewContext view])
               , ("class", T.append listRef ".inputListItem")
               ]
-        templateAttrs viewPromise _ = do
-            view <- getPromise viewPromise
+        templateAttrs gv _ = do
+            view <- gv
             listRef <- getPromise refPromise
             return
               [ ("id", T.concat [listRef, ".", last $ "-1" : viewContext view])
@@ -520,11 +521,10 @@ dfInputList p = do
               ]
         dfListItem = do
             n <- getParamNode
-            template <- dfSingleListItem n templateAttrs
-                                         templateViewPromise
-            body <- mapPromises (dfSingleListItem n itemAttrs) $
-                                getPromise itemsPromise
-            return $ yieldRuntime template <> body
+            template <- dfSingleListItem n templateAttrs (getPromise templateViewPromise)
+            body <- deferMany (dfSingleListItem n itemAttrs) $
+                              getPromise itemsPromise
+            return $ template <> body
     let listAttrs =
             [ ("id", "${dfListRef}")
             , ("class", "inputList")
@@ -545,17 +545,17 @@ dfInputList p = do
             return [ ("onclick", T.concat [ "removeInputListItem(this, '"
                                           , listRef
                                           , "'); return false;"] ) ]
-        attrSplices = [ ("addControl", addControl)
-                      , ("removeControl", removeControl)
-                      ]
-        splices = [ ("dfListRef", return $ yieldRuntimeText $ getPromise refPromise)
-                  , ("dfIndicesList", return $ yieldRuntimeText $ getPromise indicesPromise)
-                  , ("dfListItem", dfListItem)
-                  ]
+        attrSplices = do
+            "addControl"    ?! addControl
+            "removeControl" ?! removeControl
+        splices = do
+            "dfListRef"     ?! return $ yieldRuntimeText $ getPromise refPromise
+            "dfIndicesList" ?! return $ yieldRuntimeText $ getPromise indicesPromise
+            "dfListItem"    ?! dfListItem
 
     -- The runtime action that gets the right data and puts it in promises.
     let action = yieldRuntimeEffect $ do
-          view <- getPromise p
+          view <- getView
           let (ref, _) = getRefAttributes node Nothing
               listRef  = absoluteRef ref view
               items = listSubViews ref view
