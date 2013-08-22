@@ -59,7 +59,7 @@ import           Control.Monad         (mplus)
 import           Data.Function         (on)
 import           Data.List             (unionBy)
 import           Data.Maybe            (fromMaybe)
-import           Data.Monoid           ((<>), mempty)
+import           Data.Monoid           ((<>), mempty, mappend)
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 import           Data.Text.Encoding
@@ -82,24 +82,24 @@ digestiveSplices :: (Monad m)
                  => RuntimeSplice m (View Text)
                  -> Splices (Splice m)
 digestiveSplices vp = do
-    "dfInput"            ?! dfInput vp
-    "dfInputText"        ?! dfInputText vp
-    "dfInputTextArea"    ?! dfInputTextArea vp
-    "dfInputPassword"    ?! dfInputPassword vp
-    "dfInputHidden"      ?! dfInputHidden vp
-    "dfInputSelect"      ?! dfInputSelect vp
-    "dfInputSelectGroup" ?! dfInputSelectGroup vp
-    "dfInputRadio"       ?! dfInputRadio vp
-    "dfInputCheckbox"    ?! dfInputCheckbox vp
-    "dfInputFile"        ?! dfInputFile vp
-    "dfInputSubmit"      ?! dfInputSubmit
-    "dfLabel"            ?! dfLabel vp
-    "dfErrorList"        ?! dfErrorList vp
-    "dfChildErrorList"   ?! dfChildErrorList vp
-    "dfSubView"          ?! dfSubView vp
-    "dfIfChildErrors"    ?! dfIfChildErrors vp
-    "dfInputList"        ?! dfInputList vp
-    "dfEncType"          ?! dfEncType vp
+    "dfInput"            ## dfInput vp
+    "dfInputText"        ## dfInputText vp
+    "dfInputTextArea"    ## dfInputTextArea vp
+    "dfInputPassword"    ## dfInputPassword vp
+    "dfInputHidden"      ## dfInputHidden vp
+    "dfInputSelect"      ## dfInputSelect vp
+    "dfInputSelectGroup" ## dfInputSelectGroup vp
+    "dfInputRadio"       ## dfInputRadio vp
+    "dfInputCheckbox"    ## dfInputCheckbox vp
+    "dfInputFile"        ## dfInputFile vp
+    "dfInputSubmit"      ## dfInputSubmit
+    "dfLabel"            ## dfLabel vp
+    "dfErrorList"        ## dfErrorList vp
+    "dfChildErrorList"   ## dfChildErrorList vp
+    "dfSubView"          ## dfSubView vp
+    "dfIfChildErrors"    ## dfIfChildErrors vp
+    "dfInputList"        ## dfInputList vp
+    "dfEncType"          ## dfEncType vp
 
 
 ------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ formSplice ss as getView = do
                     ])
                  (X.childNodes node)
         action = runNode tree
-    withLocalSplices (unionWith const (digestiveSplices getView) ss) as action
+    withLocalSplices (digestiveSplices getView `mappend` ss) as action
 
 
 --------------------------------------------------------------------------------
@@ -471,7 +471,7 @@ dfSingleListItem node attrs viewPromise = do
             view <- viewPromise
             putPromise p2 view
     res <- withLocalSplices (digestiveSplices (getPromise p2))
-                            ("itemAttrs" ?! attrs viewPromise)
+                            ("itemAttrs" ## attrs viewPromise)
                             (runNodeList $ X.childNodes node)
     return $ action <> res
 
@@ -546,12 +546,12 @@ dfInputList getView = do
                                           , listRef
                                           , "'); return false;"] ) ]
         attrSplices = do
-            "addControl"    ?! addControl
-            "removeControl" ?! removeControl
+            "addControl"    ## addControl
+            "removeControl" ## removeControl
         splices = do
-            "dfListRef"     ?! return $ yieldRuntimeText $ getPromise refPromise
-            "dfIndicesList" ?! return $ yieldRuntimeText $ getPromise indicesPromise
-            "dfListItem"    ?! dfListItem
+            "dfListRef"     ## return $ yieldRuntimeText $ getPromise refPromise
+            "dfIndicesList" ## return $ yieldRuntimeText $ getPromise indicesPromise
+            "dfListItem"    ## dfListItem
 
     -- The runtime action that gets the right data and puts it in promises.
     let action = yieldRuntimeEffect $ do

@@ -78,24 +78,24 @@ bindDigestiveSplices = bindSplices . digestiveSplices
 --------------------------------------------------------------------------------
 digestiveSplices :: MonadIO m => View Text -> Splices (Splice m)
 digestiveSplices view = do
-    "dfInput"            ?! dfInput view
-    "dfInputList"        ?! dfInputList view
-    "dfInputText"        ?! dfInputText view
-    "dfInputTextArea"    ?! dfInputTextArea view
-    "dfInputPassword"    ?! dfInputPassword view
-    "dfInputHidden"      ?! dfInputHidden view
-    "dfInputSelect"      ?! dfInputSelect view
-    "dfInputSelectGroup" ?! dfInputSelectGroup view
-    "dfInputRadio"       ?! dfInputRadio view
-    "dfInputCheckbox"    ?! dfInputCheckbox view
-    "dfInputFile"        ?! dfInputFile view
-    "dfInputSubmit"      ?! dfInputSubmit view
-    "dfLabel"            ?! dfLabel view
-    "dfForm"             ?! dfForm view
-    "dfErrorList"        ?! dfErrorList view
-    "dfChildErrorList"   ?! dfChildErrorList view
-    "dfSubView"          ?! dfSubView view
-    "dfIfChildErrors"    ?! dfIfChildErrors view
+    "dfInput"            ## dfInput view
+    "dfInputList"        ## dfInputList view
+    "dfInputText"        ## dfInputText view
+    "dfInputTextArea"    ## dfInputTextArea view
+    "dfInputPassword"    ## dfInputPassword view
+    "dfInputHidden"      ## dfInputHidden view
+    "dfInputSelect"      ## dfInputSelect view
+    "dfInputSelectGroup" ## dfInputSelectGroup view
+    "dfInputRadio"       ## dfInputRadio view
+    "dfInputCheckbox"    ## dfInputCheckbox view
+    "dfInputFile"        ## dfInputFile view
+    "dfInputSubmit"      ## dfInputSubmit view
+    "dfLabel"            ## dfLabel view
+    "dfForm"             ## dfForm view
+    "dfErrorList"        ## dfErrorList view
+    "dfChildErrorList"   ## dfChildErrorList view
+    "dfSubView"          ## dfSubView view
+    "dfIfChildErrors"    ## dfIfChildErrors view
     
 
 
@@ -469,16 +469,16 @@ dfInputList view = do
             , ("style", "display: none;")
             ]
         items = listSubViews ref view
-        f attrs v = localHS (bindAttributeSplices ("itemAttrs" ?! attrs v) .
+        f attrs v = localHS (bindAttributeSplices ("itemAttrs" ## attrs v) .
                        bindDigestiveSplices v) runChildren
         dfListItem = do
             template <- f templateAttrs (makeListSubView ref (-1) view)
             res <- mapSplices (f itemAttrs) items
             return $ template ++ res
         attrSplices = do
-            "addControl"    ?! addControl
-            "removeControl" ?! removeControl
-    nodes <- localHS (bindSplices ("dfListItem" ?! dfListItem) .
+            "addControl"    ## addControl
+            "removeControl" ## removeControl
+    nodes <- localHS (bindSplices ("dfListItem" ## dfListItem) .
                       bindAttributeSplices attrSplices) runChildren
     let indices = [X.Element "input"
                     [ ("type", "hidden")
