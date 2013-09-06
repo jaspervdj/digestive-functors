@@ -107,7 +107,7 @@ digestiveSplices vp = do
 -- gets the form's view and this function returns a splice that creates a form
 -- tag.  In your HeistConfig you might have a compiled splice like this:
 --
--- > ("customerForm", formSplice (liftM fst $ runForm "customer" custForm))
+-- > ("customerForm" ## formSplice (liftM fst $ runForm "customer" custForm))
 --
 -- Then you can use the customerForm tag just like you would use the dfForm
 -- tag in interpreted templates anywhere you want to have a customer form.
