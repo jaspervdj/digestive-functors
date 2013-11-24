@@ -416,7 +416,7 @@ dfIfChildErrors getView = do
     node <- getParamNode
     return $ yieldRuntime $ do
         view <- getView
-        let (ref, _) = getRefAttributes node Nothing
+        let (ref, _) = getRefAttributes node $ Just ""
         if null (childErrors ref view)
           then return mempty
           else return $ X.renderHtmlFragment X.UTF8 (X.childNodes node)
