@@ -121,8 +121,8 @@ formSplice ss as = formSplice' (const ss) (const as)
 
 
 ------------------------------------------------------------------------------
--- | Same as 'formSplice' except the suppied splices and attribute
--- splices are passed the resulting form view.
+-- | Same as 'formSplice' except the supplied splices and attribute
+-- splices are applied to the resulting form view.
 formSplice' :: Monad m
             => (RuntimeSplice m (View Text) -> Splices (Splice m))
             -> (RuntimeSplice m (View Text) -> Splices (AttrSplice m))
