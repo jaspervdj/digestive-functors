@@ -29,6 +29,7 @@
 module Text.Digestive.Heist.Compiled
     ( -- * Core methods
       formSplice
+    , formSplice'
 
       -- * Main splices
     , dfInput
@@ -55,18 +56,18 @@ module Text.Digestive.Heist.Compiled
 
 --------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
-import           Control.Monad         (mplus)
-import           Data.Function         (on)
-import           Data.List             (unionBy)
-import           Data.Maybe            (fromMaybe)
-import           Data.Monoid           ((<>), mempty, mappend)
-import           Data.Text             (Text)
-import qualified Data.Text             as T
+import           Control.Monad            (mplus)
+import           Data.Function            (on)
+import           Data.List                (unionBy)
+import           Data.Maybe               (fromMaybe)
+import           Data.Monoid              (mappend, mempty, (<>))
+import           Data.Text                (Text)
+import qualified Data.Text                as T
 import           Data.Text.Encoding
 import           Heist
 import           Heist.Compiled
 import           Heist.Compiled.LowLevel
-import qualified Text.XmlHtml          as X
+import qualified Text.XmlHtml             as X
 
 
 ------------------------------------------------------------------------------
@@ -116,7 +117,18 @@ formSplice :: Monad m
            -> Splices (AttrSplice m)
            -> RuntimeSplice m (View Text)
            -> Splice m
-formSplice ss as getView = do
+formSplice ss as = formSplice' (const ss) (const as)
+
+
+------------------------------------------------------------------------------
+-- | Same as 'formSplice' except the suppied splices and attribute
+-- splices are passed the resulting form view.
+formSplice' :: Monad m
+            => (RuntimeSplice m (View Text) -> Splices (Splice m))
+            -> (RuntimeSplice m (View Text) -> Splices (AttrSplice m))
+            -> RuntimeSplice m (View Text)
+            -> Splice m
+formSplice' ss as getView = do
     node <- getParamNode
     let (_, attrs) = getRefAttributes node Nothing
         tree = X.Element "form"
@@ -126,7 +138,7 @@ formSplice ss as getView = do
                     ])
                  (X.childNodes node)
         action = runNode tree
-    withLocalSplices (digestiveSplices getView `mappend` ss) as action
+    withLocalSplices (digestiveSplices getView `mappend` ss getView) (as getView) action
 
 
 --------------------------------------------------------------------------------
@@ -329,13 +341,13 @@ dfInputSelectGroup = dfMaster $ \ref attrs view -> do
         choices  = fieldInputChoiceGroup ref view
         kids     = map makeGroup choices
         value i  = ref' <> "." <> i
-    
+
         makeGroup (name, options) = X.Element "optgroup"
             [("label", name)] $ map makeOption options
         makeOption (i, c, sel) = X.Element "option"
             (attr sel ("selected", "selected") [("value", value i)])
             [X.TextNode c]
-    
+
         e = makeElement "select" kids $ addAttrs attrs
             [("id", ref'), ("name", ref')]
     return $ X.renderHtmlFragment X.UTF8 e
@@ -351,7 +363,7 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
         choices  = fieldInputChoice ref view
         kids     = concatMap makeOption choices
         value i  = ref' <> "." <> i
-    
+
         makeOption (i, c, sel) =
             [ X.Element "input"
                 (attr sel ("checked", "checked") $ addAttrs attrs
@@ -360,7 +372,7 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
                     ]) []
             , X.Element "label" [("for", value i)] [X.TextNode c]
             ]
-    
+
     return $ X.renderHtmlFragment X.UTF8 kids
 
 
@@ -486,7 +498,7 @@ dfSingleListItem node attrs viewPromise = do
 --   dfListItem - This tag must surround the markup for a single list item.
 --     It surrounds all of its children with a div with id \"foo.items\" and
 --     class \"inputList\".
--- 
+--
 -- Attribute Splices:
 --   itemAttrs - Attribute you should use on div, span, etc that surrounds all
 --     the markup for a single list item.  This splice expands to an id of
@@ -567,7 +579,7 @@ dfInputList getView = do
           putPromise templateViewPromise tview
 
     -- At the core, this function just runs its children with a few splices
-    -- and attribute splices bound.  
+    -- and attribute splices bound.
     res <- withLocalSplices splices attrSplices $ runNode e
     return $ action <> res
 
@@ -591,5 +603,3 @@ errorList []   _     = []
 errorList errs attrs = [X.Element "ul" attrs $ map makeError errs]
   where
     makeError e = X.Element "li" [] [X.TextNode e]
-
-
