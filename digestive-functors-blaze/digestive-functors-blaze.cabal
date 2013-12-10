@@ -1,5 +1,5 @@
 Name:          digestive-functors-blaze
-Version:       0.6.0.1
+Version:       0.6.0.2
 Synopsis:      Blaze frontend for the digestive-functors library
 Description:   Blaze frontend for the digestive-functors library
 Homepage:      http://github.com/jaspervdj/digestive-functors
@@ -21,4 +21,4 @@ Library
     blaze-html         >= 0.5  && < 0.7,
     blaze-markup       >= 0.5  && < 0.6,
     digestive-functors >= 0.6  && < 0.7,
-    text               >= 0.11 && < 0.12
+    text               >= 0.11 && < 1.1
