@@ -132,7 +132,7 @@ formSplice' :: Monad m
             -> (RuntimeSplice m (View Text) -> Splices (AttrSplice m))
             -> RuntimeSplice m (View Text)
             -> Splice m
-formSplice' ss as getView = do
+formSplice' ss as = deferMap return $ \getView -> do
     node <- getParamNode
     let (_, attrs) = getRefAttributes node Nothing
         tree = X.Element "form"
