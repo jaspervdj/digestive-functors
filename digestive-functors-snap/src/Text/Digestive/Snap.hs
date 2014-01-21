@@ -98,12 +98,10 @@ runFormWith config name form = do
         Get  -> do
             view <- getForm name form
             return (view, Nothing)
-        Post -> do
-            encType <- formEncType form
-            files   <- case encType of
-                UrlEncoded -> return []
-                MultiPart  -> snapFiles config
-            postForm name form (snapEnv files)
+        Post ->
+            postForm name form $ \encType -> case encType of
+                UrlEncoded -> return $ snapEnv []
+                MultiPart  -> snapEnv <$> snapFiles config
   where
     snapMethod        = toMethod . Snap.rqMethod <$> Snap.getRequest
     toMethod Snap.GET = Get

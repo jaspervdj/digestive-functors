@@ -33,4 +33,4 @@ runForm :: (Happstack.HasRqData m, Monad m, Happstack.ServerMonad m)
 runForm name form = Happstack.askRq >>= \rq ->
     case Happstack.rqMethod rq of
         Happstack.GET -> getForm name form >>= \v -> return (v, Nothing)
-        _             -> postForm name form happstackEnv
+        _             -> postForm name form (\_ -> return happstackEnv)

@@ -5,13 +5,11 @@
 -- the content types of forms.
 module Text.Digestive.Form.Encoding
     ( FormEncType (..)
-    , formEncType
     , formTreeEncType
     ) where
 
 
 --------------------------------------------------------------------------------
-import           Control.Monad                      (liftM)
 import           Control.Monad.Identity             (Identity)
 import           Data.Maybe                         (mapMaybe)
 import           Data.Monoid                        (Monoid (..), mconcat)
@@ -61,13 +59,6 @@ fieldList = mapMaybe toField' . fieldList' . SomeForm
   where
     fieldList' (SomeForm f) = SomeForm f : concatMap fieldList' (children f)
     toField' (SomeForm f)   = toField f
-
-
---------------------------------------------------------------------------------
--- | Determines the encoding type of a "Form" -
--- returns result in evaluating context
-formEncType :: Monad m => Form v m a -> m FormEncType
-formEncType form = liftM formTreeEncType $ toFormTree form
 
 
 --------------------------------------------------------------------------------

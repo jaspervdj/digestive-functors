@@ -7,7 +7,7 @@ module Text.Digestive.Form.Encoding.Tests
 
 --------------------------------------------------------------------------------
 import           Control.Applicative            ((<$>), (<*>))
-import           Control.Monad.Identity         (Identity(..))
+import           Control.Monad.Identity         (Identity (..))
 import           Data.Text                      (Text)
 import           Test.Framework                 (Test, testGroup)
 import           Test.Framework.Providers.HUnit (testCase)
@@ -17,6 +17,7 @@ import           Test.HUnit                     ((@=?))
 --------------------------------------------------------------------------------
 import           Text.Digestive.Form
 import           Text.Digestive.Form.Encoding
+import           Text.Digestive.Form.Internal
 
 
 --------------------------------------------------------------------------------
@@ -31,4 +32,4 @@ tests = testGroup "Text.Digestive.Field.Tests"
     ]
   where
     formEncType' :: Form Text Identity a -> FormEncType
-    formEncType' = runIdentity . formEncType
+    formEncType' = formTreeEncType . runIdentity . toFormTree

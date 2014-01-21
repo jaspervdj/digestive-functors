@@ -106,14 +106,16 @@ getForm name form = do
 --------------------------------------------------------------------------------
 -- | Handle a form for a POST request - evaluate with the given environment
 -- and return the result.
-postForm :: Monad m => Text -> Form v m a -> Env m -> m (View v, Maybe a)
-postForm name form env = do
+postForm :: Monad m
+         => Text -> Form v m a -> (FormEncType -> m (Env m))
+         -> m (View v, Maybe a)
+postForm name form makeEnv = do
     form' <- toFormTree form
+    env <- makeEnv $ formTreeEncType form'
+    let env' = env . (name :)
     eval Post env' form' >>= \(r, inp) -> return $ case r of
         Error errs -> (View name [] form' inp errs Post, Nothing)
         Success x  -> (View name [] form' inp [] Post, Just x)
-  where
-    env' = env . (name :)
 
 
 --------------------------------------------------------------------------------

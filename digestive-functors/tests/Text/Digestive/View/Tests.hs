@@ -17,6 +17,7 @@ import qualified Test.HUnit                     as H
 
 
 --------------------------------------------------------------------------------
+import           Text.Digestive.Form.Encoding
 import           Text.Digestive.Tests.Fixtures
 import           Text.Digestive.Types
 import           Text.Digestive.View
@@ -171,8 +172,8 @@ tests = testGroup "Text.Digestive.View.Tests"
 
 
 --------------------------------------------------------------------------------
-testEnv :: Monad m => [(Text, Text)] -> Env m
-testEnv input key = return $ map (TextInput . snd) $
+testEnv :: Monad m => [(Text, Text)] -> FormEncType -> m (Env m)
+testEnv input _formEncType = return $ \key -> return $ map (TextInput . snd) $
     filter ((== fromPath key) . fst) input
 
 

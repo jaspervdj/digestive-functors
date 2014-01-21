@@ -1,19 +1,19 @@
+--------------------------------------------------------------------------------
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Text.Digestive.Form.Encoding.QTests
-       ( tests
-       ) where
-
---------------------------------------------------------------------------------
-import Test.Framework
-import Test.Framework.Providers.QuickCheck2
-import Test.QuickCheck
+   ( tests
+   ) where
 
 
 --------------------------------------------------------------------------------
-import Text.Digestive.Form.Encoding
+import           Data.Monoid
+import           Test.Framework
+import           Test.Framework.Providers.QuickCheck2
+import           Test.QuickCheck
 
 
 --------------------------------------------------------------------------------
-import Data.Monoid
+import           Text.Digestive.Form.Encoding
 
 
 --------------------------------------------------------------------------------
@@ -25,7 +25,6 @@ tests = testGroup "Text.Digestive.Types.Tests"
        , testProperty "enctype monoid - Right identity" prop_idr
        , testProperty "enctype monoid - Associativity" prop_assoc
     ]
-
 
 
 --------------------------------------------------------------------------------
