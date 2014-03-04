@@ -152,6 +152,12 @@ attr True  a = (a :)
 
 
 --------------------------------------------------------------------------------
+-- |
+setDisabled :: Text -> View v -> [(Text, Text)] -> [(Text, Text)]
+setDisabled ref view = if viewDisabled ref view then (("disabled",""):) else id
+
+
+--------------------------------------------------------------------------------
 getRefAttributes :: X.Node
                  -> Maybe Text              -- ^ Optional default ref
                  -> (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
@@ -195,7 +201,8 @@ dfTag f = dfMaster $ \ref attrs view -> do
         -- If there is no bang pattern on value, then for some reason it
         -- doesn't get forced and errors aren't displayed properly.
         !value = fieldInputText ref view
-    return $ X.renderHtmlFragment X.UTF8 $ f ref' attrs value
+        attrs' = setDisabled ref view attrs
+    return $ X.renderHtmlFragment X.UTF8 $ f ref' attrs' value
 
 
 dfInputGeneric :: Monad m
