@@ -1,5 +1,5 @@
 Name:          digestive-functors-heist
-Version:       0.8.4.1
+Version:       0.8.5.0
 Synopsis:      Heist frontend for the digestive-functors library
 Description:   Heist frontend for the digestive-functors library
 Homepage:      http://github.com/jaspervdj/digestive-functors
@@ -10,6 +10,9 @@ Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
 Cabal-version: >= 1.6
+
+Extra-source-files:
+  CHANGELOG
 
 Library
   Hs-source-dirs:  src
