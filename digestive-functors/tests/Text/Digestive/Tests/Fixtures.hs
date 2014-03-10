@@ -7,6 +7,8 @@ module Text.Digestive.Tests.Fixtures
     , Type (..)
     , Pokemon (..)
     , pokemonForm
+    , ValidateOptionalData (..)
+    , validateOptionalForm
     , Ball (..)
     , ballForm
     , Catch (..)
@@ -31,9 +33,11 @@ module Text.Digestive.Tests.Fixtures
 
 --------------------------------------------------------------------------------
 import           Control.Applicative          ((<$>), (<*>))
+import           Control.Monad                ((>=>))
 import           Control.Monad.Reader         (Reader, ask, runReader)
 import           Data.Text                    (Text)
 import qualified Data.Text                    as T
+import qualified Text.Read                    as TR
 
 
 --------------------------------------------------------------------------------
@@ -111,6 +115,28 @@ ballForm :: Monad m => Form Text m Ball
 ballForm = choice
     [(Poke, "Poke"), (Great, "Great"), (Ultra, "Ultra"), (Master, "Master")]
     Nothing
+
+
+--------------------------------------------------------------------------------
+data ValidateOptionalData = ValidateOptionalData
+    { firstField  :: Maybe Integer
+    } deriving (Eq, Show)
+
+
+--------------------------------------------------------------------------------
+validateOptionalForm :: Monad m => Form Text m ValidateOptionalData
+validateOptionalForm = ValidateOptionalData
+    <$> "first_field"  .: validateOptional (integer >=> even >=> greaterThan 0) (optionalString Nothing)
+  where
+    integer s = case (TR.readEither s) of
+      Right n -> Success n
+      Left  _ -> Error "not an integer"
+    even n 
+      | n `mod` 2 == 0 = Success n
+      | otherwise      = Error "input must be even"
+    greaterThan x n
+      | n > x     = Success n
+      | otherwise = Error "input is too small"
 
 
 --------------------------------------------------------------------------------

@@ -52,6 +52,21 @@ tests = testGroup "Text.Digestive.View.Tests"
         snd $ runIdentity $ postForm "f" floatForm $ testEnv
             [("f.f", "4.323")]
 
+    , testCase "validateOptional validated successfully" $ (@=?)
+        (Just (ValidateOptionalData (Just 8))) $
+        snd $ runIdentity $ postForm "f" validateOptionalForm $ testEnv
+            [("f.first_field", "8")]
+
+    , testCase "validateOptional allows nothing" $ (@=?)
+        (Just (ValidateOptionalData Nothing)) $
+        snd $ runIdentity $ postForm "f" validateOptionalForm $ testEnv
+            [("f.first_field", "")]
+
+    , testCase "validateOptional fails for invalid data" $ (@=?)
+        ["input must be even"] $
+        childErrors "" $ fst $ runIdentity $ postForm "f" validateOptionalForm $ testEnv
+            [("f.first_field", "9")]
+
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
         childErrors "" $ fst $ runTrainerM $ postForm "f" pokemonForm $ testEnv
