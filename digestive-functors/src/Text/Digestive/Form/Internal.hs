@@ -25,6 +25,7 @@ module Text.Digestive.Form.Internal
     , queryField
     , eval
     , formMapView
+    , forOptional
 
       -- * Debugging
     , debugFormPaths
@@ -381,6 +382,17 @@ formMapView f (Monadic x)    = formMapView f $ runIdentity x
 formMapView f (List d is)    = List (fmap (formMapView f) d) (formMapView f is)
 formMapView f (Metadata m x) = Metadata m $ formMapView f x
 
+
+--------------------------------------------------------------------------------
+-- | Combinator that lifts input and output of valiation function used by 'validate'
+-- to from (a -> Result v b) to (Maybe a -> Result v (Maybe b)).
+forOptional :: (a -> Result v b) -> Maybe a -> Result v (Maybe b)
+forOptional f x  = case (x) of
+    Nothing -> Success Nothing
+    Just x'  -> case (f x') of
+        Success x'' -> Success (Just x'')
+        Error   x'' -> Error x''
+         
 
 --------------------------------------------------------------------------------
 -- | Utility: bind for 'Result' inside another monad

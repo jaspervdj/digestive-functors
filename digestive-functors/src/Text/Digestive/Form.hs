@@ -46,6 +46,7 @@ module Text.Digestive.Form
     , check
     , checkM
     , validate
+    , validateOptional
     , validateM
     , disable
 
@@ -234,6 +235,20 @@ checkM err predicate form = validateM f form
 validate :: Monad m => (a -> Result v b) -> Form v m a -> Form v m b
 validate = validateM . (return .)
 
+--------------------------------------------------------------------------------
+-- | Same as 'validate', but works with forms of the form: Form v m (Maybe a).
+-- 
+--
+-- Example: taking the first character of an optional input string
+--
+-- > head' :: String -> Result String Char
+-- > head' []      = Error "Is empty"
+-- > head' (x : _) = Success x
+-- >
+-- > char :: Monad m => Form m String (Maybe Char)
+-- > char = validateOptional head' (optionalString Nothing)
+validateOptional :: Monad m => (a -> Result v b) -> Form v m (Maybe a) -> Form v m (Maybe b)
+validateOptional f = validate (forOptional f)
 
 --------------------------------------------------------------------------------
 -- | Version of 'validate' which allows monadic validations
