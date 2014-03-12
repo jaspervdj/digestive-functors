@@ -67,6 +67,11 @@ tests = testGroup "Text.Digestive.View.Tests"
         childErrors "" $ fst $ runIdentity $ postForm "f" validateOptionalForm $ testEnv
             [("f.first_field", "9")]
 
+    , testCase "conditions allows for multiple independent failing validations" $ (@=?)
+        [["input must be even", "input is too small"]] $
+        childErrors "" $ fst $ runIdentity $ postForm "f" independentValidationsForm $ testEnv
+            [("f.first_field", "9")]
+
     , testCase "Failing checkM" $ (@=?)
         ["This pokemon will not obey you!"] $
         childErrors "" $ fst $ runTrainerM $ postForm "f" pokemonForm $ testEnv
