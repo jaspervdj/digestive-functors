@@ -236,8 +236,11 @@ validate :: Monad m => (a -> Result v b) -> Form v m a -> Form v m b
 validate = validateM . (return .)
 
 --------------------------------------------------------------------------------
--- | Same as 'validate', but works with forms of the form: Form v m (Maybe a).
+-- | Same as 'validate', but works with forms of the form:
+--
+-- >  Form v m (Maybe a)
 -- 
+-- .
 --
 -- Example: taking the first character of an optional input string
 --
