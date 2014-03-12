@@ -9,6 +9,8 @@ module Text.Digestive.Tests.Fixtures
     , pokemonForm
     , ValidateOptionalData (..)
     , validateOptionalForm
+    , IndependentValidationsData (..)
+    , independentValidationsForm
     , Ball (..)
     , ballForm
     , Catch (..)
@@ -119,7 +121,7 @@ ballForm = choice
 
 --------------------------------------------------------------------------------
 data ValidateOptionalData = ValidateOptionalData
-    { firstField  :: Maybe Integer
+    { firstValidateOptionalField  :: Maybe Integer
     } deriving (Eq, Show)
 
 
@@ -131,6 +133,31 @@ validateOptionalForm = ValidateOptionalData
     integer s = case (TR.readEither s) of
       Right n -> Success n
       Left  _ -> Error "not an integer"
+    even n 
+      | n `mod` 2 == 0 = Success n
+      | otherwise      = Error "input must be even"
+    greaterThan x n
+      | n > x     = Success n
+      | otherwise = Error "input is too small"
+
+
+--------------------------------------------------------------------------------
+data IndependentValidationsData = IndependentValidationsData
+    { firstIndependentValidationField :: Integer
+    } deriving (Eq, Show)
+
+
+--------------------------------------------------------------------------------
+independentValidationsForm :: Monad m => Form [Text] m IndependentValidationsData
+independentValidationsForm = IndependentValidationsData
+    <$> "first_field"  .: validate (notEmpty >=> integer >=> conditions [even, greaterThan 10]) (string Nothing)
+  where 
+    notEmpty x = if (null x)
+      then Error ["is empty"]
+      else Success x
+    integer s = case (TR.readEither s) of
+      Right n -> Success n
+      Left  _ -> Error ["not an integer"]
     even n 
       | n `mod` 2 == 0 = Success n
       | otherwise      = Error "input must be even"

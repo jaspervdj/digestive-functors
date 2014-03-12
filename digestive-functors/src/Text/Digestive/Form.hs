@@ -48,6 +48,7 @@ module Text.Digestive.Form
     , validate
     , validateOptional
     , validateM
+    , conditions
     , disable
 
       -- * Lifting forms
@@ -257,6 +258,81 @@ validateOptional f = validate (forOptional f)
 -- | Version of 'validate' which allows monadic validations
 validateM :: Monad m => (a -> m (Result v b)) -> Form v m a -> Form v m b
 validateM = transform
+
+--------------------------------------------------------------------------------
+-- | Allows for the composition of independent validation functions.
+--
+-- For example, let's validate an even integer between 0 and 100:
+-- 
+-- > form :: Monad m => Form Text m FormData
+-- > ... -- some fields
+-- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> even >=> greaterThan 0 >=> lessThanOrEq 100) (text Nothing)
+-- > ... -- more fields
+--
+-- where
+--
+-- > notEmpty       :: IsString v => Text -> Result v Text
+-- > integer        :: (Integral a, IsString v) => Text -> Result v a
+-- > greaterThan  0 :: (Num a, Ord a, Show a) => a -> Result Text a
+-- > lessThanOrEq 0 :: (Num a, Ord a, Show a) => a -> Result Text a
+-- > even           :: Integer -> Result Text Integer
+--
+-- .
+--
+-- This will validate our smallEvenInteger correctly, but there is a problem. 
+-- If a user enters an odd number greater than 100, only
+--
+-- > "number must be even"
+--
+--
+-- will be returned. It would make for a better user experience if 
+--
+-- > ["number must be even", "number must be less than 100"]
+--
+-- was returned instead. This can be accomplished by rewriting our form to be: 
+--
+-- > form :: Monad m => Form [Text] m FormData
+-- > ... -- some fields
+-- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> conditions [even, greaterThan 0, lessThanOrEq 100]) (text Nothing)
+-- > ... -- more fields
+--
+-- .
+--
+-- If we want to collapse our list of errors into a single 'Text', we can do something like:
+-- 
+-- > form :: Monad m => Form Text m FormData
+-- > ... -- some fields
+-- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> commaSeperated . conditions [even, greaterThan 0, lessThanOrEq 100]) (text Nothing)
+-- > ... -- more fields
+--
+-- where
+--
+-- > commaSeperated :: (Result [Text] a) -> (Result Text a)
+--
+-- .
+conditions :: [(a -> Result e b)] -- ^ Any 'Success' result of  a validation function is provably guaranteed to be discarded. Only 'Error' results are used.
+           -> a -- ^ If all validation functions pass, parameter will be re-wrapped with a 'Success'.
+           -> (Result [e] a) -- ^ List of errors is guaranteed to be in the same order as inputed validations functions. So,
+                             --
+                             -- > conditions [even,  greaterThan 0] -1
+                             --
+                             -- is specified to return 
+                             --
+                             -- > Error ["must be even", "must be greater than 0"]
+                             --
+                             -- and not
+                             --
+                             -- > Error ["must be greater than 0", "must be even"]
+                             --
+                             -- .
+conditions fs x = result
+  where
+    result = case (foldr errorCond [] fs) of
+      [] -> Success x
+      es -> Error es
+    errorCond f es = case (f x) of
+      Success _ -> es
+      Error   e -> e:es
 
 
 --------------------------------------------------------------------------------
