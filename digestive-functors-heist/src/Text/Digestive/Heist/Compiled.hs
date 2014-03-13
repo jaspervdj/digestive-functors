@@ -42,6 +42,7 @@ module Text.Digestive.Heist.Compiled
     , dfInputSelectGroup
     , dfInputRadio
     , dfInputCheckbox
+    , dfInputFile
     , dfInputSubmit
     , dfLabel
     , dfErrorList
