@@ -1,5 +1,5 @@
 Name:     digestive-functors
-Version:  0.7.0.0
+Version:  0.7.1.0
 Synopsis: A practical formlet library
 
 Description:
@@ -40,6 +40,9 @@ Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
 Cabal-version: >= 1.8
+
+Extra-source-files:
+  CHANGELOG
 
 Library
   Hs-source-dirs: src

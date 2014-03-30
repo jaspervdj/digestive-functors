@@ -1,0 +1,5 @@
+- 0.7.1.0
+    * Add `validateOptional` function
+    * Add `condition` functions to allow composing multiple independent
+      validation functions
+    * Bump `text` dependency to allow `text-1.1`
