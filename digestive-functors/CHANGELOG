@@ -1,3 +1,5 @@
+    * Bump `QuickCheck` dependency to allow `QuickCheck-2.7`
+
 - 0.7.1.0
     * Add `validateOptional` function
     * Add `condition` functions to allow composing multiple independent
