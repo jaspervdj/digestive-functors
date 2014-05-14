@@ -1,3 +1,4 @@
+- 0.7.1.1
     * Bump `QuickCheck` dependency to allow `QuickCheck-2.7`
     * Clean warnings in tests compilation
     * Don't use `Text.Read` to fix compilation on GHC 7.4
