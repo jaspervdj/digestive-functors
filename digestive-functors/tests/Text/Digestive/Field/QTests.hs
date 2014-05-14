@@ -1,27 +1,27 @@
-{-#LANGUAGE
-   FlexibleInstances
-  , TypeSynonymInstances
-  , GeneralizedNewtypeDeriving
-  #-}
+--------------------------------------------------------------------------------
 -- | Simple tests for applicative laws of the Result type
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Text.Digestive.Field.QTests
        ( tests
        ) where
 
 
 --------------------------------------------------------------------------------
-import Test.Framework (Test, testGroup)
-import Test.QuickCheck hiding (Result, Success)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import           Test.Framework                       (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2 (testProperty)
+import           Test.QuickCheck                      hiding (Result, Success)
 
 
 --------------------------------------------------------------------------------
-import Text.Digestive.Types
+import           Text.Digestive.Types
 
 
 --------------------------------------------------------------------------------
-import Control.Applicative
-import Control.Monad
+import           Control.Applicative
+import           Control.Monad
 
 
 --------------------------------------------------------------------------------

@@ -1,28 +1,28 @@
-{-# LANGUAGE
-     GADTs
-   , OverloadedStrings
-   #-}
+--------------------------------------------------------------------------------
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Text.Digestive.Form.QTests
        ( tests
        ) where
 
 --------------------------------------------------------------------------------
-import Test.Framework
-import Test.Framework.Providers.QuickCheck2
-import Test.QuickCheck hiding (Success)
+import           Test.Framework
+import           Test.Framework.Providers.QuickCheck2
+import           Test.QuickCheck                      hiding (Success)
 
 
 --------------------------------------------------------------------------------
-import Text.Digestive.Types
-import Text.Digestive.Form.Internal
-import Text.Digestive.Form.Internal.Field
+import           Text.Digestive.Form.Internal
+import           Text.Digestive.Form.Internal.Field
+import           Text.Digestive.Types
 
 
 --------------------------------------------------------------------------------
-import Data.Text (Text,pack)
-import Control.Monad
-import Control.Monad.Identity
-import Data.Maybe
+import           Control.Monad
+import           Control.Monad.Identity
+import           Data.Maybe
+import           Data.Text                            (Text, pack)
 
 --------------------------------------------------------------------------------
 

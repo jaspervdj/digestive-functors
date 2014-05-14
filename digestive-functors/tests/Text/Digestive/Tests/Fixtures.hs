@@ -39,14 +39,12 @@ import           Control.Monad                ((>=>))
 import           Control.Monad.Reader         (Reader, ask, runReader)
 import           Data.Text                    (Text)
 import qualified Data.Text                    as T
-import qualified Text.Read                    as TR
 
 
 --------------------------------------------------------------------------------
 import           Text.Digestive.Form
-import           Text.Digestive.Form.Internal
 import           Text.Digestive.Types
-import           Text.Digestive.View
+import           Text.Digestive.Util
 
 
 --------------------------------------------------------------------------------
@@ -128,12 +126,10 @@ data ValidateOptionalData = ValidateOptionalData
 --------------------------------------------------------------------------------
 validateOptionalForm :: Monad m => Form Text m ValidateOptionalData
 validateOptionalForm = ValidateOptionalData
-    <$> "first_field"  .: validateOptional (integer >=> even >=> greaterThan 0) (optionalString Nothing)
+    <$> "first_field"  .: validateOptional (integer >=> even' >=> greaterThan 0) (optionalString Nothing)
   where
-    integer s = case (TR.readEither s) of
-      Right n -> Success n
-      Left  _ -> Error "not an integer"
-    even n 
+    integer s = maybe (Error "not an integer") Success (readMaybe s)
+    even' n
       | n `mod` 2 == 0 = Success n
       | otherwise      = Error "input must be even"
     greaterThan x n
@@ -150,15 +146,13 @@ data IndependentValidationsData = IndependentValidationsData
 --------------------------------------------------------------------------------
 independentValidationsForm :: Monad m => Form [Text] m IndependentValidationsData
 independentValidationsForm = IndependentValidationsData
-    <$> "first_field"  .: validate (notEmpty >=> integer >=> conditions [even, greaterThan 10]) (string Nothing)
-  where 
+    <$> "first_field"  .: validate (notEmpty >=> integer >=> conditions [even', greaterThan 10]) (string Nothing)
+  where
     notEmpty x = if (null x)
       then Error ["is empty"]
       else Success x
-    integer s = case (TR.readEither s) of
-      Right n -> Success n
-      Left  _ -> Error ["not an integer"]
-    even n 
+    integer s = maybe (Error ["not an integer"]) Success (readMaybe s)
+    even' n
       | n `mod` 2 == 0 = Success n
       | otherwise      = Error "input must be even"
     greaterThan x n
