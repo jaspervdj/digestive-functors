@@ -6,11 +6,24 @@ module Text.Digestive.Blaze.Html5
     , inputTextArea
     , inputPassword
     , inputHidden
+    , inputColor
+    , inputDate
+    , inputDateTime
+    , inputDateTimeLocal
+    , inputTime
+    , inputMonth
+    , inputWeek
+    , inputEmail
+    , inputSearch
+    , inputTel
+    , inputUrl
     , inputSelect
     , inputRadio
     , inputCheckbox
     , inputFile
     , inputSubmit
+    , inputNumber
+    , inputRange
     , label
     , form
     , errorList
@@ -40,14 +53,58 @@ import           Text.Digestive.View
 
 
 --------------------------------------------------------------------------------
-inputText :: Text -> View v -> Html
-inputText ref view = H.input
-    ! A.type_ "text"
+inputTextLike :: Text -> Text -> View v -> Html
+inputTextLike kind ref view = H.input
+    ! A.type_ (H.toValue kind)
     ! A.id    (H.toValue ref')
     ! A.name  (H.toValue ref')
     ! A.value (H.toValue $ fieldInputText ref view)
   where
     ref' = absoluteRef ref view
+
+
+--------------------------------------------------------------------------------
+inputText :: Text -> View v -> Html
+inputText = inputTextLike "text"
+
+inputPassword :: Text -> View v -> Html
+inputPassword = inputTextLike "password"
+
+inputHidden :: Text -> View v -> Html
+inputHidden = inputTextLike "hidden"
+
+inputDate :: Text -> View v -> Html
+inputDate = inputTextLike "date"
+
+inputTime :: Text -> View v -> Html
+inputTime = inputTextLike "time"
+
+inputDateTime :: Text -> View v -> Html
+inputDateTime = inputTextLike "datetime"
+
+inputDateTimeLocal :: Text -> View v -> Html
+inputDateTimeLocal = inputTextLike "datetime-local"
+
+inputMonth :: Text -> View v -> Html
+inputMonth = inputTextLike "month"
+
+inputWeek :: Text -> View v -> Html
+inputWeek = inputTextLike "week"
+
+inputEmail :: Text -> View v -> Html
+inputEmail = inputTextLike "email"
+
+inputColor :: Text -> View v -> Html
+inputColor = inputTextLike "color"
+
+inputTel :: Text -> View v -> Html
+inputTel = inputTextLike "tel"
+
+inputUrl :: Text -> View v -> Html
+inputUrl = inputTextLike "url"
+
+inputSearch :: Text -> View v -> Html
+inputSearch = inputTextLike "search"
 
 
 --------------------------------------------------------------------------------
@@ -66,28 +123,6 @@ inputTextArea r c ref view = rows r $ cols c $ H.textarea
     rows _        = id
     cols (Just x) = (! A.cols (H.toValue x))
     cols _        = id
-
-
---------------------------------------------------------------------------------
-inputPassword :: Text -> View v -> Html
-inputPassword ref view = H.input
-    ! A.type_ "password"
-    ! A.id    (H.toValue ref')
-    ! A.name  (H.toValue ref')
-    ! A.value (H.toValue $ fieldInputText ref view)
-  where
-    ref' = absoluteRef ref view
-
-
---------------------------------------------------------------------------------
-inputHidden :: Text -> View v -> Html
-inputHidden ref view = H.input
-    ! A.type_ "hidden"
-    ! A.id    (H.toValue ref')
-    ! A.name  (H.toValue ref')
-    ! A.value (H.toValue $ fieldInputText ref view)
-  where
-    ref' = absoluteRef ref view
 
 
 --------------------------------------------------------------------------------
@@ -151,6 +186,28 @@ inputSubmit :: Text -> Html
 inputSubmit value = H.input
     ! A.type_ "submit"
     ! A.value (H.toValue value)
+
+
+--------------------------------------------------------------------------------
+inputNumberWithStep :: Text -> Text -> View v -> (Int,Int,Int) -> Html
+inputNumberWithStep kind ref view (nmin,nmax,nstep) = H.input
+    ! A.type_ (H.toValue kind)
+    ! A.id    (H.toValue ref')
+    ! A.name  (H.toValue ref')
+    ! A.min   (H.toValue nmin)
+    ! A.max   (H.toValue nmax)
+    ! A.step  (H.toValue nstep)
+    ! A.value (H.toValue $ fieldInputText ref view)
+  where
+    ref' = absoluteRef ref view
+
+inputNumber :: Text -> View v -> (Int,Int) -> Html
+inputNumber ref view (nmin,nmax) =
+    inputNumberWithStep "number" ref view (nmin,nmax,1)
+
+inputRange :: Text -> View v -> (Int,Int) -> Html
+inputRange ref view (nmin,nmax) =
+    inputNumberWithStep "range" ref view (nmin,nmax,1)
 
 
 --------------------------------------------------------------------------------
