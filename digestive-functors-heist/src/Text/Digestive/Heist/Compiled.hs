@@ -438,12 +438,13 @@ dfChildErrorList getView = do
 dfIfChildErrors :: (Monad m) => RuntimeSplice m (View v) -> Splice m
 dfIfChildErrors getView = do
     node <- getParamNode
+    childrenChunks <- runChildren
     return $ yieldRuntime $ do
         view <- getView
         let (ref, _) = getRefAttributes node $ Just ""
         if null (childErrors ref view)
           then return mempty
-          else return $ X.renderHtmlFragment X.UTF8 (X.childNodes node)
+          else codeGen childrenChunks
 
 
 --------------------------------------------------------------------------------
