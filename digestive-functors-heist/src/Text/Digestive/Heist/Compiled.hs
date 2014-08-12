@@ -58,9 +58,9 @@ module Text.Digestive.Heist.Compiled
 --------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
 import           Control.Monad            (mplus)
+import           Control.Monad.Trans      (MonadIO, liftIO)
 import           Data.Function            (on)
 import           Data.List                (unionBy)
-import           Data.Maybe               (fromMaybe)
 import           Data.Monoid              (mappend, mempty, (<>))
 import           Data.Text                (Text)
 import qualified Data.Text                as T
@@ -68,9 +68,8 @@ import           Data.Text.Encoding
 import           Heist
 import           Heist.Compiled
 import           Heist.Compiled.LowLevel
+import           Text.Printf
 import qualified Text.XmlHtml             as X
-
-
 ------------------------------------------------------------------------------
 import           Text.Digestive.Form.List
 import           Text.Digestive.View
@@ -80,11 +79,12 @@ import           Text.Digestive.View
 -- | List of splices defined for forms.  For most uses the formSplice function
 -- will be fine and you won't need to use this directly.  But this is
 -- available if you need more customization.
-digestiveSplices :: (Monad m)
+digestiveSplices :: (MonadIO m)
                  => RuntimeSplice m (View Text)
                  -> Splices (Splice m)
 digestiveSplices vp = do
     "dfInput"            ## dfInput vp
+    "dfValue"            ## dfValue vp
     "dfInputText"        ## dfInputText vp
     "dfInputTextArea"    ## dfInputTextArea vp
     "dfInputPassword"    ## dfInputPassword vp
@@ -100,6 +100,7 @@ digestiveSplices vp = do
     "dfChildErrorList"   ## dfChildErrorList vp
     "dfSubView"          ## dfSubView vp
     "dfIfChildErrors"    ## dfIfChildErrors vp
+    "dfIfNoChildErrors"  ## dfIfNoChildErrors vp
     "dfInputList"        ## dfInputList vp
     "dfEncType"          ## dfEncType vp
 
@@ -114,7 +115,7 @@ digestiveSplices vp = do
 --
 -- Then you can use the customerForm tag just like you would use the dfForm
 -- tag in interpreted templates anywhere you want to have a customer form.
-formSplice :: Monad m
+formSplice :: MonadIO m
            => Splices (Splice m)
              -- ^ Extra splices that you want to have available inside the
              -- form tag.
@@ -128,15 +129,15 @@ formSplice ss as = formSplice' (const ss) (const as)
 ------------------------------------------------------------------------------
 -- | Same as 'formSplice' except the supplied splices and attribute
 -- splices are applied to the resulting form view.
-formSplice' :: Monad m
+formSplice' :: MonadIO m
             => (RuntimeSplice m (View Text) -> Splices (Splice m))
             -> (RuntimeSplice m (View Text) -> Splices (AttrSplice m))
             -> RuntimeSplice m (View Text)
             -> Splice m
 formSplice' ss as = deferMap return $ \getView -> do
     node <- getParamNode
-    let (_, attrs) = getRefAttributes node Nothing
-        tree = X.Element "form"
+    (_, attrs) <- getRefAttributes node (Just "")
+    let tree = X.Element "form"
                  (addAttrs attrs
                     [ ("method", "POST")
                     , ("enctype", "${dfEncType}")
@@ -159,16 +160,35 @@ setDisabled ref view = if viewDisabled ref view then (("disabled",""):) else id
 
 
 --------------------------------------------------------------------------------
-getRefAttributes :: X.Node
-                 -> Maybe Text              -- ^ Optional default ref
-                 -> (Text, [(Text, Text)])  -- ^ (Ref, other attrs)
-getRefAttributes node defaultRef =
+getRefAttributes
+    :: MonadIO m
+    => X.Node
+    -> Maybe Text              -- ^ Optional default ref
+    -> HeistT n m (Text, [(Text, Text)])
+getRefAttributes node defaultRef = do
+    tfp <- getTemplateFilePath
+    getRefAttributes' tfp node defaultRef
+
+
+--------------------------------------------------------------------------------
+getRefAttributes'
+    :: MonadIO m
+    => Maybe FilePath
+    -> X.Node
+    -> Maybe Text              -- ^ Optional default ref
+    -> m (Text, [(Text, Text)])
+getRefAttributes' tfp node defaultRef = do
+    let end s = do
+            liftIO $ putStrLn s
+            return ("", [])
     case node of
-        X.Element _ as _ ->
-            let ref = fromMaybe (error $ show node ++ ": missing ref") $
-                        lookup "ref" as `mplus` defaultRef
-            in (ref, filter ((/= "ref") . fst) as)
-        _                -> (error "Wrong type of node!", [])
+        X.Element n as _ -> do
+            case lookup "ref" as `mplus` defaultRef of
+              Nothing -> end $ printf "%s: missing ref, path %s"
+                               (T.unpack n) (show tfp)
+              Just ref -> return (ref, filter ((/= "ref") . fst) as)
+        _                ->
+            end $ "Wrong type of node! (" ++ show node ++ ")"
 
 
 dfEncType :: (Monad m)
@@ -185,7 +205,7 @@ dfMaster :: Monad m
          -> RuntimeSplice m (View v) -> Splice m
 dfMaster f getView = do
     node <- getParamNode
-    let (ref, attrs) = getRefAttributes node Nothing
+    (ref, attrs) <- getRefAttributes node Nothing
     runAttrs <- runAttributesRaw attrs
     return $ yieldRuntime $ do
         view <- getView
@@ -222,7 +242,7 @@ dfInputGeneric as = dfTag $ \ref attrs value ->
 dfInputSubmit :: Monad m => Splice m
 dfInputSubmit = do
     node <- getParamNode
-    let (_, attrs) = getRefAttributes node Nothing
+    (_, attrs) <- getRefAttributes node (Just "")
     runAttrs <- runAttributesRaw attrs
     return $ yieldRuntime $ do
         attrs' <- runAttrs
@@ -239,7 +259,7 @@ dfInputSubmit = do
 dfLabel :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfLabel getView = do
     node <- getParamNode
-    let (ref, attrs) = getRefAttributes node Nothing
+    (ref, attrs) <- getRefAttributes node Nothing
     runAttrs <- runAttributesRaw attrs
     return $ yieldRuntime $ do
         view <- getView
@@ -393,13 +413,14 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
 --
 -- > <dfErrorList ref="user.name" />
 -- > <dfInputText ref="user.name" />
-dfErrorList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfErrorList :: MonadIO m => RuntimeSplice m (View Text) -> Splice m
 dfErrorList getView = do
     node <- getParamNode
+    tfp <- getTemplateFilePath
     return $ yieldRuntime $ do
         view <- getView
-        let (ref, attrs) = getRefAttributes node Nothing
-            nodes = errorList (errors ref view) attrs
+        (ref, attrs) <- getRefAttributes' tfp node Nothing
+        let nodes = errorList (errors ref view) attrs
         return $ X.renderHtmlFragment X.UTF8 nodes
 
 
@@ -416,13 +437,14 @@ dfErrorList getView = do
 -- Which is more conveniently written as:
 --
 -- > <dfChildErrorList />
-dfChildErrorList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfChildErrorList :: MonadIO m => RuntimeSplice m (View Text) -> Splice m
 dfChildErrorList getView = do
     node <- getParamNode
+    tfp <- getTemplateFilePath
     return $ yieldRuntime $ do
         view <- getView
-        let (ref, attrs) = getRefAttributes node (Just "")
-            nodes = errorList (childErrors ref view) attrs
+        (ref, attrs) <- getRefAttributes' tfp node (Just "")
+        let nodes = errorList (childErrors ref view) attrs
         return $ X.renderHtmlFragment X.UTF8 nodes
 
 
@@ -435,16 +457,39 @@ dfChildErrorList getView = do
 -- > </dfIfChildErrors>
 --
 -- The @ref@ attribute can be omitted if you want to check the entire form.
-dfIfChildErrors :: (Monad m) => RuntimeSplice m (View v) -> Splice m
+dfIfChildErrors :: (MonadIO m) => RuntimeSplice m (View v) -> Splice m
 dfIfChildErrors getView = do
     node <- getParamNode
     childrenChunks <- runChildren
+    tfp <- getTemplateFilePath
     return $ yieldRuntime $ do
         view <- getView
-        let (ref, _) = getRefAttributes node $ Just ""
+        (ref, _) <- getRefAttributes' tfp node $ Just ""
         if null (childErrors ref view)
           then return mempty
           else codeGen childrenChunks
+
+
+--------------------------------------------------------------------------------
+-- | Render some content only if there are any errors. This is useful for markup
+-- purposes.
+--
+-- > <dfIfNoChildErrors ref="user">
+-- >     Content to be rendered if there are any errors...
+-- > </dfIfNoChildErrors>
+--
+-- The @ref@ attribute can be omitted if you want to check the entire form.
+dfIfNoChildErrors :: (MonadIO m) => RuntimeSplice m (View v) -> Splice m
+dfIfNoChildErrors getView = do
+    node <- getParamNode
+    childrenChunks <- runChildren
+    tfp <- getTemplateFilePath
+    return $ yieldRuntime $ do
+        view <- getView
+        (ref, _) <- getRefAttributes' tfp node $ Just ""
+        if null (childErrors ref view)
+          then codeGen childrenChunks
+          else return mempty
 
 
 --------------------------------------------------------------------------------
@@ -471,21 +516,30 @@ dfIfChildErrors getView = do
 -- > </dfSubView>
 -- >
 -- > <dfInputTextArea ref="comment.body" />
-dfSubView :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfSubView :: MonadIO m => RuntimeSplice m (View Text) -> Splice m
 dfSubView getView = do
     node <- getParamNode
     p2 <- newEmptyPromise
+    tfp <- getTemplateFilePath
     let action = yieldRuntimeEffect $ do
             view <- getView
-            let (ref, _) = getRefAttributes node Nothing
-                view' = subView ref view
+            (ref, _) <- getRefAttributes' tfp node Nothing
+            let view' = subView ref view
             putPromise p2 view'
     res <- withLocalSplices (digestiveSplices (getPromise p2)) noSplices $
              runNodeList $ X.childNodes node
     return $ action <> res
 
 
-dfSingleListItem :: Monad n
+------------------------------------------------------------------------------
+-- | Splice that expands to a field's value.
+dfValue :: Monad m => RuntimeSplice m (View v) -> Splice m
+dfValue = dfMaster $ \ref _ view -> do
+    let !value = fieldInputText ref view
+    return $ fromByteString $ encodeUtf8 value
+
+
+dfSingleListItem :: MonadIO n
                  => X.Node
                  -> (RuntimeSplice n (View Text) -> AttrSplice n)
                  -> RuntimeSplice n (View Text)
@@ -522,13 +576,14 @@ dfSingleListItem node attrs viewPromise = do
 --     an onclick attribute that calls a javascript function addInputListItem.
 --   removeControl - Use this attribute on the control for removing individual
 --     items.  It adds an onclick attribute that calls removeInputListItem.
-dfInputList :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfInputList :: MonadIO m => RuntimeSplice m (View Text) -> Splice m
 dfInputList getView = do
     node <- getParamNode
     itemsPromise <- newEmptyPromise
     refPromise <- newEmptyPromise
     indicesPromise <- newEmptyPromise
     templateViewPromise <- newEmptyPromise
+    tfp <- getTemplateFilePath
     let itemAttrs gv _ = do
             view <- gv
             listRef <- getPromise refPromise
@@ -581,8 +636,8 @@ dfInputList getView = do
     -- The runtime action that gets the right data and puts it in promises.
     let action = yieldRuntimeEffect $ do
           view <- getView
-          let (ref, _) = getRefAttributes node Nothing
-              listRef  = absoluteRef ref view
+          (ref, _) <- getRefAttributes' tfp node Nothing
+          let listRef  = absoluteRef ref view
               items = listSubViews ref view
               tview = makeListSubView ref (-1) view
           putPromise refPromise listRef
