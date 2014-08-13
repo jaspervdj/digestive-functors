@@ -607,7 +607,7 @@ dfInputList getView = do
             template <- dfSingleListItem n templateAttrs (getPromise templateViewPromise)
             body <- deferMany (dfSingleListItem n itemAttrs) $
                               getPromise itemsPromise
-            let showTemplate = if X.hasAttribute "noTemplate" node
+            let showTemplate = if X.hasAttribute "noTemplate" n
                                  then id
                                  else (template <>)
             return $ showTemplate body
