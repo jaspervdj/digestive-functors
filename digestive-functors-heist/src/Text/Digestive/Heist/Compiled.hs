@@ -564,7 +564,10 @@ dfSingleListItem node attrs viewPromise = do
 -- Splices:
 --   dfListItem - This tag must surround the markup for a single list item.
 --     It surrounds all of its children with a div with id \"foo.items\" and
---     class \"inputList\".
+--     class \"inputList\" and displays a copy for each of the list items
+--     including a \"template\" item used for generating new items.  If the
+--     you supply the attribute \"noTemplate\", then the template item is not
+--     included.
 --
 -- Attribute Splices:
 --   itemAttrs - Attribute you should use on div, span, etc that surrounds all
@@ -604,7 +607,10 @@ dfInputList getView = do
             template <- dfSingleListItem n templateAttrs (getPromise templateViewPromise)
             body <- deferMany (dfSingleListItem n itemAttrs) $
                               getPromise itemsPromise
-            return $ template <> body
+            let showTemplate = if X.hasAttribute "noTemplate" node
+                                 then id
+                                 else (template <>)
+            return $ showTemplate body
     let listAttrs =
             [ ("id", "${dfListRef}")
             , ("class", "inputList")
