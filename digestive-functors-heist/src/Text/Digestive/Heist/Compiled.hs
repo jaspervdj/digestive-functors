@@ -61,7 +61,7 @@ import           Control.Monad            (mplus)
 import           Control.Monad.Trans      (MonadIO, liftIO)
 import           Data.Function            (on)
 import           Data.List                (unionBy)
-import           Data.Monoid              (mappend, mempty, (<>))
+import           Data.Monoid              (mappend, mconcat, mempty, (<>))
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 import           Data.Text.Encoding
@@ -567,7 +567,8 @@ dfSingleListItem node attrs viewPromise = do
 --     class \"inputList\" and displays a copy for each of the list items
 --     including a \"template\" item used for generating new items.  If the
 --     you supply the attribute \"noTemplate\", then the template item is not
---     included.
+--     included and the generated list will not be dynamically updated by the
+--     add and remove actions.
 --
 -- Attribute Splices:
 --   itemAttrs - Attribute you should use on div, span, etc that surrounds all
@@ -591,14 +592,14 @@ dfInputList getView = do
             view <- gv
             listRef <- getPromise refPromise
             return
-              [ ("id", T.concat [listRef, ".", last $ "0" : viewContext view])
+              [ ("data-ind", T.concat [listRef, ".", last $ "0" : viewContext view])
               , ("class", T.append listRef ".inputListItem")
               ]
         templateAttrs gv _ = do
             view <- gv
             listRef <- getPromise refPromise
             return
-              [ ("id", T.concat [listRef, ".", last $ "-1" : viewContext view])
+              [ ("data-ind", T.concat [listRef, ".", last $ "-1" : viewContext view])
               , ("class", T.append listRef ".inputListTemplate")
               , ("style", "display: none;")
               ]
@@ -607,10 +608,15 @@ dfInputList getView = do
             template <- dfSingleListItem n templateAttrs (getPromise templateViewPromise)
             body <- deferMany (dfSingleListItem n itemAttrs) $
                               getPromise itemsPromise
-            let showTemplate = if X.hasAttribute "noTemplate" n
-                                 then id
-                                 else (template <>)
-            return $ showTemplate body
+            return $ if X.hasAttribute "noTemplate" n
+              then body
+              -- The inputListInstance class control dynamic update.  If we're
+              -- not displaying a template, then we can't dynamically update.
+              else mconcat [ yieldPureText "<div class=\"inputListInstance\">"
+                           , template
+                           , body
+                           , yieldPureText "</div>"
+                           ]
     let listAttrs =
             [ ("id", "${dfListRef}")
             , ("class", "inputList")
