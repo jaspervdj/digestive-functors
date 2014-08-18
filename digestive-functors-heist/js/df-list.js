@@ -107,8 +107,8 @@ function removeInputListItem(button, prefix) {
   removeIndex(listTop, prefix, curInd);
 
   $('.inputListInstance', listTop).each(function(i, instanceTop) {
-    console.log('removing');
-    $('[class$="inputListItem"]', instanceTop)[curInd].remove();
+    var r = prefix + '.' + curInd;
+    $('[data-ind="' + r +'"]', instanceTop).remove();
   });
 }
 
