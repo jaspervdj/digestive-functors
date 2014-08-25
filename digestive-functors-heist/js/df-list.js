@@ -33,7 +33,7 @@ function reIndex(item, prefix, curInd, newInd) {
   // name field to be changed.
   var newH = itemObj.html().replace(new RegExp(a, 'g'), b);
   itemObj.html(newH);
-  itemObj.attr('id', b)
+  itemObj.attr('data-ind', b);
 }
 
 function getIndicesElem(listTop, prefix) {
@@ -74,34 +74,41 @@ function removeIndex(listTop, prefix, ind) {
 
 function addInputListItem(button, prefix) {
   var listTop = findParentClass(button, 'inputList');
-  var items = findItems(listTop, prefix);
   var indicesElem = getIndicesElem(listTop, prefix);
   var indices = getIndices(indicesElem);
   var nextIndex = Math.max.apply(Math, indices)+1;
-  var template = findTemplate(listTop, prefix)[0];
-  var pathComponents = $(template).attr('id').split('.');
-  var ind = parseInt(pathComponents[pathComponents.length-1]);
-  var newItem = $(template).clone(true);
-
-  reIndex(newItem, prefix, ind, nextIndex);
-  newItem.removeAttr('style')
-         .removeClass(prefix+'.inputListTemplate')
-         .addClass(prefix+'.inputListItem');
   var cur = indicesElem.val();
   if ( cur != '' ) {
     cur = cur + ',';
   }
   indicesElem.val(cur+nextIndex);
-  newItem.appendTo($(items[items.length-1]).parent());
+
+  $('.inputListInstance', listTop).each(function(i, instanceTop) {
+    var template = findTemplate(instanceTop, prefix)[0];
+    var pathComponents = $(template).attr('data-ind').split('.');
+    var ind = parseInt(pathComponents[pathComponents.length-1]);
+    var newItem = $(template).clone(true);
+
+    reIndex(newItem, prefix, ind, nextIndex);
+    newItem.removeAttr('style')
+           .removeClass(prefix+'.inputListTemplate')
+           .addClass(prefix+'.inputListItem');
+    var items = findItems(instanceTop, prefix);
+    newItem.appendTo($(items[items.length-1]).parent());
+  })
 }
 
 function removeInputListItem(button, prefix) {
   var listTop = findParentClass(button, 'inputList');
   var curListItem = findParentClass(button, 'inputListItem');
-  var itemPrefix = curListItem.attr('id');
+  var itemPrefix = curListItem.attr('data-ind');
   var prefixArr = itemPrefix.split('.');
   var curInd = parseInt(prefixArr[prefixArr.length-1]);
   removeIndex(listTop, prefix, curInd);
-  curListItem.remove();
+
+  $('.inputListInstance', listTop).each(function(i, instanceTop) {
+    var r = prefix + '.' + curInd;
+    $('[data-ind="' + r +'"]', instanceTop).remove();
+  });
 }
 
