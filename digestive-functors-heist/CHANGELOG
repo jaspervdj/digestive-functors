@@ -1,2 +1,8 @@
+- 0.8.6.0
+    * Make the dfIfChildErrors splice run its children
+    * Allow dfListItem to be used multiple times
+    * Add noTemplate attribute to dfListItem
+    * Add dfValue and dfIfNoChildErrors
+
 - 0.8.5.0
     * Support disabling in compiled heist
