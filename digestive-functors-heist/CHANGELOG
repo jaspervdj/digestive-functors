@@ -1,3 +1,6 @@
+- 0.8.6.1
+    * Bump heist dependency to 0.14
+
 - 0.8.6.0
     * Make the dfIfChildErrors splice run its children
     * Allow dfListItem to be used multiple times
