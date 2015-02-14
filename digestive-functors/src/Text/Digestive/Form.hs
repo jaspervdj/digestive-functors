@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE CPP                       #-}
 -- | End-user interface - provides the main functionality for
 -- form creation and validation. For an interface for front-end
 -- implementation, see "View".
@@ -67,7 +68,9 @@ import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import           Data.Time
+#if !MIN_VERSION_time(1,5,0)
 import           System.Locale
+#endif
 
 
 --------------------------------------------------------------------------------
@@ -483,7 +486,11 @@ optionalTimeFormlet fmt d =
 
 vFunc :: ParseTime a => String -> Text -> String -> Result Text a
 vFunc fmt err x
+#if MIN_VERSION_time(1,5,0)
+  | length x < 40 = maybe (Error err) Success $ parseTimeM True defaultTimeLocale fmt x
+#else
   | length x < 40 = maybe (Error err) Success $ parseTime defaultTimeLocale fmt x
+#endif
   | otherwise = Error "Not a valid date/time string"
 
 
