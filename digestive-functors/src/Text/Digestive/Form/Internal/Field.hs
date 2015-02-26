@@ -14,7 +14,7 @@ module Text.Digestive.Form.Internal.Field
 
 --------------------------------------------------------------------------------
 import           Control.Arrow        (second)
-import           Data.Maybe           (fromMaybe, listToMaybe)
+import           Data.Maybe           (fromMaybe, listToMaybe, catMaybes)
 import           Data.Text            (Text)
 
 
@@ -31,6 +31,7 @@ data Field v a where
     -- the list. The return value has the actual value as well as the index in
     -- the list.
     Choice    :: [(Text, [(Text, (a, v))])] -> Int -> Field v (a, Int)
+    Choices    :: [([Text], [(Text, (a, v))])] -> [Int] -> Field v [(a, Int)]
     Bool      :: Bool -> Field v Bool
     File      :: Field v (Maybe FilePath)
 
@@ -40,6 +41,7 @@ instance Show (Field v a) where
     show (Singleton _) = "Singleton _"
     show (Text t)      = "Text " ++ show t
     show (Choice _ _)  = "Choice _ _"
+    show (Choices _ _) = "Choices _ _"
     show (Bool b)      = "Bool " ++ show b
     show (File)        = "File"
 
@@ -70,6 +72,19 @@ evalField _    (TextInput x : _) (Choice ls' y) =
 evalField _    _                 (Choice ls' x) =
   let ls = concat (map snd ls') in
     (fst (snd (ls !! x)), x)
+evalField _    ts@(TextInput _ : _) (Choices ls' _) =
+  let ls = concat (map snd ls')
+      cs = catMaybes $
+           map (\(TextInput x) -> do
+                   t <- listToMaybe . reverse $ toPath x
+                   (c, i) <- lookupIdx t ls
+                   return (fst c, i)) ts
+  in
+   case cs of
+     [] -> []
+     _ -> cs
+evalField _    _                 (Choices _  _) =
+  []
 evalField Get  _                 (Bool x)      = x
 evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
@@ -83,6 +98,8 @@ fieldMapView :: (v -> w) -> Field v a -> Field w a
 fieldMapView _ (Singleton x)   = Singleton x
 fieldMapView _ (Text x)        = Text x
 fieldMapView f (Choice xs i)   = Choice (map (second func) xs) i
+  where func = map (second (second f))
+fieldMapView f (Choices xs is)   = Choices (map (second func) xs) is
   where func = map (second (second f))
 fieldMapView _ (Bool x)        = Bool x
 fieldMapView _ File            = File

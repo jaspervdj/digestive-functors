@@ -67,12 +67,15 @@ data Type = Water | Fire | Leaf
 typeForm :: Monad m => Form Text m Type
 typeForm = choice [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf")] Nothing
 
+typesForm :: Monad m => Form Text m [Type]
+typesForm = choices [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf")] Nothing
 
 --------------------------------------------------------------------------------
 data Pokemon = Pokemon
     { pokemonName  :: Text
     , pokemonLevel :: Maybe Int
     , pokemonType  :: Type
+    , pokemonTypes  :: [Type]
     , pokemonRare  :: Bool
     } deriving (Eq, Show)
 
@@ -96,6 +99,7 @@ pokemonForm = Pokemon
     <$> "name"  .: validate isPokemon (text Nothing)
     <*> "level" .: levelForm
     <*> "type"  .: typeForm
+    <*> "types"  .: typesForm
     <*> "rare"  .: bool Nothing
   where
     definitelyNoPokemon = ["dog", "cat"]
@@ -176,9 +180,9 @@ catchForm = check "You need a better ball" canCatch $ Catch
 
 --------------------------------------------------------------------------------
 canCatch :: Catch -> Bool
-canCatch (Catch (Pokemon _ _ _ False) _)      = True
-canCatch (Catch (Pokemon _ _ _ True)  Ultra)  = True
-canCatch (Catch (Pokemon _ _ _ True)  Master) = True
+canCatch (Catch (Pokemon _ _ _ _ False) _)      = True
+canCatch (Catch (Pokemon _ _ _ _ True)  Ultra)  = True
+canCatch (Catch (Pokemon _ _ _ _ True)  Master) = True
 canCatch _                                    = False
 
 
