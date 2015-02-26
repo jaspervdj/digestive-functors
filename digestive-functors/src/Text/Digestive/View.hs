@@ -33,6 +33,7 @@ module Text.Digestive.View
       -- ** Input
     , fieldInputText
     , fieldInputChoice
+    , fieldInputChoices
     , fieldInputChoiceGroup
     , fieldInputBool
     , fieldInputFile
@@ -210,6 +211,22 @@ fieldInputChoice ref (View _ _ form input _ method) =
         f           -> error $ T.unpack ref ++ ": expected (Choice _ _), " ++
             "but got: (" ++ show f ++ ")"
 
+-- | Returns a list of (identifier, view, selected?)
+fieldInputChoices :: forall v. Text -> View v -> [(Text, v, Bool)]
+fieldInputChoices ref (View _ _ form input _ method) =
+    queryField path form eval'
+  where
+    path       = toPath ref
+    givenInput = lookupInput path input
+
+    eval' :: Field v b -> [(Text, v, Bool)]
+    eval' field = case field of
+        Choices xs didxs ->
+            let idxs = map snd $ evalField method givenInput (Choices xs didxs)
+            in map (\(i, (k, (_, v))) -> (k, v, i `elem` idxs)) $
+                 zip [0 ..] $ concat $ map snd xs
+        f           -> error $ T.unpack ref ++ ": expected (Choices _ _), " ++
+            "but got: (" ++ show f ++ ")"
 
 --------------------------------------------------------------------------------
 -- | Returns a list of (groupName, [(identifier, view, selected?)])

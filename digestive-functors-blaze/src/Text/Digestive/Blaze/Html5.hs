@@ -7,8 +7,10 @@ module Text.Digestive.Blaze.Html5
     , inputPassword
     , inputHidden
     , inputSelect
+    , inputSelectMultiple
     , inputRadio
     , inputCheckbox
+    , inputCheckboxMultiple
     , inputFile
     , inputSubmit
     , label
@@ -106,6 +108,22 @@ inputSelect ref view = H.select
 
 
 --------------------------------------------------------------------------------
+inputSelectMultiple :: Text -> View Html -> Html
+inputSelectMultiple ref view = H.select
+    ! A.id    (H.toValue ref')
+    ! A.name  (H.toValue ref')
+    ! A.multiple "yes"
+    $ forM_ choices $ \(i, c, sel) -> H.option
+        !  A.value (value i)
+        !? (sel, A.selected "selected")
+        $ c
+  where
+    ref'    = absoluteRef ref view
+    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
+    choices = fieldInputChoices ref view
+
+
+--------------------------------------------------------------------------------
 inputRadio :: Bool       -- ^ Add @br@ tags?
            -> Text       -- ^ Form path
            -> View Html  -- ^ View
@@ -120,6 +138,23 @@ inputRadio brs ref view = forM_ choices $ \(i, c, sel) -> do
     ref'    = absoluteRef ref view
     value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
     choices = fieldInputChoice ref view
+
+
+--------------------------------------------------------------------------------
+inputCheckboxMultiple :: Bool       -- ^ Add @br@ tags?
+                      -> Text       -- ^ Form path
+                      -> View Html  -- ^ View
+                      -> Html       -- ^ Resulting HTML
+inputCheckboxMultiple brs ref view = forM_ choices $ \(i, c, sel) -> do
+    let val = value i
+    H.input ! A.type_ "checkbox" ! A.value val ! A.id val ! A.name (H.toValue ref')
+        !? (sel, A.checked "checked")
+    H.label ! A.for val $ c
+    when brs H.br
+  where
+    ref'    = absoluteRef ref view
+    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
+    choices = fieldInputChoices ref view
 
 
 --------------------------------------------------------------------------------

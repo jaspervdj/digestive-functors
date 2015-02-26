@@ -21,6 +21,10 @@ module Text.Digestive.Form
     , choice'
     , choiceWith
     , choiceWith'
+    , choices
+    , choices'
+    , choicesWith
+    , choicesWith'
     , groupedChoice
     , groupedChoice'
     , groupedChoiceWith
@@ -64,7 +68,7 @@ module Text.Digestive.Form
 import           Control.Applicative
 import           Control.Monad                      (liftM, liftM2)
 import           Data.List                          (findIndex)
-import           Data.Maybe                         (fromMaybe)
+import           Data.Maybe                         (fromMaybe, catMaybes)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import           Data.Time
@@ -137,6 +141,33 @@ choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
   where
     def' = fromMaybe 0 def
 
+-- | Returns a 'Formlet' for a values restricted to
+-- the provided list of value-message tuples
+choices :: (Eq a, Monad m) => [(a, v)] -> Formlet v m [a]
+choices items def = choicesWith (zip makeRefs items) def
+
+-- | Sometimes there is no good 'Eq' instance for 'choices'. In this case, you
+-- can use this function, which takes an index in the list as default.
+choices' :: Monad m => [(a, v)] -> Maybe [Int] -> Form v m [a]
+choices' items def = choicesWith' (zip makeRefs items) def
+
+
+--------------------------------------------------------------------------------
+-- | Allows you to assign your own values: these values will be used in the
+-- resulting HTML instead of the default @[0 ..]@. This fixes some race
+-- conditions that might otherwise appear, e.g. if new choice items are added to
+-- some database while a user views and submits the form...
+choicesWith :: (Eq a, Monad m) => [(Text, (a, v))] -> Formlet v m [a]
+choicesWith items def = choicesWith' items def'
+  where
+    def' = def >>= (\ds -> Just . catMaybes $ map (\d -> findIndex ((== d) . fst . snd) items) ds)
+
+--------------------------------------------------------------------------------
+-- | A version of 'choicesWith' for when there is no good 'Eq' instance.
+choicesWith' :: Monad m => [(Text, (a, v))] -> Maybe [Int] -> Form v m [a]
+choicesWith' items def = fmap (\v -> map fst v) $ Pure $ Choices [([""], items)] def'
+  where
+    def' = fromMaybe [] def
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for named groups of choices.
@@ -243,7 +274,7 @@ validate = validateM . (return .)
 -- | Same as 'validate', but works with forms of the form:
 --
 -- >  Form v m (Maybe a)
--- 
+--
 -- .
 --
 -- Example: taking the first character of an optional input string
@@ -266,7 +297,7 @@ validateM = transform
 -- | Allows for the composition of independent validation functions.
 --
 -- For example, let's validate an even integer between 0 and 100:
--- 
+--
 -- > form :: Monad m => Form Text m FormData
 -- > ... -- some fields
 -- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> even >=> greaterThan 0 >=> lessThanOrEq 100) (text Nothing)
@@ -282,17 +313,17 @@ validateM = transform
 --
 -- .
 --
--- This will validate our smallEvenInteger correctly, but there is a problem. 
+-- This will validate our smallEvenInteger correctly, but there is a problem.
 -- If a user enters an odd number greater than 100, only
 --
 -- > "number must be even"
 --
 --
--- will be returned. It would make for a better user experience if 
+-- will be returned. It would make for a better user experience if
 --
 -- > ["number must be even", "number must be less than 100"]
 --
--- was returned instead. This can be accomplished by rewriting our form to be: 
+-- was returned instead. This can be accomplished by rewriting our form to be:
 --
 -- > form :: Monad m => Form [Text] m FormData
 -- > ... -- some fields
@@ -302,7 +333,7 @@ validateM = transform
 -- .
 --
 -- If we want to collapse our list of errors into a single 'Text', we can do something like:
--- 
+--
 -- > form :: Monad m => Form Text m FormData
 -- > ... -- some fields
 -- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> commaSeperated . conditions [even, greaterThan 0, lessThanOrEq 100]) (text Nothing)
@@ -319,7 +350,7 @@ conditions :: [(a -> Result e b)] -- ^ Any 'Success' result of  a validation fun
                              --
                              -- > conditions [even,  greaterThan 0] -1
                              --
-                             -- is specified to return 
+                             -- is specified to return
                              --
                              -- > Error ["must be even", "must be greater than 0"]
                              --
@@ -497,5 +528,3 @@ vFunc fmt err x
 vOpt :: (String -> Result v a) -> String -> Result v (Maybe a)
 vOpt _ "" = Success Nothing
 vOpt f x  = Just <$> f x
-
-

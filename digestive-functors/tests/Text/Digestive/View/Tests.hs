@@ -33,15 +33,17 @@ assertError x = handle (\(_ :: SomeException) -> H.assert True) $
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
-        (Just (Pokemon "charmander" (Just 5) Fire False)) $
+        (Just (Pokemon "charmander" (Just 5) Fire [Fire, Leaf] False)) $
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
             [ ("f.name",  "charmander")
             , ("f.level", "5")
             , ("f.type",  "type.1")
+            , ("f.types",  "types.1")
+            , ("f.types",  "types.2")
             ]
 
     , testCase "optional unspecified" $ (@=?)
-        (Just (Pokemon "magmar" Nothing Fire False)) $
+        (Just (Pokemon "magmar" Nothing Fire [] False)) $
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
             [ ("f.name",  "magmar")
             , ("f.type",  "type.1")
@@ -90,8 +92,13 @@ tests = testGroup "Text.Digestive.View.Tests"
         snd $ selection $ fieldInputChoice "type" $ fst $ runTrainerM $
             postForm "f" pokemonForm $ testEnv [("f.type",  "type.2")]
 
+    , testCase "Simple fieldInputChoices" $ (@=?)
+        ["Fire", "Leaf"] $
+        map snd $ selections $ fieldInputChoices "types" $ fst $ runTrainerM $
+            postForm "f" pokemonForm $ testEnv [("f.types",  "types.1"), ("f.types",  "types.2")]
+
     , testCase "Nested postForm" $ (@=?)
-        (Just (Catch (Pokemon "charmander" (Just 5) Fire False) Ultra)) $
+        (Just (Catch (Pokemon "charmander" (Just 5) Fire [] False) Ultra)) $
         snd $ runTrainerM $ postForm "f" catchForm $ testEnv
             [ ("f.pokemon.name",  "charmander")
             , ("f.pokemon.level", "5")
@@ -117,12 +124,21 @@ tests = testGroup "Text.Digestive.View.Tests"
                 , ("f.pokemon.type",  "type.2")
                 ]
 
+    , testCase "subView input choices" $ (@=?)
+        ["Fire", "Leaf"] $
+        map snd $ selections $ fieldInputChoices "types" $ subView "pokemon" $ fst $
+            runTrainerM $ postForm "f" catchForm $ testEnv
+                [ ("f.pokemon.level", "hah.")
+                , ("f.pokemon.types",  "types.1")
+                , ("f.pokemon.types",  "types.2")
+                ]
+
     , testCase "subViews length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "subViews after subView length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ subView "pokemon" $
             runTrainerM $ getForm "f" catchForm
 
@@ -200,3 +216,7 @@ testEnv input _formEncType = return $ \key -> return $ map (TextInput . snd) $
 --------------------------------------------------------------------------------
 selection :: [(Text, v, Bool)] -> (Text, v)
 selection fic = head [(t, v) | (t, v, s) <- fic, s]
+
+--------------------------------------------------------------------------------
+selections :: [(Text, v, Bool)] -> [(Text, v)]
+selections fic = [(t, v) | (t, v, s) <- fic, s]

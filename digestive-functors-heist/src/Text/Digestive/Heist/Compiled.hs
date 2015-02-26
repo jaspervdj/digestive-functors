@@ -39,9 +39,11 @@ module Text.Digestive.Heist.Compiled
     , dfInputPassword
     , dfInputHidden
     , dfInputSelect
+    , dfInputSelectMultiple
     , dfInputSelectGroup
     , dfInputRadio
     , dfInputCheckbox
+    , dfInputCheckboxMultiple
     , dfInputFile
     , dfInputSubmit
     , dfLabel
@@ -330,6 +332,29 @@ dfInputCheckbox = dfMaster $ \ref attrs view -> do
 
 
 --------------------------------------------------------------------------------
+-- | Generate a number of checkboxes for choosing multiple values. Example:
+--
+-- > <dfInputCheckboxMultiple ref="user.sex" />
+dfInputCheckboxMultiple :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfInputCheckboxMultiple = dfMaster $ \ref attrs view -> do
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoices ref view
+        kids     = concatMap makeOption choices
+        value i  = ref' <> "." <> i
+
+        makeOption (i, c, sel) =
+            [ X.Element "input"
+                (attr sel ("checked", "checked") $ addAttrs attrs
+                    [ ("type", "checkbox"), ("value", value i)
+                    , ("id", value i), ("name", ref')
+                    ]) []
+            , X.Element "label" [("for", value i)] [X.TextNode c]
+            ]
+
+    return $ X.renderHtmlFragment X.UTF8 kids
+
+
+--------------------------------------------------------------------------------
 -- | Generate a file upload element. Example:
 --
 -- > <dfInputFile ref="user.avatar" />
@@ -362,6 +387,24 @@ dfInputSelect = dfMaster $ \ref attrs view -> do
             [("id", ref'), ("name", ref')]
     return $ X.renderHtmlFragment X.UTF8 e
 
+
+-- | Generate a select button (also known as a combo box) with multiple selections. Example:
+--
+-- > <dfInputSelect ref="user.sex" />
+dfInputSelectMultiple :: Monad m => RuntimeSplice m (View Text) -> Splice m
+dfInputSelectMultiple = dfMaster $ \ref attrs view -> do
+    let ref'     = absoluteRef ref view
+        choices  = fieldInputChoices ref view
+        kids     = map makeOption choices
+        value i  = ref' <> "." <> i
+
+        makeOption (i, c, sel) = X.Element "option"
+            (attr sel ("selected", "selected") [("value", value i)])
+            [X.TextNode c]
+
+        e = makeElement "select" kids $ addAttrs attrs
+            [("id", ref'), ("name", ref'), ("multiple", "yes")]
+    return $ X.renderHtmlFragment X.UTF8 e
 
 --------------------------------------------------------------------------------
 -- | Generate a select button (also known as a combo box). Example:
@@ -406,7 +449,6 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
             ]
 
     return $ X.renderHtmlFragment X.UTF8 kids
-
 
 --------------------------------------------------------------------------------
 -- | Display the list of errors for a certain field. Example:
