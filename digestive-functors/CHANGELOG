@@ -1,3 +1,7 @@
+- 0.7.1.5
+    * Bump `time` dependency to allow up to `time-1.5`, for tests as well
+    * Bump `QuickCheck` dependency to allow up to `QuickCheck-2.8`
+
 - 0.7.1.4
     * Bump `time` dependency to allow up to `time-1.5`
 
