@@ -48,7 +48,7 @@ instance Monoid v => Applicative (Result v) where
 
 
 --------------------------------------------------------------------------------
-instance Monad (Result v) where
+instance Monoid v => Monad (Result v) where
     return x          = Success x
     (Error x)   >>= _ = Error x
     (Success x) >>= f = f x
