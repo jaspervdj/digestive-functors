@@ -65,7 +65,7 @@ prop_refmoncons ref ft = isJust ref' && fromJust ref' == ref
 
 --------------------------------------------------------------------------------
 -- Limited arbitrary instance for form trees
-instance (Monad t, Monad m, Arbitrary a) => Arbitrary (FormTree t v m a)
+instance (Monoid v, Monad t, Monad m, Arbitrary a) => Arbitrary (FormTree t v m a)
    where arbitrary = sized (innerarb $ liftM Pure arbitrary)
             where innerarb g 0 = g
                   innerarb g n = innerarb g' (n-1)

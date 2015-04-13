@@ -95,27 +95,27 @@ text def = Pure $ Text $ fromMaybe "" def
 
 --------------------------------------------------------------------------------
 -- | Identical to "text" but takes a String
-string :: Monad m => Formlet v m String
+string :: (Monoid v, Monad m) => Formlet v m String
 string = fmap T.unpack . text . fmap T.pack
 
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for a parseable and serializable value type
-stringRead :: (Monad m, Read a, Show a) => v -> Formlet v m a
+stringRead :: (Monoid v, Monad m, Read a, Show a) => v -> Formlet v m a
 stringRead err = transform (readTransform err) . string . fmap show
 
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for a value restricted to
 -- the provided list of value-message tuples
-choice :: (Eq a, Monad m) => [(a, v)] -> Formlet v m a
+choice :: (Eq a, Monoid v, Monad m) => [(a, v)] -> Formlet v m a
 choice items def = choiceWith (zip makeRefs items) def
 
 
 --------------------------------------------------------------------------------
 -- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
 -- can use this function, which takes an index in the list as default.
-choice' :: Monad m => [(a, v)] -> Maybe Int -> Form v m a
+choice' :: (Monoid v, Monad m) => [(a, v)] -> Maybe Int -> Form v m a
 choice' items def = choiceWith' (zip makeRefs items) def
 
 
@@ -124,7 +124,7 @@ choice' items def = choiceWith' (zip makeRefs items) def
 -- resulting HTML instead of the default @[0 ..]@. This fixes some race
 -- conditions that might otherwise appear, e.g. if new choice items are added to
 -- some database while a user views and submits the form...
-choiceWith :: (Eq a, Monad m) => [(Text, (a, v))] -> Formlet v m a
+choiceWith :: (Eq a, Monoid v, Monad m) => [(Text, (a, v))] -> Formlet v m a
 choiceWith items def = choiceWith' items def'
   where
     def' = def >>= (\d -> findIndex ((== d) . fst . snd) items)
@@ -132,7 +132,7 @@ choiceWith items def = choiceWith' items def'
 
 --------------------------------------------------------------------------------
 -- | A version of 'choiceWith' for when there is no good 'Eq' instance.
-choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
+choiceWith' :: (Monoid v, Monad m) => [(Text, (a, v))] -> Maybe Int -> Form v m a
 choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
   where
     def' = fromMaybe 0 def
@@ -140,7 +140,7 @@ choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for named groups of choices.
-groupedChoice :: (Eq a, Monad m) => [(Text, [(a, v)])] -> Formlet v m a
+groupedChoice :: (Eq a, Monoid v, Monad m) => [(Text, [(a, v)])] -> Formlet v m a
 groupedChoice items def =
     groupedChoiceWith (mkGroupedRefs items makeRefs) def
 
@@ -148,7 +148,7 @@ groupedChoice items def =
 --------------------------------------------------------------------------------
 -- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
 -- can use this function, which takes an index in the list as default.
-groupedChoice' :: Monad m => [(Text, [(a, v)])] -> Maybe Int -> Form v m a
+groupedChoice' :: (Monoid v, Monad m) => [(Text, [(a, v)])] -> Maybe Int -> Form v m a
 groupedChoice' items def =
     groupedChoiceWith' (mkGroupedRefs items makeRefs) def
 
@@ -168,7 +168,7 @@ mkGroupedRefs (g:gs) is = cur : mkGroupedRefs gs b
 -- resulting HTML instead of the default @[0 ..]@. This fixes some race
 -- conditions that might otherwise appear, e.g. if new choice items are added to
 -- some database while a user views and submits the form...
-groupedChoiceWith :: (Eq a, Monad m)
+groupedChoiceWith :: (Eq a, Monoid v, Monad m)
                   => [(Text, [(Text, (a, v))])]
                   -> Formlet v m a
 groupedChoiceWith items def = groupedChoiceWith' items def'
@@ -179,7 +179,7 @@ groupedChoiceWith items def = groupedChoiceWith' items def'
 
 --------------------------------------------------------------------------------
 -- | Low-level support for grouped choice.
-groupedChoiceWith' :: Monad m
+groupedChoiceWith' :: (Monoid v, Monad m)
                    => [(Text, [(Text, (a, v))])]
                    -> Maybe Int
                    -> Form v m a
@@ -206,7 +206,7 @@ file = Pure File
 -- Example:
 --
 -- > check "Can't be empty" (not . null) (string Nothing)
-check :: Monad m
+check :: (Monoid v, Monad m)
       => v            -- ^ Error message (if fail)
       -> (a -> Bool)  -- ^ Validating predicate
       -> Form v m a   -- ^ Form to validate
@@ -216,7 +216,7 @@ check err = checkM err . (return .)
 
 --------------------------------------------------------------------------------
 -- | Version of 'check' which allows monadic validations
-checkM :: Monad m => v -> (a -> m Bool) -> Form v m a -> Form v m a
+checkM :: (Monoid v, Monad m) => v -> (a -> m Bool) -> Form v m a -> Form v m a
 checkM err predicate form = validateM f form
   where
     f x = do
@@ -348,7 +348,7 @@ disable f = Metadata [Disabled] f
 -- | Create a text form with an optional default text which
 -- returns nothing if no optional text was set, and no input
 -- was retrieved.
-optionalText :: Monad m => Maybe Text -> Form v m (Maybe Text)
+optionalText :: (Monoid v, Monad m) => Maybe Text -> Form v m (Maybe Text)
 optionalText def = validate opt (text def)
   where
     opt t
@@ -358,13 +358,13 @@ optionalText def = validate opt (text def)
 
 --------------------------------------------------------------------------------
 -- | Identical to 'optionalText', but uses Strings
-optionalString :: Monad m => Maybe String -> Form v m (Maybe String)
+optionalString :: (Monoid v, Monad m) => Maybe String -> Form v m (Maybe String)
 optionalString = fmap (fmap T.unpack) . optionalText . fmap T.pack
 
 
 --------------------------------------------------------------------------------
 -- | Identical to 'optionalText' for parseable and serializable values.
-optionalStringRead :: (Monad m, Read a, Show a)
+optionalStringRead :: (Monoid v, Monad m, Read a, Show a)
                    => v -> Maybe a -> Form v m (Maybe a)
 optionalStringRead err = transform readTransform' . optionalString . fmap show
   where
@@ -374,13 +374,13 @@ optionalStringRead err = transform readTransform' . optionalString . fmap show
 
 --------------------------------------------------------------------------------
 -- Helper function for attempted parsing, with custom error messages
-readTransform :: (Monad m, Read a) => v -> String -> m (Result v a)
+readTransform :: (Monoid v, Monad m, Read a) => v -> String -> m (Result v a)
 readTransform err = return . maybe (Error err) return . readMaybe
 
 
 --------------------------------------------------------------------------------
 -- | Dynamic lists
-listOf :: Monad m
+listOf :: (Monoid v, Monad m)
        => Formlet v m a
        -> Formlet v m [a]
 listOf single def =
@@ -395,7 +395,7 @@ listOf single def =
 
 --------------------------------------------------------------------------------
 -- Manipulatable indices
-listIndices :: Monad m => [Int] -> Form v m [Int]
+listIndices :: (Monoid v, Monad m) => [Int] -> Form v m [Int]
 listIndices = fmap parseIndices . text . Just . unparseIndices
 
 

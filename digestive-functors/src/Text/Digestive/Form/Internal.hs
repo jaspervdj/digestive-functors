@@ -97,7 +97,7 @@ data FormTree t v m a where
 
 
 --------------------------------------------------------------------------------
-instance Monad m => Functor (FormTree t v m) where
+instance (Monoid v, Monad m) => Functor (FormTree t v m) where
     fmap = transform . (return .) . (return .)
 
 
