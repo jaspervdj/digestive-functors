@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
+{-# LANGUAGE CPP                       #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE Rank2Types                #-}
-{-# LANGUAGE CPP                       #-}
 -- | End-user interface - provides the main functionality for
 -- form creation and validation. For an interface for front-end
 -- implementation, see "View".
@@ -65,6 +65,7 @@ import           Control.Applicative
 import           Control.Monad                      (liftM, liftM2)
 import           Data.List                          (findIndex)
 import           Data.Maybe                         (fromMaybe)
+import           Data.Monoid                        (Monoid)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import           Data.Time
@@ -89,33 +90,33 @@ type Formlet v m a = Maybe a -> Form v m a
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' which may optionally take a default text
-text :: Formlet v m Text
+text :: (Monad m, Monoid v) => Formlet v m Text
 text def = Pure $ Text $ fromMaybe "" def
 
 
 --------------------------------------------------------------------------------
 -- | Identical to "text" but takes a String
-string :: Monad m => Formlet v m String
+string :: (Monad m, Monoid v) => Formlet v m String
 string = fmap T.unpack . text . fmap T.pack
 
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for a parseable and serializable value type
-stringRead :: (Monad m, Read a, Show a) => v -> Formlet v m a
+stringRead :: (Monad m, Monoid v, Read a, Show a) => v -> Formlet v m a
 stringRead err = transform (readTransform err) . string . fmap show
 
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for a value restricted to
 -- the provided list of value-message tuples
-choice :: (Eq a, Monad m) => [(a, v)] -> Formlet v m a
+choice :: (Eq a, Monad m, Monoid v) => [(a, v)] -> Formlet v m a
 choice items def = choiceWith (zip makeRefs items) def
 
 
 --------------------------------------------------------------------------------
 -- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
 -- can use this function, which takes an index in the list as default.
-choice' :: Monad m => [(a, v)] -> Maybe Int -> Form v m a
+choice' :: (Monad m, Monoid v) => [(a, v)] -> Maybe Int -> Form v m a
 choice' items def = choiceWith' (zip makeRefs items) def
 
 
@@ -124,7 +125,8 @@ choice' items def = choiceWith' (zip makeRefs items) def
 -- resulting HTML instead of the default @[0 ..]@. This fixes some race
 -- conditions that might otherwise appear, e.g. if new choice items are added to
 -- some database while a user views and submits the form...
-choiceWith :: (Eq a, Monad m) => [(Text, (a, v))] -> Formlet v m a
+choiceWith
+    :: (Eq a, Monad m, Monoid v) => [(Text, (a, v))] -> Formlet v m a
 choiceWith items def = choiceWith' items def'
   where
     def' = def >>= (\d -> findIndex ((== d) . fst . snd) items)
@@ -132,7 +134,8 @@ choiceWith items def = choiceWith' items def'
 
 --------------------------------------------------------------------------------
 -- | A version of 'choiceWith' for when there is no good 'Eq' instance.
-choiceWith' :: Monad m => [(Text, (a, v))] -> Maybe Int -> Form v m a
+choiceWith'
+    :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe Int -> Form v m a
 choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
   where
     def' = fromMaybe 0 def
@@ -140,7 +143,8 @@ choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for named groups of choices.
-groupedChoice :: (Eq a, Monad m) => [(Text, [(a, v)])] -> Formlet v m a
+groupedChoice
+    :: (Eq a, Monad m, Monoid v) => [(Text, [(a, v)])] -> Formlet v m a
 groupedChoice items def =
     groupedChoiceWith (mkGroupedRefs items makeRefs) def
 
@@ -148,11 +152,13 @@ groupedChoice items def =
 --------------------------------------------------------------------------------
 -- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
 -- can use this function, which takes an index in the list as default.
-groupedChoice' :: Monad m => [(Text, [(a, v)])] -> Maybe Int -> Form v m a
+groupedChoice'
+    :: (Monad m, Monoid v) => [(Text, [(a, v)])] -> Maybe Int -> Form v m a
 groupedChoice' items def =
     groupedChoiceWith' (mkGroupedRefs items makeRefs) def
 
 
+--------------------------------------------------------------------------------
 mkGroupedRefs :: [(Text, [a])]
               -> [Text]
               -> [(Text, [(Text, a)])]
@@ -168,7 +174,7 @@ mkGroupedRefs (g:gs) is = cur : mkGroupedRefs gs b
 -- resulting HTML instead of the default @[0 ..]@. This fixes some race
 -- conditions that might otherwise appear, e.g. if new choice items are added to
 -- some database while a user views and submits the form...
-groupedChoiceWith :: (Eq a, Monad m)
+groupedChoiceWith :: (Eq a, Monad m, Monoid v)
                   => [(Text, [(Text, (a, v))])]
                   -> Formlet v m a
 groupedChoiceWith items def = groupedChoiceWith' items def'
@@ -179,7 +185,7 @@ groupedChoiceWith items def = groupedChoiceWith' items def'
 
 --------------------------------------------------------------------------------
 -- | Low-level support for grouped choice.
-groupedChoiceWith' :: Monad m
+groupedChoiceWith' :: (Monad m, Monoid v)
                    => [(Text, [(Text, (a, v))])]
                    -> Maybe Int
                    -> Form v m a
@@ -190,13 +196,13 @@ groupedChoiceWith' items def = fmap fst $ Pure $ Choice items def'
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for binary choices
-bool :: Formlet v m Bool
+bool :: (Monad m, Monoid v) => Formlet v m Bool
 bool = Pure . Bool . fromMaybe False
 
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for file selection
-file :: Form v m (Maybe FilePath)
+file :: (Monad m, Monoid v) => Form v m (Maybe FilePath)
 file = Pure File
 
 
@@ -206,7 +212,7 @@ file = Pure File
 -- Example:
 --
 -- > check "Can't be empty" (not . null) (string Nothing)
-check :: Monad m
+check :: (Monad m, Monoid v)
       => v            -- ^ Error message (if fail)
       -> (a -> Bool)  -- ^ Validating predicate
       -> Form v m a   -- ^ Form to validate
@@ -216,7 +222,7 @@ check err = checkM err . (return .)
 
 --------------------------------------------------------------------------------
 -- | Version of 'check' which allows monadic validations
-checkM :: Monad m => v -> (a -> m Bool) -> Form v m a -> Form v m a
+checkM :: (Monad m, Monoid v) => v -> (a -> m Bool) -> Form v m a -> Form v m a
 checkM err predicate form = validateM f form
   where
     f x = do
@@ -236,14 +242,14 @@ checkM err predicate form = validateM f form
 -- >
 -- > char :: Monad m => Form m String Char
 -- > char = validate head' (string Nothing)
-validate :: Monad m => (a -> Result v b) -> Form v m a -> Form v m b
+validate :: (Monad m, Monoid v) => (a -> Result v b) -> Form v m a -> Form v m b
 validate = validateM . (return .)
 
 --------------------------------------------------------------------------------
 -- | Same as 'validate', but works with forms of the form:
 --
 -- >  Form v m (Maybe a)
--- 
+--
 -- .
 --
 -- Example: taking the first character of an optional input string
@@ -254,19 +260,22 @@ validate = validateM . (return .)
 -- >
 -- > char :: Monad m => Form m String (Maybe Char)
 -- > char = validateOptional head' (optionalString Nothing)
-validateOptional :: Monad m => (a -> Result v b) -> Form v m (Maybe a) -> Form v m (Maybe b)
+validateOptional
+    :: (Monad m, Monoid v)
+    => (a -> Result v b) -> Form v m (Maybe a) -> Form v m (Maybe b)
 validateOptional f = validate (forOptional f)
 
 --------------------------------------------------------------------------------
 -- | Version of 'validate' which allows monadic validations
-validateM :: Monad m => (a -> m (Result v b)) -> Form v m a -> Form v m b
+validateM
+    :: (Monad m, Monoid v) => (a -> m (Result v b)) -> Form v m a -> Form v m b
 validateM = transform
 
 --------------------------------------------------------------------------------
 -- | Allows for the composition of independent validation functions.
 --
 -- For example, let's validate an even integer between 0 and 100:
--- 
+--
 -- > form :: Monad m => Form Text m FormData
 -- > ... -- some fields
 -- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> even >=> greaterThan 0 >=> lessThanOrEq 100) (text Nothing)
@@ -282,17 +291,17 @@ validateM = transform
 --
 -- .
 --
--- This will validate our smallEvenInteger correctly, but there is a problem. 
+-- This will validate our smallEvenInteger correctly, but there is a problem.
 -- If a user enters an odd number greater than 100, only
 --
 -- > "number must be even"
 --
 --
--- will be returned. It would make for a better user experience if 
+-- will be returned. It would make for a better user experience if
 --
 -- > ["number must be even", "number must be less than 100"]
 --
--- was returned instead. This can be accomplished by rewriting our form to be: 
+-- was returned instead. This can be accomplished by rewriting our form to be:
 --
 -- > form :: Monad m => Form [Text] m FormData
 -- > ... -- some fields
@@ -302,7 +311,7 @@ validateM = transform
 -- .
 --
 -- If we want to collapse our list of errors into a single 'Text', we can do something like:
--- 
+--
 -- > form :: Monad m => Form Text m FormData
 -- > ... -- some fields
 -- > <*> "smallEvenInteger" .: validate (notEmpty >=> integer >=> commaSeperated . conditions [even, greaterThan 0, lessThanOrEq 100]) (text Nothing)
@@ -319,7 +328,7 @@ conditions :: [(a -> Result e b)] -- ^ Any 'Success' result of  a validation fun
                              --
                              -- > conditions [even,  greaterThan 0] -1
                              --
-                             -- is specified to return 
+                             -- is specified to return
                              --
                              -- > Error ["must be even", "must be greater than 0"]
                              --
@@ -348,7 +357,7 @@ disable f = Metadata [Disabled] f
 -- | Create a text form with an optional default text which
 -- returns nothing if no optional text was set, and no input
 -- was retrieved.
-optionalText :: Monad m => Maybe Text -> Form v m (Maybe Text)
+optionalText :: (Monad m, Monoid v) => Maybe Text -> Form v m (Maybe Text)
 optionalText def = validate opt (text def)
   where
     opt t
@@ -358,13 +367,13 @@ optionalText def = validate opt (text def)
 
 --------------------------------------------------------------------------------
 -- | Identical to 'optionalText', but uses Strings
-optionalString :: Monad m => Maybe String -> Form v m (Maybe String)
+optionalString :: (Monad m, Monoid v) => Maybe String -> Form v m (Maybe String)
 optionalString = fmap (fmap T.unpack) . optionalText . fmap T.pack
 
 
 --------------------------------------------------------------------------------
 -- | Identical to 'optionalText' for parseable and serializable values.
-optionalStringRead :: (Monad m, Read a, Show a)
+optionalStringRead :: (Monad m, Monoid v, Read a, Show a)
                    => v -> Maybe a -> Form v m (Maybe a)
 optionalStringRead err = transform readTransform' . optionalString . fmap show
   where
@@ -374,13 +383,13 @@ optionalStringRead err = transform readTransform' . optionalString . fmap show
 
 --------------------------------------------------------------------------------
 -- Helper function for attempted parsing, with custom error messages
-readTransform :: (Monad m, Read a) => v -> String -> m (Result v a)
+readTransform :: (Monad m, Monoid v, Read a) => v -> String -> m (Result v a)
 readTransform err = return . maybe (Error err) return . readMaybe
 
 
 --------------------------------------------------------------------------------
 -- | Dynamic lists
-listOf :: Monad m
+listOf :: (Monad m, Monoid v)
        => Formlet v m a
        -> Formlet v m [a]
 listOf single def =
@@ -395,7 +404,7 @@ listOf single def =
 
 --------------------------------------------------------------------------------
 -- Manipulatable indices
-listIndices :: Monad m => [Int] -> Form v m [Int]
+listIndices :: (Monad m, Monoid v) => [Int] -> Form v m [Int]
 listIndices = fmap parseIndices . text . Just . unparseIndices
 
 

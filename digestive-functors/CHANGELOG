@@ -1,3 +1,6 @@
+- 0.8.0.0
+    * Lots of constraint changes due to Applicative => Monad
+
 - 0.7.1.5
     * Bump `time` dependency to allow up to `time-1.5`, for tests as well
     * Bump `QuickCheck` dependency to allow up to `QuickCheck-2.8`

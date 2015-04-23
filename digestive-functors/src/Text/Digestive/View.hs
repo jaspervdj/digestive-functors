@@ -57,6 +57,7 @@ module Text.Digestive.View
 import           Control.Arrow                      (second)
 import           Control.Monad.Identity             (Identity)
 import           Data.List                          (isPrefixOf)
+import           Data.Monoid                        (Monoid)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 
@@ -73,12 +74,12 @@ import           Text.Digestive.Types
 -- | Finalized form - handles the form, error messages and input.
 -- Internally handles the addressing of individual fields.
 data View v = forall a m. Monad m => View
-    { viewName     :: Text
-    , viewContext  :: Path
-    , viewForm     :: FormTree Identity v m a
-    , viewInput    :: [(Path, FormInput)]
-    , viewErrors   :: [(Path, v)]
-    , viewMethod   :: Method
+    { viewName    :: Text
+    , viewContext :: Path
+    , viewForm    :: FormTree Identity v m a
+    , viewInput   :: [(Path, FormInput)]
+    , viewErrors  :: [(Path, v)]
+    , viewMethod  :: Method
     }
 
 
@@ -333,5 +334,5 @@ viewDisabled ref (View _ _ form _ _ _) = Disabled `elem` metadata
 
 --------------------------------------------------------------------------------
 -- | Retrieve all paths of the contained form
-debugViewPaths :: View v -> [Path]
+debugViewPaths :: Monoid v => View v -> [Path]
 debugViewPaths (View _ _ form _ _ _) = debugFormPaths form
