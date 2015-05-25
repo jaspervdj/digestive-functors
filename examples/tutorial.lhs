@@ -25,7 +25,7 @@ Let's start by creating a very simple datatype to represent a user:
 >     , userMail :: Text
 >     } deriving (Show)
 
-And dive in immediately to create a `Form` for a user. The `Form m v a` type
+And dive in immediately to create a `Form` for a user. The `Form v m a` type
 has three parameters:
 
 - `v`: the type for messages and errors (usually a `String`-like type, `Text` in
