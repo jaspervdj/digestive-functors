@@ -16,6 +16,7 @@ module Text.Digestive.Lucid.Html5
     , form
     , errorList
     , childErrorList
+    , ifSingleton
     ) where
 
 
