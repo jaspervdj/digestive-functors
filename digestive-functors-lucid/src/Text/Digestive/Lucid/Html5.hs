@@ -37,7 +37,7 @@ ifSingleton False _ = []
 ifSingleton True  a = [a]
 
 --------------------------------------------------------------------------------
-inputText :: Text -> View v -> Html ()
+inputText :: Monad m => Text -> View v -> HtmlT m ()
 inputText ref view = input_
     [ type_    "text"
     , id_      ref'
@@ -49,11 +49,12 @@ inputText ref view = input_
 
 
 --------------------------------------------------------------------------------
-inputTextArea :: Maybe Int      -- ^ Rows
-              -> Maybe Int      -- ^ Columns
-              -> Text           -- ^ Form path
-              -> View (Html ()) -- ^ View
-              -> Html ()        -- ^ Resulting HTML
+inputTextArea :: ( Monad m
+                 ) => Maybe Int         -- ^ Rows
+                   -> Maybe Int         -- ^ Columns
+                   -> Text              -- ^ Form path
+                   -> View (HtmlT m ()) -- ^ View
+                   -> HtmlT m ()        -- ^ Resulting HTML
 inputTextArea r c ref view = textarea_
     ([ id_     ref'
      , name_   ref'
@@ -68,7 +69,7 @@ inputTextArea r c ref view = textarea_
 
 
 --------------------------------------------------------------------------------
-inputPassword :: Text -> View v -> Html ()
+inputPassword :: Monad m => Text -> View v -> HtmlT m ()
 inputPassword ref view = input_
     [ type_    "password"
     , id_      ref'
@@ -80,7 +81,7 @@ inputPassword ref view = input_
 
 
 --------------------------------------------------------------------------------
-inputHidden :: Text -> View v -> Html ()
+inputHidden :: Monad m => Text -> View v -> HtmlT m ()
 inputHidden ref view = input_
     [ type_    "hidden"
     , id_      ref'
@@ -92,7 +93,7 @@ inputHidden ref view = input_
 
 
 --------------------------------------------------------------------------------
-inputSelect :: Text -> View (Html ()) -> Html ()
+inputSelect :: Monad m => Text -> View (HtmlT m ()) -> HtmlT m ()
 inputSelect ref view = select_
     [ id_   ref'
     , name_ ref'
@@ -105,10 +106,11 @@ inputSelect ref view = select_
 
 
 --------------------------------------------------------------------------------
-inputRadio :: Bool           -- ^ Add @br@ tags?
-           -> Text           -- ^ Form path
-           -> View (Html ()) -- ^ View
-           -> Html ()        -- ^ Resulting HTML
+inputRadio :: ( Monad m
+              ) => Bool              -- ^ Add @br@ tags?
+                -> Text              -- ^ Form path
+                -> View (HtmlT m ()) -- ^ View
+                -> HtmlT m ()        -- ^ Resulting HTML
 inputRadio brs ref view = forM_ choices $ \(i, c, sel) -> do
     let val = value i
     input_ $ [type_ "radio", value_ val, id_ val, name_ ref']
@@ -122,7 +124,7 @@ inputRadio brs ref view = forM_ choices $ \(i, c, sel) -> do
 
 
 --------------------------------------------------------------------------------
-inputCheckbox :: Text -> View (Html ()) -> Html ()
+inputCheckbox :: Monad m => Text -> View (HtmlT m ()) -> HtmlT m ()
 inputCheckbox ref view = input_ $
     [ type_ "checkbox"
     , id_   ref'
@@ -134,7 +136,7 @@ inputCheckbox ref view = input_ $
 
 
 --------------------------------------------------------------------------------
-inputFile :: Text -> View (Html ()) -> Html ()
+inputFile :: Monad m => Text -> View (HtmlT m ()) -> HtmlT m ()
 inputFile ref view = input_
     [ type_  "file"
     , id_    ref'
@@ -147,7 +149,7 @@ inputFile ref view = input_
 
 
 --------------------------------------------------------------------------------
-inputSubmit :: Text -> Html ()
+inputSubmit :: Monad m => Text -> HtmlT m ()
 inputSubmit value = input_
     [ type_  "submit"
     , value_ value
@@ -155,7 +157,7 @@ inputSubmit value = input_
 
 
 --------------------------------------------------------------------------------
-label :: Text -> View v -> Html () -> Html ()
+label :: Monad m => Text -> View v -> HtmlT m () -> HtmlT m ()
 label ref view value = label_
     [ for_ ref'
     ] $ value
@@ -164,7 +166,7 @@ label ref view value = label_
 
 
 --------------------------------------------------------------------------------
-form :: View (Html ()) -> Text -> Html () -> Html ()
+form :: Monad m => View (HtmlT m ()) -> Text -> HtmlT m () -> HtmlT m ()
 form view action = form_
     [ method_  "POST"
     , enctype_ (pack $ show $ viewEncType view)
@@ -173,7 +175,7 @@ form view action = form_
 
 
 --------------------------------------------------------------------------------
-errorList :: Text -> View (Html ()) -> Html ()
+errorList :: Monad m => Text -> View (HtmlT m ()) -> HtmlT m ()
 errorList ref view = case errors ref view of
     []   -> mempty
     errs -> ul_ [class_ "digestive-functors-error-list"] $ forM_ errs $ \e ->
@@ -181,7 +183,7 @@ errorList ref view = case errors ref view of
 
 
 --------------------------------------------------------------------------------
-childErrorList :: Text -> View (Html ()) -> Html ()
+childErrorList :: Monad m => Text -> View (HtmlT m ()) -> HtmlT m ()
 childErrorList ref view = case childErrors ref view of
     []   -> mempty
     errs -> ul_ [class_ "digestive-functors-error-list"] $ forM_ errs $ \e ->
