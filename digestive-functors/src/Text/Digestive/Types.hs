@@ -1,4 +1,6 @@
 --------------------------------------------------------------------------------
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- | Core types used internally
 module Text.Digestive.Types
@@ -14,7 +16,7 @@ module Text.Digestive.Types
 
 
 --------------------------------------------------------------------------------
-import           Control.Applicative (Applicative(..))
+import           Control.Applicative (Applicative (..))
 import           Data.Monoid         (Monoid, mappend)
 
 
@@ -48,7 +50,7 @@ instance Monoid v => Applicative (Result v) where
 
 
 --------------------------------------------------------------------------------
-instance Monad (Result v) where
+instance Monoid v => Monad (Result v) where
     return x          = Success x
     (Error x)   >>= _ = Error x
     (Success x) >>= f = f x

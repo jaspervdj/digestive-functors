@@ -526,7 +526,7 @@ dfSubView getView = do
             (ref, _) <- getRefAttributes' tfp node Nothing
             let view' = subView ref view
             putPromise p2 view'
-    res <- withLocalSplices (digestiveSplices (getPromise p2)) noSplices $
+    res <- withLocalSplices (digestiveSplices (getPromise p2)) mempty $
              runNodeList $ X.childNodes node
     return $ action <> res
 

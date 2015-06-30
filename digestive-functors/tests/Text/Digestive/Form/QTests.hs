@@ -22,7 +22,9 @@ import           Text.Digestive.Types
 import           Control.Monad
 import           Control.Monad.Identity
 import           Data.Maybe
+import           Data.Monoid                          (Monoid)
 import           Data.Text                            (Text, pack)
+
 
 --------------------------------------------------------------------------------
 
@@ -65,7 +67,7 @@ prop_refmoncons ref ft = isJust ref' && fromJust ref' == ref
 
 --------------------------------------------------------------------------------
 -- Limited arbitrary instance for form trees
-instance (Monad t, Monad m, Arbitrary a) => Arbitrary (FormTree t v m a)
+instance (Monad t, Monad m, Monoid v, Arbitrary a) => Arbitrary (FormTree t v m a)
    where arbitrary = sized (innerarb $ liftM Pure arbitrary)
             where innerarb g 0 = g
                   innerarb g n = innerarb g' (n-1)

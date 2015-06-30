@@ -97,7 +97,7 @@ data FormTree t v m a where
 
 
 --------------------------------------------------------------------------------
-instance Monad m => Functor (FormTree t v m) where
+instance (Monad m, Monoid v) => Functor (FormTree t v m) where
     fmap = transform . (return .) . (return .)
 
 
@@ -157,7 +157,7 @@ showForm form = case form of
 
 --------------------------------------------------------------------------------
 -- | Map on the value type
-transform :: Monad m
+transform :: (Monad m, Monoid v)
           => (a -> m (Result v b)) -> FormTree t v m a -> FormTree t v m b
 transform f (Map g x) = Map (\y -> g y `bindResult` f) x
 transform f x         = Map f x
@@ -392,11 +392,11 @@ forOptional f x  = case (x) of
     Just x'  -> case (f x') of
         Success x'' -> Success (Just x'')
         Error   x'' -> Error x''
-         
+
 
 --------------------------------------------------------------------------------
 -- | Utility: bind for 'Result' inside another monad
-bindResult :: Monad m
+bindResult :: (Monad m, Monoid v)
            => m (Result v a) ->
            (a -> m (Result v b)) ->
            m (Result v b)
@@ -409,7 +409,7 @@ bindResult mx f = do
 
 --------------------------------------------------------------------------------
 -- | Debugging purposes
-debugFormPaths :: Monad m => FormTree Identity v m a -> [Path]
+debugFormPaths :: (Monad m, Monoid v) => FormTree Identity v m a -> [Path]
 debugFormPaths (Pure _)       = [[]]
 debugFormPaths (App x y)      = debugFormPaths x ++ debugFormPaths y
 debugFormPaths (Map _ x)      = debugFormPaths x
