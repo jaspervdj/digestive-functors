@@ -14,7 +14,7 @@ module Text.Digestive.Form.Internal.Field
 
 --------------------------------------------------------------------------------
 import           Control.Arrow        (second)
-import           Data.Maybe           (fromMaybe, listToMaybe)
+import           Data.Maybe           (fromMaybe, listToMaybe, mapMaybe)
 import           Data.Text            (Text)
 
 
@@ -32,7 +32,7 @@ data Field v a where
     -- the list.
     Choice    :: [(Text, [(Text, (a, v))])] -> Int -> Field v (a, Int)
     Bool      :: Bool -> Field v Bool
-    File      :: Field v (Maybe FilePath)
+    File      :: Field v [FilePath]
 
 
 --------------------------------------------------------------------------------
@@ -73,8 +73,11 @@ evalField _    _                 (Choice ls' x) =
 evalField Get  _                 (Bool x)      = x
 evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
-evalField Post (FileInput x : _) File          = Just x
-evalField _    _                 File          = Nothing
+evalField Post xs                File          = mapMaybe maybeFile xs
+  where
+    maybeFile (FileInput x) = Just x
+    maybeFile _             = Nothing
+evalField _    _                 File          = []
 
 
 --------------------------------------------------------------------------------
