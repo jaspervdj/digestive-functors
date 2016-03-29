@@ -140,10 +140,8 @@ inputFile ref view = H.input
     ! A.type_ "file"
     ! A.id    (H.toValue ref')
     ! A.name  (H.toValue ref')
-    ! A.value (H.toValue value)
   where
-    ref'  = absoluteRef ref view
-    value = fromMaybe "" $ fieldInputFile ref view
+    ref' = absoluteRef ref view
 
 
 --------------------------------------------------------------------------------
