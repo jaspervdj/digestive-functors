@@ -1,0 +1,11 @@
+resolver: lts-5.10
+extra-deps: []
+flags: {}
+extra-package-dbs: []
+
+packages:
+  - digestive-functors/
+  - digestive-functors-blaze/
+  - digestive-functors-happstack/
+  - digestive-functors-heist/
+  - digestive-functors-snap/
