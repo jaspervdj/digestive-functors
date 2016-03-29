@@ -397,12 +397,17 @@ readTransform err = return . maybe (Error err) return . readMaybe
 
 
 --------------------------------------------------------------------------------
--- | Dynamic lists
+-- | Dynamic lists.
+--
+-- The type is a less restrictive version of:
+--
+-- > Formlet a -> Formlet [a]
 listOf :: (Monad m, Monoid v)
-       => Formlet v m a
-       -> Formlet v m [a]
+       => (Maybe a -> Form v m b)
+       -> (Maybe [a] -> Form v m [b])
 listOf single def =
     List (fmap single defList) (indicesRef .: listIndices ixs)
+
   where
     ixs = case def of
         Nothing -> [0]
