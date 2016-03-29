@@ -260,14 +260,14 @@ fieldInputBool ref (View _ _ form input _ method) =
 
 --------------------------------------------------------------------------------
 -- | Return the FilePath referred to by the given serialized path, if set.
-fieldInputFile :: forall v. Text -> View v -> Maybe FilePath
+fieldInputFile :: forall v. Text -> View v -> [FilePath]
 fieldInputFile ref (View _ _ form input _ method) =
     queryField path form eval'
   where
     path       = toPath ref
     givenInput = lookupInput path input
 
-    eval' :: Field v b -> Maybe FilePath
+    eval' :: Field v b -> [FilePath]
     eval' field = case field of
         File -> evalField method givenInput File
         f    -> error $ T.unpack ref ++ ": expected (File), " ++

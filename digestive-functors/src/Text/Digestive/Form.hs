@@ -27,6 +27,7 @@ module Text.Digestive.Form
     , groupedChoiceWith'
     , bool
     , file
+    , fileMultiple
 
       -- * Optional forms
     , optionalText
@@ -64,7 +65,7 @@ module Text.Digestive.Form
 import           Control.Applicative
 import           Control.Monad                      (liftM, liftM2)
 import           Data.List                          (findIndex)
-import           Data.Maybe                         (fromMaybe)
+import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Data.Monoid                        (Monoid)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
@@ -203,7 +204,15 @@ bool = Pure . Bool . fromMaybe False
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for file selection
 file :: (Monad m, Monoid v) => Form v m (Maybe FilePath)
-file = Pure File
+file = listToMaybe <$> Pure File
+
+
+--------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for multiple file selection.  Intended for use with
+-- the @multiple@ attribute, which allows for multiple files to be uploaded
+-- with a single input element.
+fileMultiple :: (Monad m, Monoid v) => Form v m [FilePath]
+fileMultiple = Pure File
 
 
 --------------------------------------------------------------------------------

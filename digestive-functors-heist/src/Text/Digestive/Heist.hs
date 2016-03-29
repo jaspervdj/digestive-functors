@@ -299,9 +299,8 @@ dfInputFile :: Monad m => View Text -> Splice m
 dfInputFile view = do
     (ref, attrs) <- getRefAttributes Nothing
     let ref'  = absoluteRef ref view
-        value = maybe "" T.pack $ fieldInputFile ref view
     return $ makeElement "input" [] $ addAttrs attrs $ setDisabled ref view
-        [("type", "file"), ("id", ref'), ("name", ref'), ("value", value)]
+        [("type", "file"), ("id", ref'), ("name", ref')]
 
 
 --------------------------------------------------------------------------------

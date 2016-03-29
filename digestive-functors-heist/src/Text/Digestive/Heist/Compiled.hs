@@ -336,10 +336,8 @@ dfInputCheckbox = dfMaster $ \ref attrs view -> do
 dfInputFile :: Monad m => RuntimeSplice m (View v) -> Splice m
 dfInputFile = dfMaster $ \ref attrs view -> do
     let ref'  = absoluteRef ref view
-        value = maybe "" T.pack $ fieldInputFile ref view
         e = makeElement "input" [] $ addAttrs attrs $
-            [ ("type", "file"), ("id", ref')
-            , ("name", ref'), ("value", value)]
+            [("type", "file"), ("id", ref'), ("name", ref')]
     return $ X.renderHtmlFragment X.UTF8 e
 
 
