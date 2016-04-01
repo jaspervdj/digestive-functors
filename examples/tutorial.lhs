@@ -191,7 +191,7 @@ answer is yes -- but having `View Html` allows us to write these views more
 easily with the `digestive-functors-blaze` library. Fortunately, we will be able
 to fix this using the `Functor` instance of `View`.
 
-    fmap :: Monad m => (v -> w) -> View v -> View w
+    fmap :: (v -> w) -> View v -> View w
 
 A backend
 ---------
