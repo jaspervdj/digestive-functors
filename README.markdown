@@ -11,7 +11,7 @@ can also be used for other tasks.
 Help
 ----
 
-Checkout the `tutorial.lhs` example in the `examples` folder.
+Checkout the [`tutorial.lhs` example in the `examples` folder](/examples/tutorial.lhs).
 
 Directory layout
 ----------------
