@@ -63,11 +63,11 @@ snapFiles config = do
         temporaryDirectory config
 
     -- Actually do the work...
-    Snap.handleFileUploads tmpDir (uploadPolicy config) (partPolicy config) $
-        fmap catMaybes . mapM (storeFile tmpDir)
+    fmap catMaybes $ Snap.handleFileUploads tmpDir (uploadPolicy config) (partPolicy config) $
+        storeFile tmpDir
   where
-    storeFile _   (_,        Left _)     = return Nothing
-    storeFile tmp (partinfo, Right path) = do
+    storeFile _   _        (Left _)      = return Nothing
+    storeFile tmp partinfo (Right path)  = do
         let newPath = tmp </> "_" ++ takeFileName path ++
                 maybe "" B.unpack (Snap.partFileName partinfo)
         liftIO $ copyFile path newPath
