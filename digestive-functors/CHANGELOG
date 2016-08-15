@@ -1,3 +1,6 @@
+- 0.8.1.0
+    * Add support for a list of files via `<input type="file" multiple />`
+
 - 0.8.0.1
     * Bump `HUnit` dependency to allow up to `HUnit-1.3`
 
