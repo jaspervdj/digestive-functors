@@ -14,7 +14,7 @@ module Text.Digestive.Form.Internal.Field
 
 --------------------------------------------------------------------------------
 import           Control.Arrow        (second)
-import           Data.Maybe           (fromMaybe, listToMaybe, mapMaybe)
+import           Data.Maybe           (listToMaybe, mapMaybe, catMaybes)
 import           Data.Text            (Text)
 
 
@@ -27,10 +27,10 @@ import           Text.Digestive.Types
 data Field v a where
     Singleton :: a -> Field v a
     Text      :: Text -> Field v Text
-    -- A list of identifier, value, view. Then we have the default index in
-    -- the list. The return value has the actual value as well as the index in
-    -- the list.
-    Choice    :: [(Text, [(Text, (a, v))])] -> Int -> Field v (a, Int)
+    -- A list of (group name, [(identifier, (value, view))]).
+    -- Then we have the default index in the list.
+    -- The return value has the actual value as well as the index in the list.
+    Choice    :: [(Text, [(Text, (a, v))])] -> [Int] -> Field v [(a, Int)]
     Bool      :: Bool -> Field v Bool
     File      :: Field v [FilePath]
 
@@ -59,17 +59,20 @@ evalField :: Method       -- ^ Get/Post
 evalField _    _                 (Singleton x) = x
 evalField _    (TextInput x : _) (Text _)      = x
 evalField _    _                 (Text x)      = x
-evalField _    (TextInput x : _) (Choice ls' y) =
-  let ls = concat (map snd ls') in
-    fromMaybe (fst (snd (ls !! y)), y) $ do
+evalField _ ts@(TextInput _ : _) (Choice ls _) =
+  let ls' = concat (map snd ls) in
+    catMaybes $
+      map (\(TextInput x) -> do
         -- Expects input in the form of "foo.bar.2". This is not needed for
         -- <select> fields, but we need it for labels for radio buttons.
-        t      <- listToMaybe $ reverse $ toPath x
-        (c, i) <- lookupIdx t ls
-        return (fst c, i)
-evalField _    _                 (Choice ls' x) =
-  let ls = concat (map snd ls') in
-    (fst (snd (ls !! x)), x)
+        t <- listToMaybe . reverse $ toPath x
+        (c, i) <- lookupIdx t ls'
+        return (fst c, i)) ts
+evalField Get  _                 (Choice ls x) =
+  -- this populates the default values when displaying a view
+  let ls' = concat (map snd ls) in
+    map (\i -> (fst $ snd $ ls' !! i, i)) x
+evalField Post _                 (Choice _  _) = []
 evalField Get  _                 (Bool x)      = x
 evalField Post (TextInput x : _) (Bool _)      = x == "on"
 evalField Post _                 (Bool _)      = False
