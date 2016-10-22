@@ -145,6 +145,7 @@ choiceWith items def = choiceWith' items def'
 -- | A version of 'choiceWith' for when there is no good 'Eq' instance.
 choiceWith'
     :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe Int -> Form v m a
+choiceWith' []    _   = error "choice expects a list with at least one item in it"
 choiceWith' items def = fromMaybe defaultItem . listToMaybe . map fst <$> (Pure $ Choice [("", items)] def')
   where
     defaultItem = fst $ snd $ head items
@@ -239,7 +240,10 @@ groupedChoiceWith' :: (Monad m, Monoid v)
                    => [(Text, [(Text, (a, v))])]
                    -> Maybe Int
                    -> Form v m a
-groupedChoiceWith' items def = head . map fst <$> (Pure $ Choice items def')
+groupedChoiceWith' items def =
+  case concatMap snd items of
+    [] -> error "groupedChoice expects a list with at least one item in it"
+    _  -> head . map fst <$> (Pure $ Choice items def')
   where
     def' = case def of
       Just x  -> [x]
