@@ -124,11 +124,11 @@ tests = testGroup "Text.Digestive.View.Tests"
                 ]
 
     , testCase "subViews length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "subViews after subView length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ subView "pokemon" $
             runTrainerM $ getForm "f" catchForm
 
