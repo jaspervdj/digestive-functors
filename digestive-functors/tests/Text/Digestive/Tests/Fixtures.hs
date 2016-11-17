@@ -59,21 +59,32 @@ runTrainerM = flip runReader 20
 
 
 --------------------------------------------------------------------------------
-data Type = Water | Fire | Leaf
+data Type = Water | Fire | Leaf | Rock
     deriving (Eq, Show)
 
 
 --------------------------------------------------------------------------------
+typeChoices :: [(Type, Text)]
+typeChoices = [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf"), (Rock, "Rock")]
+
+
+--------------------------------------------------------------------------------
 typeForm :: Monad m => Form Text m Type
-typeForm = choice [(Water, "Water"), (Fire, "Fire"), (Leaf, "Leaf")] Nothing
+typeForm = choice typeChoices Nothing
+
+
+--------------------------------------------------------------------------------
+weaknessForm :: Monad m => Form Text m [Type]
+weaknessForm = choiceMultiple typeChoices Nothing
 
 
 --------------------------------------------------------------------------------
 data Pokemon = Pokemon
-    { pokemonName  :: Text
-    , pokemonLevel :: Maybe Int
-    , pokemonType  :: Type
-    , pokemonRare  :: Bool
+    { pokemonName     :: Text
+    , pokemonLevel    :: Maybe Int
+    , pokemonType     :: Type
+    , pokemonWeakness :: [Type]
+    , pokemonRare     :: Bool
     } deriving (Eq, Show)
 
 
@@ -93,10 +104,11 @@ levelForm =
 --------------------------------------------------------------------------------
 pokemonForm :: Form Text TrainerM Pokemon
 pokemonForm = Pokemon
-    <$> "name"  .: validate isPokemon (text Nothing)
-    <*> "level" .: levelForm
-    <*> "type"  .: typeForm
-    <*> "rare"  .: bool Nothing
+    <$> "name"     .: validate isPokemon (text Nothing)
+    <*> "level"    .: levelForm
+    <*> "type"     .: typeForm
+    <*> "weakness" .: weaknessForm
+    <*> "rare"     .: bool Nothing
   where
     definitelyNoPokemon = ["dog", "cat"]
     isPokemon name
@@ -176,9 +188,9 @@ catchForm = check "You need a better ball" canCatch $ Catch
 
 --------------------------------------------------------------------------------
 canCatch :: Catch -> Bool
-canCatch (Catch (Pokemon _ _ _ False) _)      = True
-canCatch (Catch (Pokemon _ _ _ True)  Ultra)  = True
-canCatch (Catch (Pokemon _ _ _ True)  Master) = True
+canCatch (Catch (Pokemon _ _ _ _ False) _)      = True
+canCatch (Catch (Pokemon _ _ _ _ True)  Ultra)  = True
+canCatch (Catch (Pokemon _ _ _ _ True)  Master) = True
 canCatch _                                    = False
 
 

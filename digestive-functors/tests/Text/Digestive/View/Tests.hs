@@ -33,18 +33,22 @@ assertError x = handle (\(_ :: SomeException) -> H.assert True) $
 tests :: Test
 tests = testGroup "Text.Digestive.View.Tests"
     [ testCase "Simple postForm" $ (@=?)
-        (Just (Pokemon "charmander" (Just 5) Fire False)) $
+        (Just (Pokemon "charmander" (Just 5) Fire [Water, Rock] False)) $
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
-            [ ("f.name",  "charmander")
-            , ("f.level", "5")
-            , ("f.type",  "type.1")
+            [ ("f.name",     "charmander")
+            , ("f.level",    "5")
+            , ("f.type",     "type.1")
+            , ("f.weakness", "weakness.0")
+            , ("f.weakness", "weakness.3")
             ]
 
     , testCase "optional unspecified" $ (@=?)
-        (Just (Pokemon "magmar" Nothing Fire False)) $
+        (Just (Pokemon "magmar" Nothing Fire [Water, Rock] False)) $
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
-            [ ("f.name",  "magmar")
-            , ("f.type",  "type.1")
+            [ ("f.name",     "magmar")
+            , ("f.type",     "type.1")
+            , ("f.weakness", "weakness.0")
+            , ("f.weakness", "weakness.3")
             ]
 
     , testCase "stringRead float" $ (@=?)
@@ -91,12 +95,14 @@ tests = testGroup "Text.Digestive.View.Tests"
             postForm "f" pokemonForm $ testEnv [("f.type",  "type.2")]
 
     , testCase "Nested postForm" $ (@=?)
-        (Just (Catch (Pokemon "charmander" (Just 5) Fire False) Ultra)) $
+        (Just (Catch (Pokemon "charmander" (Just 5) Fire [Water, Rock] False) Ultra)) $
         snd $ runTrainerM $ postForm "f" catchForm $ testEnv
-            [ ("f.pokemon.name",  "charmander")
-            , ("f.pokemon.level", "5")
-            , ("f.pokemon.type",  "type.1")
-            , ("f.ball",          "ball.2")
+            [ ("f.pokemon.name",     "charmander")
+            , ("f.pokemon.level",    "5")
+            , ("f.pokemon.type",     "type.1")
+            , ("f.pokemon.weakness", "weakness.0")
+            , ("f.pokemon.weakness", "weakness.3")
+            , ("f.ball",             "ball.2")
             ]
 
     , testCase "subView errors" $ (@=?)
@@ -118,11 +124,11 @@ tests = testGroup "Text.Digestive.View.Tests"
                 ]
 
     , testCase "subViews length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ runTrainerM $ getForm "f" pokemonForm
 
     , testCase "subViews after subView length" $ (@=?)
-        4 $
+        5 $
         length $ subViews $ subView "pokemon" $
             runTrainerM $ getForm "f" catchForm
 

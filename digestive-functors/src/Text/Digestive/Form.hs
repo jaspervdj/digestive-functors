@@ -21,10 +21,18 @@ module Text.Digestive.Form
     , choice'
     , choiceWith
     , choiceWith'
+    , choiceMultiple
+    , choiceMultiple'
+    , choiceWithMultiple
+    , choiceWithMultiple'
     , groupedChoice
     , groupedChoice'
     , groupedChoiceWith
     , groupedChoiceWith'
+    , groupedChoiceMultiple
+    , groupedChoiceMultiple'
+    , groupedChoiceWithMultiple
+    , groupedChoiceWithMultiple'
     , bool
     , file
     , fileMultiple
@@ -65,7 +73,7 @@ module Text.Digestive.Form
 import           Control.Applicative
 import           Control.Monad                      (liftM, liftM2)
 import           Data.List                          (findIndex)
-import           Data.Maybe                         (fromMaybe, listToMaybe)
+import           Data.Maybe                         (fromMaybe, listToMaybe, catMaybes)
 import           Data.Monoid                        (Monoid)
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
@@ -108,7 +116,7 @@ stringRead err = transform (readTransform err) . string . fmap show
 
 
 --------------------------------------------------------------------------------
--- | Returns a 'Formlet' for a value restricted to
+-- | Returns a 'Formlet' for a value restricted to a single value from
 -- the provided list of value-message tuples
 choice :: (Eq a, Monad m, Monoid v) => [(a, v)] -> Formlet v m a
 choice items def = choiceWith (zip makeRefs items) def
@@ -137,13 +145,55 @@ choiceWith items def = choiceWith' items def'
 -- | A version of 'choiceWith' for when there is no good 'Eq' instance.
 choiceWith'
     :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe Int -> Form v m a
-choiceWith' items def = fmap fst $ Pure $ Choice [("", items)] def'
+choiceWith' []    _   = error "choice expects a list with at least one item in it"
+choiceWith' items def = fromMaybe defaultItem . listToMaybe . map fst <$> (Pure $ Choice [("", items)] def')
   where
-    def' = fromMaybe 0 def
+    defaultItem = fst $ snd $ head items
+    def' = case def of
+      Just x  -> [x]
+      Nothing -> [0]
 
 
 --------------------------------------------------------------------------------
--- | Returns a 'Formlet' for named groups of choices.
+-- | Returns a 'Formlet' for a value restricted to multiple values from
+-- the provided list of value-message tuples.  Intended for use with the
+-- @multiple@ attribute for select elements.  Allows for an empty result.
+choiceMultiple :: (Eq a, Monad m, Monoid v) => [(a, v)] -> Formlet v m [a]
+choiceMultiple items def = choiceWithMultiple (zip makeRefs items) def
+
+
+--------------------------------------------------------------------------------
+-- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
+-- can use this function, which takes an index in the list as default.
+choiceMultiple' :: (Monad m, Monoid v) => [(a, v)] -> Maybe [Int] -> Form v m [a]
+choiceMultiple' items def = choiceWithMultiple' (zip makeRefs items) def
+
+
+--------------------------------------------------------------------------------
+-- | Allows you to assign your own values: these values will be used in the
+-- resulting HTML instead of the default @[0 ..]@. This fixes some race
+-- conditions that might otherwise appear, e.g. if new choice items are added to
+-- some database while a user views and submits the form...
+choiceWithMultiple
+    :: (Eq a, Monad m, Monoid v) => [(Text, (a, v))] -> Formlet v m [a]
+choiceWithMultiple items def = choiceWithMultiple' items def'
+  where
+    def' = def >>= Just . catMaybes . map (\d -> findIndex ((== d) . fst . snd) items)
+
+
+--------------------------------------------------------------------------------
+-- | A version of 'choiceWithMultiple' for when there is no good 'Eq' instance.
+choiceWithMultiple'
+    :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe [Int] -> Form v m [a]
+choiceWithMultiple' items def = map fst <$> (Pure $ Choice [("", items)] def')
+  where
+    def' = case def of
+      Just x  -> x
+      Nothing -> []
+
+
+--------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for a single value from named groups of choices.
 groupedChoice
     :: (Eq a, Monad m, Monoid v) => [(Text, [(a, v)])] -> Formlet v m a
 groupedChoice items def =
@@ -190,10 +240,60 @@ groupedChoiceWith' :: (Monad m, Monoid v)
                    => [(Text, [(Text, (a, v))])]
                    -> Maybe Int
                    -> Form v m a
-groupedChoiceWith' items def = fmap fst $ Pure $ Choice items def'
+groupedChoiceWith' items def =
+  case concatMap snd items of
+    [] -> error "groupedChoice expects a list with at least one item in it"
+    _  -> head . map fst <$> (Pure $ Choice items def')
   where
-    def' = fromMaybe 0 def
+    def' = case def of
+      Just x  -> [x]
+      Nothing -> [0]
 
+
+--------------------------------------------------------------------------------
+-- | Returns a 'Formlet' for multiple values from named groups of choices.
+-- Intended for use with the @multiple@ attribute for select elements that
+-- have optgroups.  Allows for an empty result.
+groupedChoiceMultiple
+    :: (Eq a, Monad m, Monoid v) => [(Text, [(a, v)])] -> Formlet v m [a]
+groupedChoiceMultiple items def =
+    groupedChoiceWithMultiple (mkGroupedRefs items makeRefs) def
+
+
+--------------------------------------------------------------------------------
+-- | Sometimes there is no good 'Eq' instance for 'choice'. In this case, you
+-- can use this function, which takes an index in the list as default.
+groupedChoiceMultiple'
+    :: (Monad m, Monoid v) => [(Text, [(a, v)])] -> Maybe [Int] -> Form v m [a]
+groupedChoiceMultiple' items def =
+    groupedChoiceWithMultiple' (mkGroupedRefs items makeRefs) def
+
+
+--------------------------------------------------------------------------------
+-- | Allows you to assign your own values: these values will be used in the
+-- resulting HTML instead of the default @[0 ..]@. This fixes some race
+-- conditions that might otherwise appear, e.g. if new choice items are added to
+-- some database while a user views and submits the form...
+groupedChoiceWithMultiple :: (Eq a, Monad m, Monoid v)
+                  => [(Text, [(Text, (a, v))])]
+                  -> Formlet v m [a]
+groupedChoiceWithMultiple items def = groupedChoiceWithMultiple' items def'
+  where
+    def' = def >>= Just . catMaybes . map (\d -> findIndex ((== d) . fst . snd) $
+                            concat $ map snd items)
+
+
+--------------------------------------------------------------------------------
+-- | Low-level support for grouped choice.
+groupedChoiceWithMultiple' :: (Monad m, Monoid v)
+                   => [(Text, [(Text, (a, v))])]
+                   -> Maybe [Int]
+                   -> Form v m [a]
+groupedChoiceWithMultiple' items def = map fst <$> (Pure $ Choice items def')
+  where
+    def' = case def of
+      Just x  -> x
+      Nothing -> []
 
 --------------------------------------------------------------------------------
 -- | Returns a 'Formlet' for binary choices
