@@ -89,7 +89,7 @@ Test-suite digestive-functors-tests
 
   Build-depends:
     HUnit                      >= 1.2 && < 1.4,
-    QuickCheck                 >= 2.5 && < 2.9,
+    QuickCheck                 >= 2.5 && < 2.10,
     test-framework             >= 0.4 && < 0.9,
     test-framework-hunit       >= 0.3 && < 0.4,
     test-framework-quickcheck2 >= 0.3 && < 0.4,
