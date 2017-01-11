@@ -57,6 +57,7 @@ import           Control.Monad         (liftM, mplus)
 import           Control.Monad.Trans
 import           Data.Function         (on)
 import           Data.List             (unionBy)
+import           Data.Map.Syntax       ((##))
 import           Data.Maybe            (fromMaybe)
 import           Data.Monoid           (mappend)
 import           Data.Text             (Text)
