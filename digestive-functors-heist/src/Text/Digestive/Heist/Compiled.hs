@@ -61,6 +61,7 @@ import           Control.Monad            (mplus)
 import           Control.Monad.Trans      (MonadIO, liftIO)
 import           Data.Function            (on)
 import           Data.List                (unionBy)
+import           Data.Map.Syntax          ((##))
 import           Data.Monoid              (mappend, mconcat, mempty, (<>))
 import           Data.Text                (Text)
 import qualified Data.Text                as T
