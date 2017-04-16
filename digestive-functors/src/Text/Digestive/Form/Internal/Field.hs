@@ -15,6 +15,8 @@ module Text.Digestive.Form.Internal.Field
 --------------------------------------------------------------------------------
 import           Control.Arrow        (second)
 import           Data.Maybe           (listToMaybe, mapMaybe, catMaybes)
+import           Data.Functor         ((<$>))
+import           Data.List            (findIndex)
 import           Data.Text            (Text)
 
 
@@ -62,12 +64,8 @@ evalField _    _                 (Text x)      = x
 evalField _ ts@(TextInput _ : _) (Choice ls _) =
   let ls' = concat (map snd ls) in
     catMaybes $
-      map (\(TextInput x) -> do
-        -- Expects input in the form of "foo.bar.2". This is not needed for
-        -- <select> fields, but we need it for labels for radio buttons.
-        t <- listToMaybe . reverse $ toPath x
-        (c, i) <- lookupIdx t ls'
-        return (fst c, i)) ts
+      map (\(TextInput x) ->
+        (\i -> (fst $ snd $ ls' !! i, i)) <$> findIndex (isSelectedChoice x . fst) ls') ts
 evalField Get  _                 (Choice ls x) =
   -- this populates the default values when displaying a view
   let ls' = concat (map snd ls) in
@@ -95,12 +93,15 @@ fieldMapView _ File            = File
 
 
 --------------------------------------------------------------------------------
--- | Retrieve the value and position of the value referenced to by the given
--- key in an association list, if the key is in the list.
-lookupIdx :: Eq k => k -> [(k, v)] -> Maybe (v, Int)
-lookupIdx key = go 0
-  where
-    go _  []        = Nothing
-    go !i ((k, v) : xs)
-        | key == k  = Just (v, i)
-        | otherwise = go (i + 1) xs
+-- | Determines if the choiceVal is equal to the selectedVal.  Works with older
+-- versions that submit "foo.bar.2" rather than "2" for Choice fields.
+-- > isSelectedChoice "0" "0" == True
+-- > isSelectedChoice "foo.bar.0" "0" == True
+-- > isSelectedChoice "foo.bar.10" "0" == False
+isSelectedChoice :: Text -> Text -> Bool
+isSelectedChoice selectedVal choiceVal
+  | selectedVal == choiceVal = True
+  | otherwise =
+    case listToMaybe (reverse $ toPath selectedVal) of
+      Just x -> x == choiceVal
+      _      -> False
