@@ -351,10 +351,9 @@ dfInputSelect = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
         kids     = map makeOption choices
-        value i  = ref' <> "." <> i
 
         makeOption (i, c, sel) = X.Element "option"
-            (attr sel ("selected", "selected") [("value", value i)])
+            (attr sel ("selected", "selected") [("value", i)])
             [X.TextNode c]
 
         e = makeElement "select" kids $ addAttrs attrs
@@ -371,12 +370,11 @@ dfInputSelectGroup = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoiceGroup ref view
         kids     = map makeGroup choices
-        value i  = ref' <> "." <> i
 
         makeGroup (name, options) = X.Element "optgroup"
             [("label", name)] $ map makeOption options
         makeOption (i, c, sel) = X.Element "option"
-            (attr sel ("selected", "selected") [("value", value i)])
+            (attr sel ("selected", "selected") [("value", i)])
             [X.TextNode c]
 
         e = makeElement "select" kids $ addAttrs attrs
@@ -393,15 +391,14 @@ dfInputRadio = dfMaster $ \ref attrs view -> do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
         kids     = concatMap makeOption choices
-        value i  = ref' <> "." <> i
 
         makeOption (i, c, sel) =
             [ X.Element "input"
                 (attr sel ("checked", "checked") $ addAttrs attrs
-                    [ ("type", "radio"), ("value", value i)
-                    , ("id", value i), ("name", ref')
+                    [ ("type", "radio"), ("value", i)
+                    , ("id", i), ("name", ref')
                     ]) []
-            , X.Element "label" [("for", value i)] [X.TextNode c]
+            , X.Element "label" [("for", i)] [X.TextNode c]
             ]
 
     return $ X.renderHtmlFragment X.UTF8 kids

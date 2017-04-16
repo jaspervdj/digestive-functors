@@ -20,8 +20,7 @@ module Text.Digestive.Blaze.Html5
 
 --------------------------------------------------------------------------------
 import           Control.Monad               (forM_, when)
-import           Data.Maybe                  (fromMaybe)
-import           Data.Monoid                 (mappend, mempty)
+import           Data.Monoid                 (mempty)
 import           Data.Text                   (Text)
 import           Text.Blaze.Html             (Html, (!))
 import qualified Text.Blaze.Html5            as H
@@ -96,12 +95,11 @@ inputSelect ref view = H.select
     ! A.id    (H.toValue ref')
     ! A.name  (H.toValue ref')
     $ forM_ choices $ \(i, c, sel) -> H.option
-        !  A.value (value i)
+        !  A.value (H.toValue i)
         !? (sel, A.selected "selected")
         $ c
   where
     ref'    = absoluteRef ref view
-    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
     choices = fieldInputChoice ref view
 
 
@@ -111,14 +109,13 @@ inputRadio :: Bool       -- ^ Add @br@ tags?
            -> View Html  -- ^ View
            -> Html       -- ^ Resulting HTML
 inputRadio brs ref view = forM_ choices $ \(i, c, sel) -> do
-    let val = value i
+    let val = H.toValue i
     H.input ! A.type_ "radio" ! A.value val ! A.id val ! A.name (H.toValue ref')
         !? (sel, A.checked "checked")
     H.label ! A.for val $ c
     when brs H.br
   where
     ref'    = absoluteRef ref view
-    value i = H.toValue ref' `mappend` "." `mappend` H.toValue i
     choices = fieldInputChoice ref view
 
 
