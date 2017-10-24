@@ -146,12 +146,10 @@ choiceWith items def = choiceWith' items def'
 choiceWith'
     :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe Int -> Form v m a
 choiceWith' []    _   = error "choice expects a list with at least one item in it"
-choiceWith' items def = fromMaybe defaultItem . listToMaybe . map fst <$> (Pure $ Choice [("", items)] def')
+choiceWith' items def = fromMaybe defaultItem . listToMaybe . map fst <$> (Pure $ Choice [("", items)] [def'])
   where
-    defaultItem = fst $ snd $ head items
-    def' = case def of
-      Just x  -> [x]
-      Nothing -> [0]
+    defaultItem = fst $ snd $ items !! def'
+    def' = fromMaybe 0 def
 
 
 --------------------------------------------------------------------------------
@@ -187,9 +185,7 @@ choiceWithMultiple'
     :: (Monad m, Monoid v) => [(Text, (a, v))] -> Maybe [Int] -> Form v m [a]
 choiceWithMultiple' items def = map fst <$> (Pure $ Choice [("", items)] def')
   where
-    def' = case def of
-      Just x  -> x
-      Nothing -> []
+    def' = fromMaybe [] def
 
 
 --------------------------------------------------------------------------------
