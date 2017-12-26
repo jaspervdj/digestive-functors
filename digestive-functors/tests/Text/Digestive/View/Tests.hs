@@ -38,8 +38,8 @@ tests = testGroup "Text.Digestive.View.Tests"
             [ ("f.name",     "charmander")
             , ("f.level",    "5")
             , ("f.type",     "type.1")
-            , ("f.weakness", "weakness.0")
-            , ("f.weakness", "weakness.3")
+            , ("f.weakness", "0") -- NOTE: this is the newer style of Choice values
+            , ("f.weakness", "3")
             ]
 
     , testCase "optional unspecified" $ (@=?)
@@ -47,7 +47,7 @@ tests = testGroup "Text.Digestive.View.Tests"
         snd $ runTrainerM $ postForm "f" pokemonForm $ testEnv
             [ ("f.name",     "magmar")
             , ("f.type",     "type.1")
-            , ("f.weakness", "weakness.0")
+            , ("f.weakness", "weakness.0") -- NOTE: this is the older style of Choice values
             , ("f.weakness", "weakness.3")
             ]
 

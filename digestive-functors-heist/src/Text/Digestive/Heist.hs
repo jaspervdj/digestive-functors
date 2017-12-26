@@ -59,7 +59,6 @@ import           Data.Function         (on)
 import           Data.List             (unionBy)
 import           Data.Map.Syntax       ((##))
 import           Data.Maybe            (fromMaybe)
-import           Data.Monoid           (mappend)
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 import           Heist
@@ -220,10 +219,9 @@ dfInputSelect view = do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
         kids     = map makeOption choices
-        value i  = ref' `mappend` "." `mappend` i
 
         makeOption (i, c, sel) = X.Element "option"
-            (attr sel ("selected", "selected") [("value", value i)])
+            (attr sel ("selected", "selected") [("value", i)])
             [X.TextNode c]
 
     return $ makeElement "select" kids $ addAttrs attrs $ setDisabled ref view
@@ -240,12 +238,11 @@ dfInputSelectGroup view = do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoiceGroup ref view
         kids     = map makeGroup choices
-        value i  = ref' `mappend` "." `mappend` i
 
         makeGroup (name, options) = X.Element "optgroup"
             [("label", name)] $ map makeOption options
         makeOption (i, c, sel) = X.Element "option"
-            (attr sel ("selected", "selected") [("value", value i)])
+            (attr sel ("selected", "selected") [("value", i)])
             [X.TextNode c]
 
     return $ makeElement "select" kids $ addAttrs attrs $ setDisabled ref view
@@ -263,14 +260,13 @@ dfInputRadio view = do
     let ref'     = absoluteRef ref view
         choices  = fieldInputChoice ref view
         kids     = concatMap makeOption choices
-        value i  = ref' `mappend` "." `mappend` i
 
         makeOption (i, c, sel) =
-            [ X.Element "label" [("for", value i)]
+            [ X.Element "label" [("for", i)]
               [ X.Element "input"
                   (attr sel ("checked", "checked") $ addAttrs attrs
-                      [ ("type", "radio"), ("value", value i)
-                      , ("id", value i), ("name", ref')
+                      [ ("type", "radio"), ("value", i)
+                      , ("id", i), ("name", ref')
                       ]) []
               , X.TextNode c]
             ]
