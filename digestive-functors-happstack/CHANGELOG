@@ -1,0 +1,4 @@
+# CHANGELOG
+
+- 0.6.1.2 (2017-12-26)
+    * Bump `happstack-server` to 7.5
