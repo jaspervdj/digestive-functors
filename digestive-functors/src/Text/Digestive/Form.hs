@@ -6,7 +6,7 @@
 {-# LANGUAGE Rank2Types                #-}
 -- | End-user interface - provides the main functionality for
 -- form creation and validation. For an interface for front-end
--- implementation, see "View".
+-- implementation, see "Text.Digestive.View".
 module Text.Digestive.Form
     ( Formlet
     , Form
