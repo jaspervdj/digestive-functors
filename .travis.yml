@@ -1,4 +1,16 @@
 language: haskell
-before_install:
-  - "cd digestive-functors"
-  - "cabal install HUnit test-framework test-framework-hunit"
+sudo: required
+dist: trusty
+ghc:
+  - "7.4"
+  - "7.6"
+  - "7.8"
+  - "7.10"
+  - "8.0"
+  - "8.2"
+  - "8.4"
+install:
+  - "cabal install --dry-run -v1 digestive-functors/ digestive-functors-blaze/ digestive-functors-happstack/ digestive-functors-heist/ digestive-functors-snap --enable-test --enable-bench"
+script:
+  - "cabal install digestive-functors/ digestive-functors-blaze/ digestive-functors-happstack/ digestive-functors-heist/ digestive-functors-snap --enable-test --enable-bench"
+  - "cd digestive-functors/ && cabal test"
