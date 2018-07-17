@@ -37,12 +37,14 @@ instance Show FormEncType where
 
 
 --------------------------------------------------------------------------------
--- Monoid instance for encoding types: prefer UrlEncoded, but fallback to
--- MultiPart when needed
+-- | @'SemiGroup' 'Monoid'@ instance for encoding types: prefer
+-- @UrlEncoded@, but fallback to @MultiPart@ when needed
+instance Semigroup FormEncType where
+    UrlEncoded <> x = x
+    MultiPart  <> _ = MultiPart
+
 instance Monoid FormEncType where
     mempty               = UrlEncoded
-    mappend UrlEncoded x = x
-    mappend MultiPart  _ = MultiPart
 
 
 --------------------------------------------------------------------------------

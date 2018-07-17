@@ -1,0 +1,14 @@
+resolver: lts-12.0
+
+packages:
+- digestive-functors/
+- digestive-functors-blaze/
+- digestive-functors-happstack/
+- digestive-functors-heist/
+- digestive-functors-snap/
+
+extra-deps:
+- heist-1.0.1.3
+- xmlhtml-0.2.5.2
+- git: git@github.com:mightybyte/map-syntax.git
+  commit: acebcf0a83ee639e1a0c49850b9c85821d53f621
