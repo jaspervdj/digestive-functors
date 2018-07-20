@@ -1,8 +1,9 @@
-resolver: nightly-2017-12-14
+resolver: lts-12.1
 
 extra-deps:
-  - 'heist-1.0.1.1'
-  - 'map-syntax-0.2.0.2'
+  - 'heist-1.1'
+  - 'map-syntax-0.3'
+  - "xmlhtml-0.2.5.2"
 
 packages:
   - digestive-functors/
