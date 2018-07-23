@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- 0.8.8.1 (2018-07-18)
+    * Bump heist dependency to 1.1
+
 - 0.8.8.0 (2017-12-26)
     * Remove path information from Choice input element values
 
