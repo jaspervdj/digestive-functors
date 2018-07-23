@@ -13,7 +13,7 @@ module Text.Digestive.Form.Encoding
 import           Control.Monad.Identity             (Identity)
 import           Data.Maybe                         (mapMaybe)
 import           Data.Monoid                        (Monoid (..), mconcat)
-import           Data.Semigroup.Compat              (Semigroup (..))
+import           Data.Semigroup                     (Semigroup (..))
 
 
 --------------------------------------------------------------------------------
