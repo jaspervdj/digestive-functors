@@ -1,2 +1,7 @@
+# CHANGELOG
+
+- 0.7.0.1 (2018-07-18)
+    * Bump containers dependency to 0.6
+
 - 0.7.0.0
     * Add support for `snap-1.0`
