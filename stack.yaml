@@ -1,3 +1,4 @@
+save-hackage-creds: false
 resolver: lts-11.17
 
 extra-deps:

@@ -1,3 +1,9 @@
+- 0.8.4.0 (2017-07-18)
+    * GHC 8.4 support
+    * Bump `containers` to 0.6
+    * Bump `time` to 1.9
+    * Bump `QuickCheck` to 2.11
+
 - 0.8.3.0 (2017-12-26)
     * Fix input element values for choice forms
     * Bump `time` to 1.8
