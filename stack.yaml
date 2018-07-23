@@ -1,10 +1,12 @@
 resolver: lts-11.17
 
-extra-deps: []
+extra-deps:
+- 'heist-1.1'
+- 'map-syntax-0.3'
 
 packages:
-- digestive-functors/
-- digestive-functors-blaze/
-- digestive-functors-happstack/
-- digestive-functors-heist/
-- digestive-functors-snap/
+- 'digestive-functors/'
+- 'digestive-functors-blaze/'
+- 'digestive-functors-happstack/'
+- 'digestive-functors-heist/'
+- 'digestive-functors-snap/'
