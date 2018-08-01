@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, CPP #-}
 -- | Provides a datatype to differentiate between regular urlencoding and
 -- multipart encoding for the content of forms and functions to determine
 -- the content types of forms.
@@ -7,6 +7,11 @@ module Text.Digestive.Form.Encoding
     ( FormEncType (..)
     , formTreeEncType
     ) where
+
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup((<>)))
+#endif
 
 
 --------------------------------------------------------------------------------
@@ -38,20 +43,18 @@ instance Show FormEncType where
 
 
 --------------------------------------------------------------------------------
--- Semigroup instance for encoding types: prefer UrlEncoded, but fallback to
--- MultiPart when needed
+-- | @'SemiGroup' 'Monoid'@ instance for encoding types: prefer
+-- @UrlEncoded@, but fallback to @MultiPart@ when needed
 instance Semigroup FormEncType where
     UrlEncoded <> x = x
     MultiPart  <> _ = MultiPart
 
-
---------------------------------------------------------------------------------
--- Monoid instance for encoding types: prefer UrlEncoded, but fallback to
--- MultiPart when needed
 instance Monoid FormEncType where
-    mempty  = UrlEncoded
+    mempty               = UrlEncoded
+#if MIN_VERSION_base(4,11,0)
+#else
     mappend = (<>)
-
+#endif
 
 --------------------------------------------------------------------------------
 -- Only file uploads require the multipart encoding
