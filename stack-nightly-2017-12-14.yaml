@@ -1,12 +1,13 @@
-resolver: nightly-2017-12-14
+save-hackage-creds: false
+resolver: lts-11.17
 
 extra-deps:
-  - 'heist-1.0.1.1'
-  - 'map-syntax-0.2.0.2'
+- 'heist-1.1'
+- 'map-syntax-0.3'
 
 packages:
-  - digestive-functors/
-  - digestive-functors-blaze/
-  - digestive-functors-happstack/
-  - digestive-functors-heist/
-  - digestive-functors-snap/
+- 'digestive-functors/'
+- 'digestive-functors-blaze/'
+- 'digestive-functors-happstack/'
+- 'digestive-functors-heist/'
+- 'digestive-functors-snap/'

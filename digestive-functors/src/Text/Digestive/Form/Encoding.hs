@@ -18,6 +18,7 @@ import Data.Semigroup (Semigroup((<>)))
 import           Control.Monad.Identity             (Identity)
 import           Data.Maybe                         (mapMaybe)
 import           Data.Monoid                        (Monoid (..), mconcat)
+import           Data.Semigroup                     (Semigroup (..))
 
 
 --------------------------------------------------------------------------------
