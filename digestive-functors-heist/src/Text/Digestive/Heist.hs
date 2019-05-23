@@ -49,6 +49,7 @@ module Text.Digestive.Heist
 
       -- * Utility splices
     , dfIfChildErrors
+    , dfIfNoChildErrors
     ) where
 
 
@@ -97,6 +98,7 @@ digestiveSplices view = do
     "dfChildErrorList"   ## dfChildErrorList view
     "dfSubView"          ## dfSubView view
     "dfIfChildErrors"    ## dfIfChildErrors view
+    "dfIfNoChildErrors"  ## dfIfNoChildErrors view
     
 
 
@@ -502,3 +504,20 @@ dfIfChildErrors view = do
     if null (childErrors ref view)
         then return []
         else runChildren
+
+
+--------------------------------------------------------------------------------
+-- | Render some content only if there are no errors. This is useful for markup
+-- purposes.
+--
+-- > <dfIfNoChildErrors ref="user">
+-- >     Content to be rendered if there are no errors...
+-- > </dfIfNoChildErrors>
+--
+-- The @ref@ attribute can be omitted if you want to check the entire form.
+dfIfNoChildErrors :: Monad m => View v -> Splice m
+dfIfNoChildErrors view = do
+    (ref, _) <- getRefAttributes $ Just ""
+    if null (childErrors ref view)
+        then runChildren
+        else return []
