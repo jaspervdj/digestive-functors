@@ -51,6 +51,7 @@ module Text.Digestive.Heist.Compiled
 
       -- * Utility splices
     , dfIfChildErrors
+    , dfIfNoChildErrors
     , digestiveSplices
     ) where
 
@@ -467,11 +468,11 @@ dfIfChildErrors getView = do
 
 
 --------------------------------------------------------------------------------
--- | Render some content only if there are any errors. This is useful for markup
+-- | Render some content only if there are no errors. This is useful for markup
 -- purposes.
 --
 -- > <dfIfNoChildErrors ref="user">
--- >     Content to be rendered if there are any errors...
+-- >     Content to be rendered if there are no errors...
 -- > </dfIfNoChildErrors>
 --
 -- The @ref@ attribute can be omitted if you want to check the entire form.
