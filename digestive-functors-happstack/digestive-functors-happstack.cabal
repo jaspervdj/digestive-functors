@@ -1,5 +1,5 @@
 Name:          digestive-functors-happstack
-Version:       0.6.1.2
+Version:       0.6.1.3
 Synopsis:      Happstack backend for the digestive-functors library
 Description:   Happstack backend for the digestive-functors library
 Homepage:      http://github.com/jaspervdj/digestive-functors
