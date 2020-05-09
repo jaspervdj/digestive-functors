@@ -1,9 +1,11 @@
 save-hackage-creds: false
-resolver: lts-11.17
+resolver: lts-15.6
 
 extra-deps:
-- 'heist-1.1'
+- 'heist-1.1.0.1'
 - 'map-syntax-0.3'
+- 'happstack-server-7.6.0'
+- 'xmlhtml-0.2.5.2'
 
 packages:
 - 'digestive-functors/'
