@@ -9,14 +9,16 @@ Author:        Jasper Van der Jeugt <m@jaspervdj.be>
 Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
-Cabal-version: >= 1.6
+Cabal-version: >= 1.10
 
 Extra-source-files:
   CHANGELOG
 
 Library
-  Hs-source-dirs:  src
-  GHC-options:     -Wall -fwarn-tabs
+  Hs-source-dirs:   src
+  GHC-options:      -Wall -fwarn-tabs
+  Default-language: Haskell2010
+
   Exposed-modules:
     Text.Digestive.Heist
     Text.Digestive.Heist.Compiled

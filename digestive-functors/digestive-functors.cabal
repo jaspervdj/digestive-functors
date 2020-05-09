@@ -39,14 +39,16 @@ Author:        Jasper Van der Jeugt <m@jaspervdj.be>
 Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
 Category:      Web
 Build-type:    Simple
-Cabal-version: >= 1.8
+Cabal-version: >= 1.10
 
 Extra-source-files:
   CHANGELOG
 
 Library
-  Hs-source-dirs: src
-  Ghc-options:    -Wall -fwarn-tabs
+  Default-language:   Haskell2010
+  Hs-source-dirs:     src
+  Ghc-options:        -Wall -fwarn-tabs
+  Default-extensions: CPP
 
   Exposed-modules:
     Text.Digestive
@@ -69,13 +71,13 @@ Library
     semigroups            >= 0.16    && < 0.20,
     text                  >= 0.10    && < 1.3,
     time                  >= 1.4     && < 1.10
-  Extensions: CPP
 
 Test-suite digestive-functors-tests
-  Type:           exitcode-stdio-1.0
-  Hs-source-dirs: src tests
-  Main-is:        TestSuite.hs
-  Ghc-options:    -Wall
+  Default-language: Haskell2010
+  Type:             exitcode-stdio-1.0
+  Hs-source-dirs:   src tests
+  Main-is:          TestSuite.hs
+  Ghc-options:      -Wall
 
   Other-modules:
     Text.Digestive.Field.QTests

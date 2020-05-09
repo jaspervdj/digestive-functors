@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- UNRELEASED
+    * Bump `Cabal` lower bound to 1.10
+
 - 0.8.8.1 (2018-07-18)
     * Bump heist dependency to 1.1
 

@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- UNRELEASED
+    * Bump `Cabal` lower bound to 1.10
+
 - 0.7.0.1 (2018-07-18)
     * Bump containers dependency to 0.6
 

@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- UNRELEASED
+    * Bump `Cabal` lower bound to 1.10
+
 - 0.6.2.0 (2017-12-26)
     * Remove path information from Choice input element values
     * Bump `blaze-html` to 0.9
