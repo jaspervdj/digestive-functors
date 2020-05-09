@@ -1,3 +1,6 @@
+- 0.8.4.1 (2020-05-09)
+    * Bump `semigroups` dependency upper bound to 0.20
+
 - 0.8.4.0 (2017-07-18)
     * GHC 8.4 support
     * Bump `containers` to 0.6
