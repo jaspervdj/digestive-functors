@@ -70,7 +70,7 @@ Library
     old-locale            >= 1.0     && < 1.1,
     semigroups            >= 0.16    && < 0.20,
     text                  >= 0.10    && < 2.1,
-    time                  >= 1.4     && < 1.10
+    time                  >= 1.4     && < 1.13
 
 Test-suite digestive-functors-tests
   Default-language: Haskell2010
@@ -113,7 +113,7 @@ Test-suite digestive-functors-tests
     old-locale            >= 1.0     && < 1.1,
     semigroups            >= 0.16    && < 0.19,
     text                  >= 0.10    && < 2.1,
-    time                  >= 1.4     && < 1.10
+    time                  >= 1.4     && < 1.13
 
 Source-repository head
   Type:     git
