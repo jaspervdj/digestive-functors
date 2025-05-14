@@ -64,13 +64,13 @@ Library
 
   Build-depends:
     base                  >= 4       && < 5,
-    bytestring            >= 0.9     && < 0.12,
-    containers            >= 0.3     && < 0.7,
+    bytestring            >= 0.9     && < 0.13,
+    containers            >= 0.3     && < 0.9,
     mtl                   >= 1.1.0.0 && < 3,
     old-locale            >= 1.0     && < 1.1,
-    semigroups            >= 0.16    && < 0.20,
-    text                  >= 0.10    && < 2.1,
-    time                  >= 1.4     && < 1.13
+    semigroups            >= 0.16    && < 0.21,
+    text                  >= 0.10    && < 2.2,
+    time                  >= 1.4     && < 1.15
 
 Test-suite digestive-functors-tests
   Default-language: Haskell2010
@@ -101,19 +101,19 @@ Test-suite digestive-functors-tests
 
   Build-depends:
     HUnit                      >= 1.2 && < 1.7,
-    QuickCheck                 >= 2.5 && < 2.15,
+    QuickCheck                 >= 2.5 && < 2.16,
     test-framework             >= 0.4 && < 0.9,
     test-framework-hunit       >= 0.3 && < 0.4,
     test-framework-quickcheck2 >= 0.3 && < 0.4,
     -- Copied from regular dependencies:
     base                  >= 4       && < 5,
-    bytestring            >= 0.9     && < 0.12,
-    containers            >= 0.3     && < 0.7,
+    bytestring            >= 0.9     && < 0.13,
+    containers            >= 0.3     && < 0.9,
     mtl                   >= 1.1.0.0 && < 3,
     old-locale            >= 1.0     && < 1.1,
-    semigroups            >= 0.16    && < 0.19,
-    text                  >= 0.10    && < 2.1,
-    time                  >= 1.4     && < 1.13
+    semigroups            >= 0.16    && < 0.21,
+    text                  >= 0.10    && < 2.2,
+    time                  >= 1.4     && < 1.15
 
 Source-repository head
   Type:     git
